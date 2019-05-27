@@ -52,6 +52,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TransformerProcessor.cs" />
     <Compile Include="DeviceProcessor.cs" />
     <Compile Include="Enricher.cs" />
     <Compile Include="GroupProcessor.cs" />

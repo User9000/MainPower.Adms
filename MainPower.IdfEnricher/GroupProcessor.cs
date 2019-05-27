@@ -25,7 +25,7 @@ namespace MainPower.IdfEnricher
         {
             lock (Graphics)
             {
-                if (Graphics.SelectSingleNode($"//element[@id=\"{id}\"]") is XmlElement node)
+                if (Graphics.SelectSingleNode($"//element[@id=\"d_{id}\"]") is XmlElement node)
                 {
                     node.SetAttribute("symbol", symbolName);
                     node.SetAttribute("library", "MPNZ.LIB2");
@@ -35,34 +35,41 @@ namespace MainPower.IdfEnricher
 
         internal void  Process()
         {
-            //throw errors to caller
-            Graphics = new XmlDocument();
-            Graphics.Load($"{Enricher.Singleton.Options.Path}\\{Id}_display.xml");
-            Data = new XmlDocument();
-            Data.Load($"{Enricher.Singleton.Options.Path}\\{Id}_data.xml");
-
-            var tasks = new List<Task>();
-            var nodes = Data.SelectNodes($"//group[@id=\"{Id}\"]/element");
-            foreach (XmlElement node in nodes)
+            try
             {
-                DeviceProcessor d = null;
-                var elType = node.Attributes["type"].InnerText;
-                switch (elType)
+                //throw errors to caller
+                Graphics = new XmlDocument();
+                Graphics.Load($"{Enricher.Singleton.Options.Path}\\{Id}_display.xml");
+                Data = new XmlDocument();
+                Data.Load($"{Enricher.Singleton.Options.Path}\\{Id}_data.xml");
+
+                var tasks = new List<Task>();
+                var nodes = Data.SelectNodes($"//group[@id=\"{Id}\"]/element");
+                foreach (XmlElement node in nodes)
                 {
-                    case "Switch":
-                        d = new SwitchProcessor(node, this);
-                        break;
-                    default:
-                        break;
+                    DeviceProcessor d = null;
+                    var elType = node.Attributes["type"].InnerText;
+                    switch (elType)
+                    {
+                        case "Switch":
+                            d = new SwitchProcessor(node, this);
+                            break;
+                        default:
+                            break;
+                    }
+                    if (d != null)
+                    {
+                        d.Process();
+                    }
                 }
-                if (d != null)
-                {
-                    d.Process();
-                }
+                Directory.CreateDirectory($"{Enricher.Singleton.Options.Path}\\output\\");
+                Data.Save($"{Enricher.Singleton.Options.Path}\\output\\{Id}_data.xml");
+                Graphics.Save($"{Enricher.Singleton.Options.Path}\\output\\{Id}_display.xml");
             }
-            Directory.CreateDirectory($"{Enricher.Singleton.Options.Path}\\output\\");
-            Data.Save($"{Enricher.Singleton.Options.Path}\\output\\{Id}_data.xml");
-            Graphics.Save($"{Enricher.Singleton.Options.Path}\\output\\{Id}_display.xml");
+            catch (Exception ex)
+            {
+                _log.Error($"GROUP,,,,{ex.Message}");
+            }
         }
     }
 }

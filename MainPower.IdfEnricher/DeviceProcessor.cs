@@ -22,10 +22,10 @@ namespace MainPower.IdfEnricher
 
         abstract internal void Process();
 
-        abstract protected void Debug(string code1, string code2, string message);
-        abstract protected void Info(string code1, string code2, string message);
-        abstract protected void Warn(string code1, string code2, string message);
-        abstract protected void Error(string code1, string code2, string message);
+        abstract protected void Debug(string code, string message);
+        abstract protected void Info(string code, string message);
+        abstract protected void Warn(string code, string message);
+        abstract protected void Error(string code, string message);
     }
 
 }

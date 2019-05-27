@@ -25,7 +25,8 @@ namespace MainPower.IdfEnricher
         internal DataTable ScadaAnalog { get; set; }
         internal DataTable ScadaAccumulator { get; set; }
         internal DataTable AdmsSwitch { get; set; }
-        
+        internal DataTable AdmsTransformer { get; set; }
+
 
         internal void LoadSourceData()
         {
@@ -37,6 +38,7 @@ namespace MainPower.IdfEnricher
             ScadaAnalog = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaAnalog.csv", true);
             ScadaAccumulator = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaAccumulator.csv", true);
             AdmsSwitch = Util.GetDataTableFromCsv($"{Options.Path}\\AdmsSwitch.csv", true);
+            AdmsTransformer = Util.GetDataTableFromCsv($"{Options.Path}\\AdmsTransformer.csv", true);
         }
 
         internal void ProcessImportConfiguration()
@@ -54,12 +56,9 @@ namespace MainPower.IdfEnricher
             Task.WaitAll(tasks.ToArray());
         }
 
-        internal DataRow GetT1DisconnectorByAssetNumber(string id)
+        private DataRow GenericDatasetQuery(DataTable data, string queryColumn, string queryName, bool trueforstringfalseforint, string id)
         {
-            var data = T1Disconnectors;
-            var queryColumn = "Asset Number";
-            var queryName = "T1 Disconnector";
-            var s = ""; 
+            var s = trueforstringfalseforint ? "'": "";
 
             lock (data)
             {
@@ -68,12 +67,12 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] = {s}{id}{s}");
                     if (result.Length == 0)
                     {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
+                        Warn(queryName,  "Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn(queryName,  $"More than one {queryName} found with {queryColumn}:{id}");
                     }
                     return result[0];
                 }
@@ -85,161 +84,34 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        internal DataRow GetT1DisconnectorBySwitchNumber(string id)
+        internal DataRow GetT1DisconnectorByAssetNumber(string id)
         {
-            var data = T1Disconnectors;
-            var queryColumn = "Switch Number";
-            var queryName = "T1 Disconnector";
+            return GenericDatasetQuery(T1Disconnectors, "Asset Number", "T1 Disconnector", false, id);
+        }
 
-            lock (data)
-            {
-                try
-                {
-                    var result = data.Select($"[{queryColumn}] = '{id}'");
-                    if (result.Length == 0)
-                    {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
-                        return null;
-                    }
-                    else if (result.Length > 1)
-                    {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
-                    }
-                    return result[0];
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(ex.ToString());
-                    return null;
-                }
-            }
-        } 
+        internal DataRow GetT1TransformerByAssetNumber(string id)
+        {
+            return GenericDatasetQuery(T1Transformers, "Asset Number", "T1 Transformer", false, id);
+        }
+
+        internal DataRow GetAdmsTransformerByAssetNumber(string id)
+        {
+            return GenericDatasetQuery(AdmsTransformer, "Asset Number", "Adms Transformer", false, id);
+        }
 
         internal DataRow GetT1FuseByAssetNumber(string id)
         {
-            var data = T1Fuses;
-            var queryColumn = "Asset Number";
-            var queryName = "T1 Fuse";
-            var s = "";
-
-            lock (data)
-            {
-                try
-                {
-                    var result = data.Select($"[{queryColumn}] = {s}{id}{s}");
-                    if (result.Length == 0)
-                    {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
-                        return null;
-                    }
-                    else if (result.Length > 1)
-                    {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
-                    }
-                    return result[0];
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(ex.ToString());
-                    return null;
-                }
-            }
+            return GenericDatasetQuery(T1Fuses, "Asset Number", "T1 Fuse", false, id);
         }
 
-        internal DataRow GetT1RingMainUnitByT1AssetNumber(string t1assetno)
+        internal DataRow GetT1RingMainUnitByT1AssetNumber(string id)
         {
-            throw new NotImplementedException();
-        }
-
-        internal DataRow GetT1FuseBySwitchNumber(string id)
-        {
-            var data = T1Fuses;
-            var queryColumn = "Switch Number";
-            var queryName = "T1 Fuse";
-
-            lock (data)
-            {
-                try
-                {
-                    var result = data.Select($"[{queryColumn}] = '{id}'");
-                    if (result.Length == 0)
-                    {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
-                        return null;
-                    }
-                    else if (result.Length > 1)
-                    {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
-                    }
-                    return result[0];
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(ex.ToString());
-                    return null;
-                }
-            }
+            return GenericDatasetQuery(T1RingMainUnits, "Asset Number", "T1 RMU", false, id);
         }
 
         internal DataRow GetT1HvCircuitBreakerByAssetNumber (string id)
         {
-            var data = T1HvCircuitBreakers;
-            var queryColumn = "Asset Number";
-            var queryName = "T1 HV Circuit Breaker";
-            var s = "";
-
-            lock (data)
-            {
-                try
-                {
-                    var result = data.Select($"[{queryColumn}] = {s}{id}{s}");
-                    if (result.Length == 0)
-                    {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
-                        return null;
-                    }
-                    else if (result.Length > 1)
-                    {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
-                    }
-                    return result[0];
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(ex.ToString());
-                    return null;
-                }
-            }
-        }
-
-        internal DataRow GetT1HvCircuitBreakerBySwitchNumber(string id)
-        {
-            var data = T1HvCircuitBreakers;
-            var queryColumn = "Switch Number";
-            var queryName = "T1 HV Circuit Breaker";
-
-            lock (data)
-            {
-                try
-                {
-                    var result = data.Select($"[{queryColumn}] = '{id}'");
-                    if (result.Length == 0)
-                    {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
-                        return null;
-                    }
-                    else if (result.Length > 1)
-                    {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
-                    }
-                    return result[0];
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(ex.ToString());
-                    return null;
-                }
-            }
+            return GenericDatasetQuery(T1HvCircuitBreakers, "Asset Number", "T1 HV Circuit Breaker", false, id);
         }
 
         internal ScadaPointInfo GetScadaStatusInfoByExactName(string id)
@@ -247,7 +119,7 @@ namespace MainPower.IdfEnricher
             ScadaPointInfo p = new ScadaPointInfo();
             var data = ScadaStatus;
             var queryColumn = "Name";
-            var queryName = "Point Name";
+            var queryName = "SCADA Point Name";
 
             lock (data)
             {
@@ -256,12 +128,12 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] = '{id}'");
                     if (result.Length == 0)
                     {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
+                        Warn(queryName,  "Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn(queryName,  $"More than one {queryName} found with {queryColumn}:{id}");
                     }
                     p.Key = result[0]["Key"] as string;
                     p.PointName = result[0]["Name"] as string;
@@ -282,7 +154,7 @@ namespace MainPower.IdfEnricher
             ScadaPointInfo p = new ScadaPointInfo();
             var data = ScadaStatus;
             var queryColumn = "Name";
-            var queryName = "Switch Number";
+            var queryName = "SCADA Switch Number";
 
             lock (data)
             {
@@ -291,12 +163,12 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] LIKE '*{id}'");
                     if (result.Length == 0)
                     {
-                        _log.Warn($"{queryName} not found with {queryColumn}:*{id}");
+                        Debug(queryName,  "Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn(queryName,  $"More than one {queryName} found with {queryColumn}:{id}");
                     }
                     p.Key = result[0]["Key"] as string;
                     p.PointName = result[0]["Name"] as string;
@@ -312,35 +184,9 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        internal DataRow AdmsGetSwitch(string id)
+        internal DataRow GetAdmsSwitch(string id)
         {
-            var data = AdmsSwitch;
-            var queryColumn = "Switch Number";
-            var queryName = "Adms Switch";
-            var s = "'";
-
-            lock (data)
-            {
-                try
-                {
-                    var result = data.Select($"[{queryColumn}] = {s}{id}{s}");
-                    if (result.Length == 0)
-                    {
-                        _log.Warn($"{queryName} not found with {queryColumn}:{id}");
-                        return null;
-                    }
-                    else if (result.Length > 1)
-                    {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
-                    }
-                    return result[0];
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(ex.ToString());
-                    return null;
-                }
-            }
+            return GenericDatasetQuery(AdmsSwitch, "Switch Number", "Adms Switch", true, id);
         }
 
         internal ScadaPointInfo GetScadaStatusCircuitEarthBySwitchNumber(string id)
@@ -348,7 +194,7 @@ namespace MainPower.IdfEnricher
             ScadaPointInfo p = new ScadaPointInfo();
             var data = ScadaStatus;
             var queryColumn = "Name";
-            var queryName = "Switch Number (Circuit Earth)";
+            var queryName = "SCADA Switch Number (Circuit Earth)";
 
             lock (data)
             {
@@ -357,12 +203,12 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] LIKE '*{id} Circuit Earth'");
                     if (result.Length == 0)
                     {
-                        _log.Warn($"{queryName} not found with {queryColumn}:*{id}");
+                        Warn(queryName,  "Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        _log.Warn($"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn(queryName, $"More than one {queryName} found with {queryColumn}:{id}");
                     }
                     p.Key = result[0]["Key"] as string;
                     p.PointName = result[0]["Name"] as string;
@@ -376,6 +222,26 @@ namespace MainPower.IdfEnricher
                     return null;
                 }
             }
+        }
+
+        protected void Debug(string code, string message)
+        {
+            _log.Debug($"ENRICHER,{code},,{message}");
+        }
+
+        protected void Info(string code, string message)
+        {
+            _log.Info($"ENRICHER,{code},,,{message}");
+        }
+
+        protected void Warn(string code, string message)
+        {
+            _log.Warn($"ENRICHER,{code},,{message}");
+        }
+
+        protected void Error(string code, string message)
+        {
+            _log.Error($"ENRICHER,{code},,{message}");
         }
     }
 }
