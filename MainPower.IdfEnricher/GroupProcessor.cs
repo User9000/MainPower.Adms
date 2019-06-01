@@ -29,6 +29,7 @@ namespace MainPower.IdfEnricher
                 {
                     node.SetAttribute("symbol", symbolName);
                     node.SetAttribute("library", "MPNZ.LIB2");
+                    node.SetAttribute("scale", "10");
                 }
             }
         }
@@ -52,7 +53,10 @@ namespace MainPower.IdfEnricher
                     switch (elType)
                     {
                         case "Switch":
-                            d = new SwitchProcessor(node, this);
+                            //d = new SwitchProcessor(node, this);
+                            break;
+                        case "Transformer":
+                            d = new TransformerProcessor(node, this);
                             break;
                         default:
                             break;
@@ -68,7 +72,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Error($"GROUP,,,,{ex.Message}");
+                _log.Error($"GROUP,,,{ex.Message}");
             }
         }
     }

@@ -34,6 +34,7 @@ namespace MainPower.IdfEnricher
             T1Fuses = Util.GetDataTableFromCsv($"{Options.Path}\\T1Fuses.csv", true);
             T1HvCircuitBreakers = Util.GetDataTableFromCsv($"{Options.Path}\\T1HvCircuitBreakers.csv", true);
             T1RingMainUnits = Util.GetDataTableFromCsv($"{Options.Path}\\T1RingMainUnits.csv", true);
+            T1Transformers = Util.GetDataTableFromCsv($"{Options.Path}\\T1Transformers.csv", true);
             ScadaStatus = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaStatus.csv", true);
             ScadaAnalog = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaAnalog.csv", true);
             ScadaAccumulator = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaAccumulator.csv", true);
@@ -67,7 +68,7 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] = {s}{id}{s}");
                     if (result.Length == 0)
                     {
-                        Warn(queryName,  "Not found with {queryColumn}:{id}");
+                        Debug(queryName,  $"Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
