@@ -8,6 +8,15 @@ using System.Xml;
 
 namespace MainPower.IdfEnricher
 {
+    enum PointType
+    {
+        StatusInput,
+        StatusOutput,
+        AnalogInput, 
+        AnalogOutput
+    }
+
+
     class Enricher
     {
         private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -115,31 +124,33 @@ namespace MainPower.IdfEnricher
             return GenericDatasetQuery(T1HvCircuitBreakers, "Asset Number", "T1 HV Circuit Breaker", false, id);
         }
 
-        internal ScadaPointInfo GetScadaStatusInfoByExactName(string id)
+        internal ScadaStatusPointInfo GetScadaStatusPointInfo(string id)
         {
-            ScadaPointInfo p = new ScadaPointInfo();
+            ScadaStatusPointInfo p = new ScadaStatusPointInfo();
             var data = ScadaStatus;
             var queryColumn = "Name";
-            var queryName = "SCADA Point Name";
+            var queryName = "SCADA Point";
 
             lock (data)
             {
                 try
                 {
-                    var result = data.Select($"[{queryColumn}] = '{id}'");
+                    var result = data.Select($"[{queryColumn}] LIKE '*{id}'");
                     if (result.Length == 0)
                     {
-                        Warn(queryName,  "Not found with {queryColumn}:{id}");
+                        Debug(queryName, "Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        Warn(queryName,  $"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn(queryName, $"More than one {queryName} found with {queryColumn}:{id}");
                     }
-                    p.Key = result[0]["Key"] as string;
+                    p.Key = (result[0]["Key"] as int?).ToString();
+                    p.PointType = result[0]["Type"] as string;
                     p.PointName = result[0]["Name"] as string;
                     //a point is quad state if there are four states, which are separated by '/'
                     p.QuadState = (result[0]["pStates"] as string).Count(x => x == '/') == 3;
+
                     return p;
                 }
                 catch (Exception ex)
@@ -150,12 +161,12 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        internal ScadaPointInfo GetScadaStatusSwitchStatusInfoBySwitchNumber(string id)
+        internal ScadaAnalogPointInfo GetScadaAnalogPointInfo(string id)
         {
-            ScadaPointInfo p = new ScadaPointInfo();
-            var data = ScadaStatus;
+            ScadaAnalogPointInfo p = new ScadaAnalogPointInfo();
+            var data = ScadaAnalog;
             var queryColumn = "Name";
-            var queryName = "SCADA Switch Number";
+            var queryName = "SCADA Point";
 
             lock (data)
             {
@@ -164,17 +175,18 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] LIKE '*{id}'");
                     if (result.Length == 0)
                     {
-                        Debug(queryName,  "Not found with {queryColumn}:{id}");
+                        Debug(queryName, "Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        Warn(queryName,  $"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn(queryName, $"More than one {queryName} found with {queryColumn}:{id}");
                     }
-                    p.Key = result[0]["Key"] as string;
+                    p.Key = (result[0]["Key"] as int?).ToString();
+                    p.PointType = result[0]["Type"] as string;
                     p.PointName = result[0]["Name"] as string;
-                    //a point is quad state if there are four states, which are separated by '/'
-                    p.QuadState = (result[0]["pStates"] as string).Count(x => x == '/') == 3;
+                    p.Units = result[0]["Units"] as string;
+
                     return p;
                 }
                 catch (Exception ex)
@@ -188,41 +200,6 @@ namespace MainPower.IdfEnricher
         internal DataRow GetAdmsSwitch(string id)
         {
             return GenericDatasetQuery(AdmsSwitch, "Switch Number", "Adms Switch", true, id);
-        }
-
-        internal ScadaPointInfo GetScadaStatusCircuitEarthBySwitchNumber(string id)
-        {
-            ScadaPointInfo p = new ScadaPointInfo();
-            var data = ScadaStatus;
-            var queryColumn = "Name";
-            var queryName = "SCADA Switch Number (Circuit Earth)";
-
-            lock (data)
-            {
-                try
-                {
-                    var result = data.Select($"[{queryColumn}] LIKE '*{id} Circuit Earth'");
-                    if (result.Length == 0)
-                    {
-                        Warn(queryName,  "Not found with {queryColumn}:{id}");
-                        return null;
-                    }
-                    else if (result.Length > 1)
-                    {
-                        Warn(queryName, $"More than one {queryName} found with {queryColumn}:{id}");
-                    }
-                    p.Key = result[0]["Key"] as string;
-                    p.PointName = result[0]["Name"] as string;
-                    //a point is quad state if there are four states, which are separated by '/'
-                    p.QuadState = (result[0]["pStates"] as string).Count(x => x == '/') == 3;
-                    return p;
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(ex.ToString());
-                    return null;
-                }
-            }
         }
 
         protected void Debug(string code, string message)

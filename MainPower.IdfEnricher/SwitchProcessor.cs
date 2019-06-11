@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -87,7 +88,28 @@ namespace MainPower.IdfEnricher
         private const string ADMS_SWITCH_FORWARDTRIPAMPS = "forwardTripAmps";
         private const string ADMS_SWITCH_REVERSETRIPAMPS = "reverseTripAmps";
         private const string ADMS_SWITCH_RECLOSER_ENABLED = "Recloser";
-        
+
+        private const string IDF_SWITCH_SCADA_P1_STATE = "p1State";
+        private const string IDF_SWITCH_SCADA_P2_STATE = "p2State";
+        private const string IDF_SWITCH_SCADA_P3_STATE = "p3State";
+        private const string IDF_SWITCH_SCADA_S1_R_AMPS = "s1p1Amps";
+        private const string IDF_SWITCH_SCADA_S1_Y_AMPS = "s1p2Amps";
+        private const string IDF_SWITCH_SCADA_S1_B_AMPS = "s1p3Amps";
+        private const string IDF_SWITCH_SCADA_S2_R_AMPS = "s2p1Amps";
+        private const string IDF_SWITCH_SCADA_S2_Y_AMPS = "s2p2Amps";
+        private const string IDF_SWITCH_SCADA_S2_B_AMPS = "s2p3Amps";
+        private const string IDF_SWITCH_SCADA_S1_VREF = "s1VoltageReference";
+        private const string IDF_SWITCH_SCADA_S1_VTYPE = "s1VoltageType";
+        private const string IDF_SWITCH_SCADA_S2_VREF = "s2VoltageReference";
+        private const string IDF_SWITCH_SCADA_S2_VTYPE = "s2VoltageType";
+
+        private const string IDF_SWITCH_SCADA_S1_RY_VOLTS = "s1p1KV";
+        private const string IDF_SWITCH_SCADA_S1_YB_VOLTS = "s1p2KV";
+        private const string IDF_SWITCH_SCADA_S1_BR_VOLTS = "s1p3KV";
+        private const string IDF_SWITCH_SCADA_S2_RY_VOLTS = "s2p1KV";
+        private const string IDF_SWITCH_SCADA_S2_YB_VOLTS = "s2p2KV";
+        private const string IDF_SWITCH_SCADA_S2_BR_VOLTS = "s2p3KV";
+
         #endregion
 
         //compulsory fields
@@ -101,7 +123,7 @@ namespace MainPower.IdfEnricher
         
         //fields that should be set and validated by this class
         private string _baseKv = "";//GIS will set this to the operating voltage
-        private string _bidirectional = "";
+        private string _bidirectional = FALSE;
         private string _forwardTripAmps = "";
         private string _ganged = "";
         private string _loadBreakCapable = "";
@@ -229,13 +251,17 @@ namespace MainPower.IdfEnricher
                 Node.SetAttribute(IDF_SWITCH_RATEDKV, _ratedKv);
                 Node.SetAttribute(IDF_SWITCH_REVERSETRIPAMPS, _reverseTripAmps);
                 Node.SetAttribute(IDF_SWITCH_SWITCHTYPE, _switchType);
-                GenerateScadaLinking();
+                var scada = GenerateScadaLinking();
+                if (!string.IsNullOrWhiteSpace(scada))
+                {
+                    Processor.AddDataNode(scada);
+                }
                 RemoveExtraAttributes();
-                Debug("SWITCH",  ToString());
+                //Debug("SWITCH",  ToString());
             }
             catch (Exception ex)
             {
-                Debug(ERR_CAT_GENERAL,$"Uncaught exception in {nameof(Process)}: {ex.Message}");
+                Error(ERR_CAT_GENERAL,$"Uncaught exception in {nameof(Process)}: {ex.Message}");
             }
         }
 
@@ -249,9 +275,27 @@ namespace MainPower.IdfEnricher
                 Node.RemoveAttribute(GIS_T1_ASSET);
         }
 
-        private void GenerateScadaLinking()
+        private string GenerateScadaLinking()
         {
-            Debug(ERR_CAT_SCADA,  "Not implemented yet");
+            var status = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+
+            if (status == null)
+                return "";
+
+            var rAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps RØ");
+            var yAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps YØ");
+            var bAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps BØ");
+            var kw = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} kW");
+            var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} PF");
+            var s1RYVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts RY");
+            var s1YBVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts YB");
+            var s1BRVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts BR");
+            var s2RYVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts RY2");
+            var s2YBVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts YB2");
+            var s2BRVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts BR2");
+
+            return  $"<element type=\"SCADA\" id=\"{_id}\" p1State=\"{status?.Key}\" p2State=\"{status?.Key}\" p3State=\"{status?.Key}\" preventUICtrlTag=\"\" tripFaultSuppress=\"\" OCPModeNormal=\"\" OCPModeNormalState=\"\" p1TripFaultSignal=\"\" p2TripFaultSignal=\"\" p3TripFaultSignal=\"\" p1FaultInd=\"\" p2FaultInd=\"\" p3FaultInd=\"\" p1FaultInd2=\"\" p2FaultInd2=\"\" p3FaultInd2=\"\" s1p1KV=\"{s1RYVolts?.Key}\" s1p2KV=\"{s1YBVolts?.Key}\" s1p3KV=\"{s1BRVolts?.Key}\" s2p1KV=\"{s2RYVolts?.Key}\" s2p2KV=\"{s2YBVolts?.Key}\" s2p3KV=\"{s2BRVolts?.Key}\" s1p1KW=\"\" s1p2KW=\"\" s1p3KW=\"\" s1AggregateKW=\"\" s1AggregateKWUCF=\"1\" s2p1KW=\"\" s2p2KW=\"\" s2p3KW=\"\" s2AggregateKW=\"\" s1p1KVAR=\"\" s1p2KVAR=\"\" s1p3KVAR=\"\" s1AggregateKVAR=\"\" s1AggregateKVARUCF=\"1\" s2p1KVAR=\"\" s2p2KVAR=\"\" s2p3KVAR=\"\" s2AggregateKVAR=\"\" s1p1KVA=\"\" s1p2KVA=\"\" s1p3KVA=\"\" s1AggregateKVA=\"\" s2p1KVA=\"\" s2p2KVA=\"\" s2p3KVA=\"\" s2AggregateKVA=\"\" s1p1PF=\"\" s1p2PF=\"\" s1p3PF=\"\" s1AggregatePF=\"\" s2p1PF=\"\" s2p2PF=\"\" s2p3PF=\"\" s2AggregatePF=\"\" s1p1Amps=\"{rAmps?.Key}\" s1p2Amps=\"{yAmps?.Key}\" s1p3Amps=\"{bAmps?.Key}\" s1AggregateAmps=\"\" s2p1Amps=\"\" s2p2Amps=\"\" s2p3Amps=\"\" s2AggregateAmps=\"\" p1FaultCurrent=\"\" p2FaultCurrent=\"\" p3FaultCurrent=\"\" s1p1Angle=\"\" s1p2Angle=\"\" s1p3Angle=\"\" s2p1Angle=\"\" s2p2Angle=\"\" s2p3Angle=\"\" s1VoltageReference=\"{_baseKv}\" />";
+                
         }
         #region Switch Type Processing
 
@@ -300,7 +344,7 @@ namespace MainPower.IdfEnricher
 
             ProcessCircuitBreakerAdms();
             
-            var p = Enricher.Singleton.GetScadaStatusSwitchStatusInfoBySwitchNumber(_name);
+            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -343,7 +387,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusSwitchStatusInfoBySwitchNumber(_name);
+            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -386,7 +430,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusSwitchStatusInfoBySwitchNumber(_name);
+            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -432,7 +476,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusSwitchStatusInfoBySwitchNumber(_name);
+            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -550,7 +594,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusSwitchStatusInfoBySwitchNumber(_name);
+            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -621,7 +665,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusSwitchStatusInfoBySwitchNumber(_name);
+            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -665,7 +709,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusSwitchStatusInfoBySwitchNumber(_name);
+            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)

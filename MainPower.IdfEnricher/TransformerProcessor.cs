@@ -62,10 +62,10 @@ namespace MainPower.IdfEnricher
         private const string IDF_TX_NOMINALUPSTREAMSIDE = "nominalUpstreamSide";
         private const string IDF_TX_PARALLELSET = "parallelSet";
         private const string IDF_TX_REGULATIONTYPE = "regulationType";
-        private const string IDF_TX_S1BASEKV = "s1basekV";
+        private const string IDF_TX_S1BASEKV = "s1baseKV";
         private const string IDF_TX_S1CONNECTIONTYPE = "s1connectionType";
         private const string IDF_TX_S1RATEDKV = "s1ratedKV";
-        private const string IDF_TX_S2BASEKV = "s2basekV";
+        private const string IDF_TX_S2BASEKV = "s2baseKV";
         private const string IDF_TX_S2CONNECTIONTYPE = "s2connectionType";
         private const string IDF_TX_S2RATEDKV = "s2ratedKV";
         private const string IDF_TX_ROTATION = "standardRotation";
@@ -74,7 +74,7 @@ namespace MainPower.IdfEnricher
 
         private const string IDF_TX_WINDING_WYE = "Wye";
         private const string IDF_TX_WINDING_ZIGZAG = "Zigzag";
-        private const string IDF_TX_WINDING_WYEG = "Wye-Ground";
+        private const string IDF_TX_WINDING_WYEG = "Wye-G";
         private const string IDF_TX_WINDING_DELTA = "Delta";
 
         private const string IDF_TX_NAME = "name";
@@ -136,7 +136,11 @@ namespace MainPower.IdfEnricher
         private string _kva = "";
         private string _maxTap = "";
         private string _minTap = "";
-
+        private string _percresistance = "";
+        private string _percreactance = "";
+        private string _tapSteps = "";
+        private string _nerResistance = "";
+        private string _transformerTypeType = "Fixed";
 
         private enum TransformerSide
         {
@@ -152,6 +156,7 @@ namespace MainPower.IdfEnricher
             {
                 _id = Node.Attributes[IDF_TX_ID].InnerText;
                 _name = Node.Attributes[IDF_TX_NAME].InnerText;
+                _transformerType = $"{_id}_type";
                 if (Node.HasAttribute(GIS_T1_ASSET))
                     _t1assetno = Node.Attributes[GIS_T1_ASSET].InnerText;
                 
@@ -180,15 +185,22 @@ namespace MainPower.IdfEnricher
                     }
                     else
                     {
-                        //TODO process the tranny t1 data
-                        _phases = ValidatePhases(asset[T1_TX_PHASES] as int?);
-                        _kva = ValidatekVA(asset[T1_TX_KVA] as double?);
-                        _s1ConnectionType = ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.HV);
-                        _s2ConnectionType = ValidateConnectionType(asset[T1_TX_VECTORGROUP]as string, TransformerSide.LV);
-                        _s1RatedKv = ValidateRatedVoltage(asset[T1_TX_PRI_RATEDKV] as string, _s1BaseKv);
-                        _s2RatedKv = ValidateRatedVoltage(asset[T1_TX_SEC_RATEDKV] as string, _s2BaseKv);
+                        if (double.TryParse(_s1BaseKv, out double result))
+                            ValidateOperatingVoltage(asset[T1_TX_PRI_OPERATINGKV] as int?, out _s1kV, out string _s1BasekV);
+                        else
+                            ValidateOperatingVoltage(result*1000, out _s1kV, out _s1BaseKv);
+                        if (double.TryParse(_s2BaseKv, out result))
+                            ValidateOperatingVoltage(asset[T1_TX_SEC_OPERATINGKV] as int?, out _s2kV, out string _s2BaseKv);
+                        else
+                            ValidateOperatingVoltage(result*1000, out _s2kV, out _s2BaseKv);
+                        ValidatePhases(asset[T1_TX_PHASES] as int?);
+                        ValidatekVA(asset[T1_TX_KVA] as double?);
+                        ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.HV, out _s1ConnectionType);
+                        ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.LV, out _s2ConnectionType);
+                        ValidateRatedVoltage(_s1BaseKv, asset[T1_TX_PRI_RATEDKV] as string, out _s1RatedKv);
+                        ValidateRatedVoltage(_s2BaseKv, asset[T1_TX_SEC_RATEDKV] as string, out _s2RatedKv);
                         CalculateStepSize(asset[T1_TX_MINTAP]as double?, (double?)asset[T1_TX_MAXTAP] as double?);
-                        CalculateTransformerImpedances(asset[T1_TX_IMPEDANCE] as double?, asset[T1_TX_LOADLOSS] as double?);
+                        CalculateTransformerImpedances(asset[T1_TX_IMPEDANCE] as double?, asset[T1_TX_LOADLOSS] as int?);
                         
                     }
                     asset = Enricher.Singleton.GetAdmsTransformerByAssetNumber(_t1assetno);
@@ -205,7 +217,7 @@ namespace MainPower.IdfEnricher
                         //_s2BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //GenerateScadaLinking();
                     }
-                    //GenerateTransformerType();
+                    Processor.AddDataNode(GenerateTransformerType());
                 }
 
 
@@ -213,9 +225,10 @@ namespace MainPower.IdfEnricher
                 Node.SetAttribute(IDF_TX_BIDIRECTIONAL, _bidirectional);
                 Node.SetAttribute(IDF_TX_CONTROLPHASE, _controlPhase);
                 Node.SetAttribute(IDF_TX_DESIREDVOLTAGE, _desiredVoltage);
-                Node.SetAttribute(IDF_TX_INITIALTAP1, _initialTap1);
-                Node.SetAttribute(IDF_TX_INITIALTAP2, _initialTap2);
-                Node.SetAttribute(IDF_TX_INITIALTAP3, _initialTap3);
+                //TODO these are invalid fields according to maestro
+                //Node.SetAttribute(IDF_TX_INITIALTAP1, _initialTap1);
+                //Node.SetAttribute(IDF_TX_INITIALTAP2, _initialTap2);
+                //Node.SetAttribute(IDF_TX_INITIALTAP3, _initialTap3);
                 Node.SetAttribute(IDF_TX_MAXTAPLIMIT, _maxTapLimit);
                 Node.SetAttribute(IDF_TX_MINTAPLIMIT, _minTapLimit);
                 Node.SetAttribute(IDF_TX_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
@@ -241,35 +254,83 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        private void CalculateTransformerImpedances(double? v1, double? v2)
+        private void ValidateOperatingVoltage(double? v, out double dkv, out string skv)
         {
-            //throw new NotImplementedException();
+            if (v != null)
+            {
+                dkv = v.Value;
+                skv = (dkv / 1000).ToString();
+            }
+            else
+            {
+                dkv = double.NaN;
+                skv = "";
+            }
+        }
+        
+        private void CalculateTransformerImpedances(double? zpu, double? loadlossW)
+        {
+            double baseIHV, baseILV, baseZHV, baseZLV, loadlossV, loadlossIHV, zohmHV, xohmHV, rohmHV, xpu, rpu;
+            if (zpu == null || loadlossW == null || loadlossW == 0 || _dkva.Equals(double.NaN) || _s1kV.Equals(double.NaN) || _s2kV.Equals(double.NaN))
+            {
+                if (!_dkva.Equals(double.NaN))
+                {
+                    
+                    xpu = -0.00000001 + 0.0007 * _dkva + 3.875;
+                    rpu = Math.Pow(_dkva, -0.161) * 2.7351;
+                    _percreactance = xpu.ToString("N5");
+                    _percresistance = rpu.ToString("N5");
+                    Warn(ERR_CAT_TX, $"Estimating transformer parameters based on kva as input parameters are not valid ({_dkva}kVA, x:{_percreactance} r:{_percresistance}).");
+                    return;
+                }
+                else
+                {
+                    Warn(ERR_CAT_TX, "Could not calculate transformer impedances - input parameters were null");
+                    return;
+                }
+            }
+            baseIHV = _dkva * 1000 / _phases / (_s1kV / Math.Sqrt(_phases));
+            baseILV = _dkva * 1000 / _phases / (_s2kV / Math.Sqrt(_phases));
+            baseZHV = _s1kV / Math.Sqrt(_phases) / baseIHV;
+            baseZLV = _s2kV / Math.Sqrt(_phases) / baseILV;
+            loadlossV = zpu.Value / Math.Sqrt(_phases) / 100 * _s1kV;
+            zohmHV = zpu.Value * baseZHV / 100;
+            loadlossIHV = loadlossV / zohmHV;
+            rohmHV = loadlossW.Value / _phases / Math.Pow(loadlossIHV, 2);
+            xohmHV = Math.Sqrt(Math.Pow(zohmHV, 2) - Math.Pow(rohmHV, 2));
+            xpu = xohmHV / baseZHV * 100;
+            rpu = rohmHV / baseZHV * 100;
+            _percreactance = xpu.ToString("N5");
+            _percresistance = rpu.ToString("N5");
         }
 
-        private int ValidatePhases(int? v)
+        private void ValidatePhases(int? v)
         {
             if (v == null)
             {
                 Warn(ERR_CAT_TX, "Number of phases is null, assuming 3");
-                return 3;
+                _phases = 3;
             }
             else if (v == 1 || v == 3)
             {
-                return (int)v;
+                _phases =  v.Value;
             }
             else
             {
                 Warn(ERR_CAT_TX, $"Invalid number of phases [{v}], assuming 3");
-                return 3;
+                _phases = 3;
             }
         }
 
-        private string ValidatekVA(double? v)
+        private void ValidatekVA(double? v)
         {
-            if (v != null)
-                return v.Value.ToString();
+            if (v != null && v != 0)
+            {
+                _dkva = v.Value;
+                _kva = v.Value.ToString();
+            }
             else
-                return "";
+                Warn(ERR_CAT_TX, "kVA is unset");
         }
 
         private void CalculateStepSize(double? v1, double? v2)
@@ -329,7 +390,7 @@ namespace MainPower.IdfEnricher
                     Warn(ERR_CAT_TX, $"Could not determine tap size, it wasn't 2.5, 2 or 1.25");
                 }
                 _numTaps = (int)((tapLow - tapHigh) / 1.25 + 1);
-
+                _tapSteps = _numTaps.ToString();
                 double maxTap = (1 + tapLow / 100);
                 double minTap = (1 + tapHigh / 100);
                 _maxTap = maxTap.ToString();
@@ -338,14 +399,14 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        private string ValidateRatedVoltage(string opVoltage, string ratedVoltage)
+        private void ValidateRatedVoltage(string opVoltage, string ratedVoltage, out string v)
         {
             //TODO voltages should be line to line, but what about single phase?
             try
             {
                 var iOpVoltage = float.Parse(opVoltage);
                 if (string.IsNullOrEmpty(ratedVoltage))
-                    return (iOpVoltage * 1.1).ToString();
+                    v = (iOpVoltage * 1.1).ToString();
 
 
                 if (float.TryParse(ratedVoltage, out var iNewValue))
@@ -354,7 +415,7 @@ namespace MainPower.IdfEnricher
 
                     if (iNewValue > iOpVoltage)
                     {
-                        return iNewValue.ToString();
+                        v = iNewValue.ToString();
                     }
                     else
                     {
@@ -365,21 +426,22 @@ namespace MainPower.IdfEnricher
                 {
                     Error(ERR_CAT_TX, $"Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
                 }
-                return (iOpVoltage * 1.1).ToString();
+                v = (iOpVoltage * 1.1).ToString();
             }
             catch
             {
                 Error(ERR_CAT_TX, $"Operating voltage [{opVoltage}] is not a valid float");
-                return opVoltage;
+                v =  opVoltage;
             }
         }
 
-        private string ValidateConnectionType(string v, TransformerSide lV)
+        private void ValidateConnectionType(string v, TransformerSide lV, out string conn)
         {
             if (string.IsNullOrWhiteSpace(v))
             {
-                Warn(ERR_CAT_TX, "Vector group is blank");
-                return "";
+                Warn(ERR_CAT_TX, "Vector group is unset, assuming Dyn11");
+                conn = lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_WYEG;
+                return;
             }
             Regex r = new Regex("^[A-Z][a-z]+");
             var m = r.Match(v);
@@ -388,25 +450,32 @@ namespace MainPower.IdfEnricher
                 switch (m.Value)
                 {
                     case "Dyn":
-                        return lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_WYEG;
+                        conn = lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_WYEG;
+                        return;
                     case "Dy":
-                        return lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_WYE;
+                        conn = lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_WYE;
+                        return;
                     case "Dzn":
-                        return lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_ZIGZAG;
+                        conn = lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_ZIGZAG;
+                        return;
                     case "Yyn":
-                        return lV == TransformerSide.HV ? IDF_TX_WINDING_WYE : IDF_TX_WINDING_WYEG;
+                        conn = lV == TransformerSide.HV ? IDF_TX_WINDING_WYE : IDF_TX_WINDING_WYEG;
+                        return;
                     case "YNyn":
-                        return lV == TransformerSide.HV ? IDF_TX_WINDING_WYEG : IDF_TX_WINDING_WYEG;
+                        conn = lV == TransformerSide.HV ? IDF_TX_WINDING_WYEG : IDF_TX_WINDING_WYEG;
+                        return;
                     case "Yna":
-                        return lV == TransformerSide.HV ? IDF_TX_WINDING_WYE : IDF_TX_WINDING_WYEG;
+                        conn = lV == TransformerSide.HV ? IDF_TX_WINDING_WYE : IDF_TX_WINDING_WYEG;
+                        return;
                     case "Single"://TODO
-                        return lV == TransformerSide.HV ? IDF_TX_WINDING_WYE : IDF_TX_WINDING_WYEG;
+                        conn = lV == TransformerSide.HV ? IDF_TX_WINDING_WYE : IDF_TX_WINDING_WYEG;
+                        return;
                     default:
-                        Warn(ERR_CAT_TX, $"Couldn't parse vector group [{v}]");
-                        return "";
+                        Warn(ERR_CAT_TX, $"Couldn't parse vector group [{v}], assuming Dyn11");
+                        break;
                 }
             }
-            return "";
+            conn = lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_WYEG;
         }
 
         private void RemoveExtraAttributes()
@@ -418,6 +487,11 @@ namespace MainPower.IdfEnricher
         private void GenerateScadaLinking()
         {
             //throw new NotImplementedException();
+        }
+
+        private string GenerateTransformerType()
+        {
+            return $"<element type=\"Transformer Type\" id=\"{_id}_type\" name=\"{_name}\" kva=\"{_kva}\" ratedKVA=\"{_kva}\" percentResistance=\"{_percresistance}\" percentReactance=\"{_percreactance}\" maxTap=\"{_maxTap}\" minTap=\"{_minTap}\" phases=\"{_phases}\" tapSteps=\"{_tapSteps}\" transformerType=\"{_transformerTypeType}\" lowNeutralResistance=\"{_nerResistance}\" />";
         }
 
         #region Overrides

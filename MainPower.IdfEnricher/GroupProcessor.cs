@@ -21,15 +21,18 @@ namespace MainPower.IdfEnricher
             Id = id;   
         }
 
-        internal void SetSymbolName(string id, string symbolName)
+        internal void SetSymbolName(string id, string symbolName, double scale = double.NaN)
         {
             lock (Graphics)
             {
                 if (Graphics.SelectSingleNode($"//element[@id=\"d_{id}\"]") is XmlElement node)
                 {
-                    node.SetAttribute("symbol", symbolName);
+                    node.SetAttribute("name", symbolName);
                     node.SetAttribute("library", "MPNZ.LIB2");
-                    node.SetAttribute("scale", "10");
+                    if (!scale.Equals(double.NaN))
+                        node.SetAttribute("scale", scale.ToString("N3"));
+                    else
+                        node.SetAttribute("scale", "1.0");
                 }
             }
         }
@@ -53,7 +56,7 @@ namespace MainPower.IdfEnricher
                     switch (elType)
                     {
                         case "Switch":
-                            //d = new SwitchProcessor(node, this);
+                            d = new SwitchProcessor(node, this);
                             break;
                         case "Transformer":
                             d = new TransformerProcessor(node, this);
@@ -74,6 +77,14 @@ namespace MainPower.IdfEnricher
             {
                 _log.Error($"GROUP,,,{ex.Message}");
             }
+        }
+
+        internal void AddDataNode (string xml)
+        {
+            XmlDocumentFragment f = Data.CreateDocumentFragment();
+            f.InnerXml = xml;
+            var node = Data.SelectSingleNode($"//group[@id=\"{Id}\"]");
+            node.AppendChild(f);
         }
     }
 }
