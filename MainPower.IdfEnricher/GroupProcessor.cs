@@ -37,6 +37,19 @@ namespace MainPower.IdfEnricher
             }
         }
 
+        internal void AddColorLink (string id)
+        {
+            lock (Graphics)
+            {
+                if (Graphics.SelectSingleNode($"//element[@id=\"d_{id}\"]") is XmlElement node)
+                {
+                    XmlDocumentFragment f = Graphics.CreateDocumentFragment();
+                    f.InnerXml = $"<colorLink id=\"{id}\"><link d=\"EMAP_COLOR\" o=\"EMAP_DEVICE_COLOR\" f=\"ColorAggregate\" i=\"0\" identityType=\"Key\" /></colorLink>";
+                    node.AppendChild(f);
+                }
+            }
+        }
+
         internal void  Process()
         {
             try
@@ -61,6 +74,9 @@ namespace MainPower.IdfEnricher
                         case "Transformer":
                             d = new TransformerProcessor(node, this);
                             break;
+                        case "Line":
+                            d = new LineProcessor(node, this);
+                            break;
                         default:
                             break;
                     }
@@ -79,7 +95,7 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        internal void AddDataNode (string xml)
+        internal void AddGroupElement (string xml)
         {
             XmlDocumentFragment f = Data.CreateDocumentFragment();
             f.InnerXml = xml;

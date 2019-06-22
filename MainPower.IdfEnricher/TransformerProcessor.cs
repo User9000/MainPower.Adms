@@ -197,8 +197,8 @@ namespace MainPower.IdfEnricher
                         ValidatekVA(asset[T1_TX_KVA] as double?);
                         ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.HV, out _s1ConnectionType);
                         ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.LV, out _s2ConnectionType);
-                        ValidateRatedVoltage(_s1BaseKv, asset[T1_TX_PRI_RATEDKV] as string, out _s1RatedKv);
-                        ValidateRatedVoltage(_s2BaseKv, asset[T1_TX_SEC_RATEDKV] as string, out _s2RatedKv);
+                        ValidateRatedVoltage(_s1BaseKv, (asset[T1_TX_PRI_RATEDKV] as int?).ToString(), out _s1RatedKv);
+                        ValidateRatedVoltage(_s2BaseKv, (asset[T1_TX_SEC_RATEDKV] as int?).ToString(), out _s2RatedKv);
                         CalculateStepSize(asset[T1_TX_MINTAP]as double?, (double?)asset[T1_TX_MAXTAP] as double?);
                         CalculateTransformerImpedances(asset[T1_TX_IMPEDANCE] as double?, asset[T1_TX_LOADLOSS] as int?);
                         
@@ -217,7 +217,7 @@ namespace MainPower.IdfEnricher
                         //_s2BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //GenerateScadaLinking();
                     }
-                    Processor.AddDataNode(GenerateTransformerType());
+                    Processor.AddGroupElement(GenerateTransformerType());
                 }
 
 
@@ -280,7 +280,7 @@ namespace MainPower.IdfEnricher
                     rpu = Math.Pow(_dkva, -0.161) * 2.7351;
                     _percreactance = xpu.ToString("N5");
                     _percresistance = rpu.ToString("N5");
-                    Warn(ERR_CAT_TX, $"Estimating transformer parameters based on kva as input parameters are not valid ({_dkva}kVA, x:{_percreactance} r:{_percresistance}).");
+                    Info(ERR_CAT_TX, $"Estimating transformer parameters based on kva as input parameters are not valid ({_dkva}kVA, x:{_percreactance} r:{_percresistance}).");
                     return;
                 }
                 else
@@ -419,7 +419,7 @@ namespace MainPower.IdfEnricher
                     }
                     else
                     {
-                        Error(ERR_CAT_TX, $"Rated voltage [{ratedVoltage}] is less the operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                        Error(ERR_CAT_TX, $"Rated voltage [{iNewValue}] is < or = to the operating voltage [{opVoltage}], setting to 110% of operating voltage");
                     }
                 }
                 else
@@ -497,22 +497,22 @@ namespace MainPower.IdfEnricher
         #region Overrides
         protected override void Debug(string code, string message)
         {
-            _log.Debug($"TRANSFORMER,{code},{_id}/{_name},{message}");
+            _log.Debug($"TRANSFORMER,{_id},{_name},\"{message}\"");
         }
 
         protected override void Error(string code, string message)
         {
-            _log.Error($"TRANSFORMER,{code},{_id}/{_name},{message}");
+            _log.Error($"TRANSFORMER,{_id},{_name},\"{message}\"");
         }
 
         protected override void Info(string code, string message)
         {
-            _log.Info($"TRANSFORMER,{code},{_id}/{_name},{message}");
+            _log.Info($"TRANSFORMER,{_id},{_name},\"{message}\"");
         }
 
         protected override void Warn(string code, string message)
         {
-            _log.Warn($"TRANSFORMER,{code},{_id}/{_name},{message}");
+            _log.Warn($"TRANSFORMER,{_id},{_name},\"{message}\"");
         }
         #endregion
     }

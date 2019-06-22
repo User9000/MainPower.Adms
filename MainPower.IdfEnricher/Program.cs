@@ -32,6 +32,7 @@ namespace MainPower.IdfEnricher
                {
                    try
                    {
+                       //Console.ReadKey();
                        var enricher = Enricher.Singleton;
                        enricher.Options = o;
                        enricher.LoadSourceData();

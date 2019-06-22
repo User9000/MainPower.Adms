@@ -110,6 +110,9 @@ namespace MainPower.IdfEnricher
         private const string IDF_SWITCH_SCADA_S2_YB_VOLTS = "s2p2KV";
         private const string IDF_SWITCH_SCADA_S2_BR_VOLTS = "s2p3KV";
 
+        private const double IDF_SCALE_GEOGRAPHIC = 1.0;
+        private const double IDF_SCALE_INTERNALS = 0.5;
+
         #endregion
 
         //compulsory fields
@@ -172,46 +175,46 @@ namespace MainPower.IdfEnricher
                     //MV Isolator
                     case @"MV Isolator\Knife Isolator":
                         //basically a non ganged disconnector e.g. links
-                        ProcessDisconnector();
+                        ProcessDisconnector(true);
                         _ganged = FALSE;
                         _loadBreakCapable = FALSE;
                         break;
                     case @"MV Isolator\HV Fuse":
-                        ProcessHVFuse();
+                        ProcessHVFuse(true);
                         break;
                     case @"MV Isolator\Circuit Breaker - Substation Feeder":
-                        ProcessCircuitBreaker();
+                        ProcessCircuitBreaker(true);
                         break;
                     case @"MV Isolator\Circuit Breaker - Substation General":
-                        ProcessCircuitBReaker2();
+                        ProcessCircuitBreaker2(true);
                         break;
                     case @"MV Isolator\Air Break Switch":
-                        ProcessDisconnector();
+                        ProcessDisconnector(true);
                         break;
                     case @"MV Isolator\MV Switch":
                         ProcessSwitch();
                         break;
                     case @"MV Isolator\Disconnector":
-                        ProcessDisconnector();
+                        ProcessDisconnector(true);
                         break;
                     case @"MV Isolator\HV Fuse Switch":
                         ProcessRingMainFuseSwitch();
                         break;
                     //MV Line Switch
                     case @"MV Line Switch\Circuit Breaker - Line":
-                        ProcessCircuitBreaker();
+                        ProcessCircuitBreaker(false);
                         break;
                     case @"MV Line Switch\HV Link":
-                        ProcessHVLinks();
+                        ProcessHVLinks(false);
                         break;
                     case @"MV Line Switch\HV Fuse":
-                        ProcessHVFuse();
+                        ProcessHVFuse(false);
                         break;
                     case @"MV Line Switch\Automated LBS":
                         ProcessEntec();
                         break;
                     case @"MV Line Switch\Disconnector":
-                        ProcessDisconnector();
+                        ProcessDisconnector(false);
                         break;
                     case @"MV Line Switch\Fuse Saver":
                         ProcessFuseSaver();
@@ -220,7 +223,7 @@ namespace MainPower.IdfEnricher
                         //TODO
                         break;
                     case @"MV Line Switch\HV Tri - Fuse":
-                        ProcessHVFuse();
+                        ProcessHVFuse(false);
                         break;
                     //LV Line Switch
                     case @"LV Line Switch\OH LV Open Point":
@@ -254,7 +257,7 @@ namespace MainPower.IdfEnricher
                 var scada = GenerateScadaLinking();
                 if (!string.IsNullOrWhiteSpace(scada))
                 {
-                    Processor.AddDataNode(scada);
+                    Processor.AddGroupElement(scada);
                 }
                 RemoveExtraAttributes();
                 //Debug("SWITCH",  ToString());
@@ -294,9 +297,10 @@ namespace MainPower.IdfEnricher
             var s2YBVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts YB2");
             var s2BRVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts BR2");
 
-            return  $"<element type=\"SCADA\" id=\"{_id}\" p1State=\"{status?.Key}\" p2State=\"{status?.Key}\" p3State=\"{status?.Key}\" preventUICtrlTag=\"\" tripFaultSuppress=\"\" OCPModeNormal=\"\" OCPModeNormalState=\"\" p1TripFaultSignal=\"\" p2TripFaultSignal=\"\" p3TripFaultSignal=\"\" p1FaultInd=\"\" p2FaultInd=\"\" p3FaultInd=\"\" p1FaultInd2=\"\" p2FaultInd2=\"\" p3FaultInd2=\"\" s1p1KV=\"{s1RYVolts?.Key}\" s1p2KV=\"{s1YBVolts?.Key}\" s1p3KV=\"{s1BRVolts?.Key}\" s2p1KV=\"{s2RYVolts?.Key}\" s2p2KV=\"{s2YBVolts?.Key}\" s2p3KV=\"{s2BRVolts?.Key}\" s1p1KW=\"\" s1p2KW=\"\" s1p3KW=\"\" s1AggregateKW=\"\" s1AggregateKWUCF=\"1\" s2p1KW=\"\" s2p2KW=\"\" s2p3KW=\"\" s2AggregateKW=\"\" s1p1KVAR=\"\" s1p2KVAR=\"\" s1p3KVAR=\"\" s1AggregateKVAR=\"\" s1AggregateKVARUCF=\"1\" s2p1KVAR=\"\" s2p2KVAR=\"\" s2p3KVAR=\"\" s2AggregateKVAR=\"\" s1p1KVA=\"\" s1p2KVA=\"\" s1p3KVA=\"\" s1AggregateKVA=\"\" s2p1KVA=\"\" s2p2KVA=\"\" s2p3KVA=\"\" s2AggregateKVA=\"\" s1p1PF=\"\" s1p2PF=\"\" s1p3PF=\"\" s1AggregatePF=\"\" s2p1PF=\"\" s2p2PF=\"\" s2p3PF=\"\" s2AggregatePF=\"\" s1p1Amps=\"{rAmps?.Key}\" s1p2Amps=\"{yAmps?.Key}\" s1p3Amps=\"{bAmps?.Key}\" s1AggregateAmps=\"\" s2p1Amps=\"\" s2p2Amps=\"\" s2p3Amps=\"\" s2AggregateAmps=\"\" p1FaultCurrent=\"\" p2FaultCurrent=\"\" p3FaultCurrent=\"\" s1p1Angle=\"\" s1p2Angle=\"\" s1p3Angle=\"\" s2p1Angle=\"\" s2p2Angle=\"\" s2p3Angle=\"\" s1VoltageReference=\"{_baseKv}\" />";
+            return  $"<element type=\"SCADA\" id=\"{_id}\" p1State=\"{status?.Key}\" p2State=\"{status?.Key}\" p3State=\"{status?.Key}\" preventUICtrlTag=\"\" tripFaultSuppress=\"\" OCPModeNormal=\"\" OCPModeNormalState=\"\" p1TripFaultSignal=\"\" p2TripFaultSignal=\"\" p3TripFaultSignal=\"\" p1FaultInd=\"\" p2FaultInd=\"\" p3FaultInd=\"\" p1FaultInd2=\"\" p2FaultInd2=\"\" p3FaultInd2=\"\" s1p1KV=\"{s1RYVolts?.Key}\" s1p2KV=\"{s1YBVolts?.Key}\" s1p3KV=\"{s1BRVolts?.Key}\" s2p1KV=\"{s2RYVolts?.Key}\" s2p2KV=\"{s2YBVolts?.Key}\" s2p3KV=\"{s2BRVolts?.Key}\" s1p1KW=\"\" s1p2KW=\"\" s1p3KW=\"\" s1AggregateKW=\"\" s1AggregateKWUCF=\"1\" s2p1KW=\"\" s2p2KW=\"\" s2p3KW=\"\" s2AggregateKW=\"\" s1p1KVAR=\"\" s1p2KVAR=\"\" s1p3KVAR=\"\" s1AggregateKVAR=\"\" s1AggregateKVARUCF=\"1\" s2p1KVAR=\"\" s2p2KVAR=\"\" s2p3KVAR=\"\" s2AggregateKVAR=\"\" s1p1KVA=\"\" s1p2KVA=\"\" s1p3KVA=\"\" s1AggregateKVA=\"\" s2p1KVA=\"\" s2p2KVA=\"\" s2p3KVA=\"\" s2AggregateKVA=\"\" s1p1PF=\"\" s1p2PF=\"\" s1p3PF=\"\" s1AggregatePF=\"\" s2p1PF=\"\" s2p2PF=\"\" s2p3PF=\"\" s2AggregatePF=\"\" s1p1Amps=\"{rAmps?.Key}\" s1p2Amps=\"{yAmps?.Key}\" s1p3Amps=\"{bAmps?.Key}\" s1AggregateAmps=\"\" s2p1Amps=\"\" s2p2Amps=\"\" s2p3Amps=\"\" s2AggregateAmps=\"\" p1FaultCurrent=\"\" p2FaultCurrent=\"\" p3FaultCurrent=\"\" s1p1Angle=\"\" s1p2Angle=\"\" s1p3Angle=\"\" s2p1Angle=\"\" s2p2Angle=\"\" s2p3Angle=\"\" s1VoltageReference=\"{_baseKv}\" s1p1AmpsUCF=\"1\" s1p2AmpsUCF=\"1\" s1p3AmpsUCF=\"1\" s2p1AmpsUCF=\"1\" s2p2AmpsUCF=\"1\" s2p3AmpsUCF=\"1\" />";
                 
         }
+
         #region Switch Type Processing
 
         private void ProcessSwitch()
@@ -316,13 +320,13 @@ namespace MainPower.IdfEnricher
             Warn(ERR_CAT_SWITCH,  "Wasn't expecting this function to be used");
         }
 
-        private void ProcessCircuitBReaker2()
+        private void ProcessCircuitBreaker2(bool internals)
         {
             if (!string.IsNullOrEmpty(_t1assetno)) {
                 var asset = Enricher.Singleton.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
                 if (asset != null)
                 {
-                    ProcessCircuitBreaker();
+                    ProcessCircuitBreaker(internals);
                     return;
                 }
                 asset = Enricher.Singleton.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
@@ -343,18 +347,20 @@ namespace MainPower.IdfEnricher
             _loadBreakCapable = TRUE;
 
             ProcessCircuitBreakerAdms();
-            
+
+            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
+
             var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER);
+                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
             }
         }
 
@@ -387,17 +393,18 @@ namespace MainPower.IdfEnricher
                 }
 
             }
+
             var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH_QUAD);
+                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_INTERNALS);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH);
+                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH);
+                Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS);
             }
         }
 
@@ -434,13 +441,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_SWITCH_QUAD);
+                    Processor.SetSymbolName(_id, SYMBOL_SWITCH_QUAD, IDF_SCALE_INTERNALS);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_SWITCH);
+                    Processor.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_SWITCH);
+                Processor.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS);
             }
         }
         
@@ -480,13 +487,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_INTERNALS);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER);
+                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS);
             }
         }
 
@@ -608,7 +615,7 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        private void ProcessHVLinks()
+        private void ProcessHVLinks(bool internals)
         {
             _ganged = FALSE;
             _loadBreakCapable = FALSE;//TODO
@@ -634,10 +641,11 @@ namespace MainPower.IdfEnricher
                     ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
                 }
             }
-            Processor.SetSymbolName(_id, SYMBOL_LINKS);
+            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
+            Processor.SetSymbolName(_id, SYMBOL_LINKS, scale);
         }
 
-        private void ProcessDisconnector()
+        private void ProcessDisconnector(bool internals)
         {
             _ganged = TRUE;          
             _switchType = IDF_SWITCH_TYPE_SWITCH;
@@ -665,21 +673,22 @@ namespace MainPower.IdfEnricher
                 }
 
             }
+            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
             var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR_QUAD);
+                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR_QUAD, scale);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR);
+                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR);
+                Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale);
             }
         }
      
-        private void ProcessCircuitBreaker()
+        private void ProcessCircuitBreaker(bool internals)
         {
             _bidirectional = TRUE;
             _ganged = TRUE;
@@ -709,17 +718,19 @@ namespace MainPower.IdfEnricher
                 }
 
             }
+
+            var scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
             var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER);
+                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
             }
         }
 
@@ -730,8 +741,10 @@ namespace MainPower.IdfEnricher
                 //TODO: RMU circuit breakers are generally not in the protection database... they use generic settings based on tx size.
                 //how are we going to handle these?
                 //TODO: validation on these?
-                _forwardTripAmps = asset[ADMS_SWITCH_FORWARDTRIPAMPS] as string;
-                _reverseTripAmps = asset[ADMS_SWITCH_REVERSETRIPAMPS] as string;
+                if (_name == "P45")
+                    Debugger.Break();
+                _forwardTripAmps = (asset[ADMS_SWITCH_FORWARDTRIPAMPS] as int?).ToString();
+                _reverseTripAmps = (asset[ADMS_SWITCH_REVERSETRIPAMPS] as int?).ToString();
                 _switchType = asset[ADMS_SWITCH_RECLOSER_ENABLED] as string == "Y" ? IDF_SWITCH_TYPE_RECLOSER : IDF_SWITCH_TYPE_BREAKER;
             }
             else
@@ -741,7 +754,7 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        private void ProcessHVFuse()
+        private void ProcessHVFuse(bool internals)
         {
             _bidirectional = TRUE;
             _forwardTripAmps = _reverseTripAmps = ValidateFuseTrip(_fuserating);
@@ -774,7 +787,8 @@ namespace MainPower.IdfEnricher
                     Error(ERR_CAT_FUSE, $"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
             }
-            Processor.SetSymbolName(_id, SYMBOL_FUSE);
+            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
+            Processor.SetSymbolName(_id, SYMBOL_FUSE, scale);
         }
 
         private void ProcessServiceFuse()
@@ -885,11 +899,11 @@ namespace MainPower.IdfEnricher
                         if (sw == _name)
                             return;
                     }
-                    Error(ERR_CAT_GENERAL,  $"T1 switch number [{swno}:{string.Join(":", swnos)}] doesnt match GIS switch number {_name}");
+                    Error(ERR_CAT_GENERAL,  $"T1 switch number [{swno}:{string.Join(":", swnos)}] doesn't match GIS switch number [{_name}]");
                     return;
                 }
             }
-            Error(ERR_CAT_GENERAL, $"T1 switch number [{swno}] doesnt match GIS switch numbe {_name}");
+            Error(ERR_CAT_GENERAL, $"T1 switch number [{swno}] doesn't match GIS switch number [{_name}]");
 
         }
 
@@ -965,22 +979,22 @@ namespace MainPower.IdfEnricher
 
         protected override void Debug(string code,  string message)
         {
-            _log.Debug($"SWITCH,{code},{_id}/{_name},{message}");
+            _log.Debug($"SWITCH\\{code},{_id},{_name},\"{message}\"");
         }
 
         protected override void Info(string code,  string message)
         {
-            _log.Info($"SWITCH,{code},{_id}/{_name},{message}");
+            _log.Info($"SWITCH\\{code},{_id},{_name},\"{message}\"");
         }
 
         protected override void Warn(string code,  string message)
         {
-            _log.Warn($"SWITCH,{code},{_id}/{_name},{message}");
+            _log.Warn($"SWITCH\\{code},{_id},{_name},\"{message}\"");
         }
 
         protected override void Error(string code,  string message)
         {
-            _log.Error($"SWITCH,{code},{_id}/{_name},{message}");
+            _log.Error($"SWITCH\\{code},{_id},{_name},\"{message}\"");
         }
         #endregion
     }
