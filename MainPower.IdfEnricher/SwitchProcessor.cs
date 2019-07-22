@@ -45,7 +45,7 @@ namespace MainPower.IdfEnricher
         private const string T1_SWITCH_SW1 = "SW 1";
         private const string T1_SWITCH_SW2 = "SW 2";
         private const string T1_SWITCH_SW3 = "SW 3";
-        private const string T1_SWITCH_SW4 = "SW 4";
+        private const string T1_SWITCH_SW4 = "SW4";
 
         private const string GIS_SWITCH_TYPE = "mpwr_gis_switch_type";
         private const string GIS_T1_ASSET = "mpwr_t1_asset_nbr";
@@ -111,8 +111,8 @@ namespace MainPower.IdfEnricher
         private const string IDF_SWITCH_SCADA_S2_BR_VOLTS = "s2p3KV";
 
         private const double IDF_SCALE_GEOGRAPHIC = 1.0;
-        private const double IDF_SCALE_INTERNALS = 0.5;
-
+        private const double IDF_SCALE_INTERNALS = 0.1;
+        private const double IDF_SWITCH_Z = 2;
         #endregion
 
         //compulsory fields
@@ -254,10 +254,12 @@ namespace MainPower.IdfEnricher
                 Node.SetAttribute(IDF_SWITCH_RATEDKV, _ratedKv);
                 Node.SetAttribute(IDF_SWITCH_REVERSETRIPAMPS, _reverseTripAmps);
                 Node.SetAttribute(IDF_SWITCH_SWITCHTYPE, _switchType);
+                Node.SetAttribute("aorGroup", "1");
                 var scada = GenerateScadaLinking();
-                if (!string.IsNullOrWhiteSpace(scada))
+                if (!string.IsNullOrWhiteSpace(scada.Item2) && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
-                    Processor.AddGroupElement(scada);
+                    Processor.AddGroupElement(scada.Item2);
+                    Processor.AddScadaCommand(_id, scada.Item1);
                 }
                 RemoveExtraAttributes();
                 //Debug("SWITCH",  ToString());
@@ -278,12 +280,12 @@ namespace MainPower.IdfEnricher
                 Node.RemoveAttribute(GIS_T1_ASSET);
         }
 
-        private string GenerateScadaLinking()
+        private (string,string) GenerateScadaLinking()
         {
             var status = Enricher.Singleton.GetScadaStatusPointInfo(_name);
 
             if (status == null)
-                return "";
+                return ("","");
 
             var rAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps RØ");
             var yAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps YØ");
@@ -297,7 +299,7 @@ namespace MainPower.IdfEnricher
             var s2YBVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts YB2");
             var s2BRVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts BR2");
 
-            return  $"<element type=\"SCADA\" id=\"{_id}\" p1State=\"{status?.Key}\" p2State=\"{status?.Key}\" p3State=\"{status?.Key}\" preventUICtrlTag=\"\" tripFaultSuppress=\"\" OCPModeNormal=\"\" OCPModeNormalState=\"\" p1TripFaultSignal=\"\" p2TripFaultSignal=\"\" p3TripFaultSignal=\"\" p1FaultInd=\"\" p2FaultInd=\"\" p3FaultInd=\"\" p1FaultInd2=\"\" p2FaultInd2=\"\" p3FaultInd2=\"\" s1p1KV=\"{s1RYVolts?.Key}\" s1p2KV=\"{s1YBVolts?.Key}\" s1p3KV=\"{s1BRVolts?.Key}\" s2p1KV=\"{s2RYVolts?.Key}\" s2p2KV=\"{s2YBVolts?.Key}\" s2p3KV=\"{s2BRVolts?.Key}\" s1p1KW=\"\" s1p2KW=\"\" s1p3KW=\"\" s1AggregateKW=\"\" s1AggregateKWUCF=\"1\" s2p1KW=\"\" s2p2KW=\"\" s2p3KW=\"\" s2AggregateKW=\"\" s1p1KVAR=\"\" s1p2KVAR=\"\" s1p3KVAR=\"\" s1AggregateKVAR=\"\" s1AggregateKVARUCF=\"1\" s2p1KVAR=\"\" s2p2KVAR=\"\" s2p3KVAR=\"\" s2AggregateKVAR=\"\" s1p1KVA=\"\" s1p2KVA=\"\" s1p3KVA=\"\" s1AggregateKVA=\"\" s2p1KVA=\"\" s2p2KVA=\"\" s2p3KVA=\"\" s2AggregateKVA=\"\" s1p1PF=\"\" s1p2PF=\"\" s1p3PF=\"\" s1AggregatePF=\"\" s2p1PF=\"\" s2p2PF=\"\" s2p3PF=\"\" s2AggregatePF=\"\" s1p1Amps=\"{rAmps?.Key}\" s1p2Amps=\"{yAmps?.Key}\" s1p3Amps=\"{bAmps?.Key}\" s1AggregateAmps=\"\" s2p1Amps=\"\" s2p2Amps=\"\" s2p3Amps=\"\" s2AggregateAmps=\"\" p1FaultCurrent=\"\" p2FaultCurrent=\"\" p3FaultCurrent=\"\" s1p1Angle=\"\" s1p2Angle=\"\" s1p3Angle=\"\" s2p1Angle=\"\" s2p2Angle=\"\" s2p3Angle=\"\" s1VoltageReference=\"{_baseKv}\" s1p1AmpsUCF=\"1\" s1p2AmpsUCF=\"1\" s1p3AmpsUCF=\"1\" s2p1AmpsUCF=\"1\" s2p2AmpsUCF=\"1\" s2p3AmpsUCF=\"1\" />";
+            return  (status.Key, $"<element type=\"SCADA\" id=\"{_id}\" p1State=\"{status?.Key}\" p2State=\"{status?.Key}\" p3State=\"{status?.Key}\" preventUICtrlTag=\"\" tripFaultSuppress=\"\" OCPModeNormal=\"\" OCPModeNormalState=\"\" p1TripFaultSignal=\"\" p2TripFaultSignal=\"\" p3TripFaultSignal=\"\" p1FaultInd=\"\" p2FaultInd=\"\" p3FaultInd=\"\" p1FaultInd2=\"\" p2FaultInd2=\"\" p3FaultInd2=\"\" s1p1KV=\"{s1RYVolts?.Key}\" s1p2KV=\"{s1YBVolts?.Key}\" s1p3KV=\"{s1BRVolts?.Key}\" s2p1KV=\"{s2RYVolts?.Key}\" s2p2KV=\"{s2YBVolts?.Key}\" s2p3KV=\"{s2BRVolts?.Key}\" s1p1KW=\"\" s1p2KW=\"\" s1p3KW=\"\" s1AggregateKW=\"\" s1AggregateKWUCF=\"1\" s2p1KW=\"\" s2p2KW=\"\" s2p3KW=\"\" s2AggregateKW=\"\" s1p1KVAR=\"\" s1p2KVAR=\"\" s1p3KVAR=\"\" s1AggregateKVAR=\"\" s1AggregateKVARUCF=\"1\" s2p1KVAR=\"\" s2p2KVAR=\"\" s2p3KVAR=\"\" s2AggregateKVAR=\"\" s1p1KVA=\"\" s1p2KVA=\"\" s1p3KVA=\"\" s1AggregateKVA=\"\" s2p1KVA=\"\" s2p2KVA=\"\" s2p3KVA=\"\" s2AggregateKVA=\"\" s1p1PF=\"\" s1p2PF=\"\" s1p3PF=\"\" s1AggregatePF=\"\" s2p1PF=\"\" s2p2PF=\"\" s2p3PF=\"\" s2AggregatePF=\"\" s1p1Amps=\"{rAmps?.Key}\" s1p2Amps=\"{yAmps?.Key}\" s1p3Amps=\"{bAmps?.Key}\" s1AggregateAmps=\"\" s2p1Amps=\"\" s2p2Amps=\"\" s2p3Amps=\"\" s2AggregateAmps=\"\" p1FaultCurrent=\"\" p2FaultCurrent=\"\" p3FaultCurrent=\"\" s1p1Angle=\"\" s1p2Angle=\"\" s1p3Angle=\"\" s2p1Angle=\"\" s2p2Angle=\"\" s2p3Angle=\"\" s1VoltageReference=\"{_baseKv}\" s1p1AmpsUCF=\"1\" s1p2AmpsUCF=\"1\" s1p3AmpsUCF=\"1\" s2p1AmpsUCF=\"1\" s2p2AmpsUCF=\"1\" s2p3AmpsUCF=\"1\" />");
                 
         }
 
@@ -354,13 +356,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
+                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
         }
 
@@ -398,13 +400,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_INTERNALS);
+                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS);
+                    Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS);
+                Processor.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
         }
 
@@ -441,13 +443,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_SWITCH_QUAD, IDF_SCALE_INTERNALS);
+                    Processor.SetSymbolName(_id, SYMBOL_SWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS);
+                    Processor.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS);
+                Processor.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
         }
         
@@ -487,13 +489,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_INTERNALS);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS);
+                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
         }
 
@@ -510,7 +512,7 @@ namespace MainPower.IdfEnricher
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_SWITCH;
-            Processor.SetSymbolName(_id, SYMBOL_LVSWITCH);
+            Processor.SetSymbolName(_id, SYMBOL_LVSWITCH, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessLVFuse()
@@ -526,7 +528,7 @@ namespace MainPower.IdfEnricher
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_FUSE;
-            Processor.SetSymbolName(_id, SYMBOL_LVFUSE);
+            Processor.SetSymbolName(_id, SYMBOL_LVFUSE, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessFuseSaver()
@@ -568,7 +570,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            Processor.SetSymbolName(_id, SYMBOL_FUSESAVER);
+            Processor.SetSymbolName(_id, SYMBOL_FUSESAVER, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessEntec()
@@ -605,13 +607,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_ENTEC_QUAD);
+                    Processor.SetSymbolName(_id, SYMBOL_ENTEC_QUAD, double.NaN, IDF_SWITCH_Z);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_ENTEC);
+                    Processor.SetSymbolName(_id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_ENTEC);
+                Processor.SetSymbolName(_id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
             }
         }
 
@@ -642,7 +644,7 @@ namespace MainPower.IdfEnricher
                 }
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            Processor.SetSymbolName(_id, SYMBOL_LINKS, scale);
+            Processor.SetSymbolName(_id, SYMBOL_LINKS, scale, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessDisconnector(bool internals)
@@ -678,13 +680,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR_QUAD, scale);
+                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR_QUAD, scale, double.NaN, IDF_SWITCH_Z);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale);
+                    Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale);
+                Processor.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
             }
         }
      
@@ -724,13 +726,13 @@ namespace MainPower.IdfEnricher
             if (p != null)
             {
                 if (p.QuadState)
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
                 else
-                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
+                    Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale);
+                Processor.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
         }
 
@@ -741,8 +743,8 @@ namespace MainPower.IdfEnricher
                 //TODO: RMU circuit breakers are generally not in the protection database... they use generic settings based on tx size.
                 //how are we going to handle these?
                 //TODO: validation on these?
-                if (_name == "P45")
-                    Debugger.Break();
+                //if (_name == "P45")
+                //    Debugger.Break();
                 _forwardTripAmps = (asset[ADMS_SWITCH_FORWARDTRIPAMPS] as int?).ToString();
                 _reverseTripAmps = (asset[ADMS_SWITCH_REVERSETRIPAMPS] as int?).ToString();
                 _switchType = asset[ADMS_SWITCH_RECLOSER_ENABLED] as string == "Y" ? IDF_SWITCH_TYPE_RECLOSER : IDF_SWITCH_TYPE_BREAKER;
@@ -788,7 +790,7 @@ namespace MainPower.IdfEnricher
                 }
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            Processor.SetSymbolName(_id, SYMBOL_FUSE, scale);
+            Processor.SetSymbolName(_id, SYMBOL_FUSE, scale, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessServiceFuse()
@@ -801,7 +803,7 @@ namespace MainPower.IdfEnricher
             _ratedAmps = "";//TODO?
             _switchType = "Fuse";
             _ratedKv = ValidateRatedVoltage(_baseKv, _ratedKv as string);
-            Processor.SetSymbolName(_id, SYMBOL_SERVICE_FUSE);
+            Processor.SetSymbolName(_id, SYMBOL_SERVICE_FUSE, double.NaN, IDF_SWITCH_Z);
         }
         #endregion
 
@@ -832,7 +834,7 @@ namespace MainPower.IdfEnricher
                     }
                     else
                     {
-                        Error(ERR_CAT_GENERAL, $"Rated voltage [{ratedVoltage}] is less the operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                        Error(ERR_CAT_GENERAL, $"Rated voltage [{ratedVoltage}] is less than operating voltage [{opVoltage}], setting to 110% of operating voltage");
                     }
                 }
                 else

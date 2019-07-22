@@ -33,10 +33,13 @@ namespace MainPower.IdfEnricher
                    try
                    {
                        //Console.ReadKey();
+                       DateTime start = DateTime.Now;
                        var enricher = Enricher.Singleton;
                        enricher.Options = o;
                        enricher.LoadSourceData();
                        enricher.ProcessImportConfiguration();
+                       TimeSpan runtime = DateTime.Now - start;
+                       Console.WriteLine($"Stats: Tx:{enricher.TransformerCount} Line:{enricher.LineCount} Switch:{enricher.SwitchCount} Runtime:{runtime.TotalMinutes} min");
                        Console.WriteLine("All done....");
                        Console.ReadKey();
                    }

@@ -24,7 +24,7 @@ namespace MainPower.IdfEnricher
                 _id = Node.Attributes[IDF_LINE_ID].InnerText;
                 _name = Node.Attributes[IDF_LINE_NAME].InnerText;
 
-                Processor.AddColorLink(_id);
+                //Processor.AddColorLink(_id);
             }
             catch (Exception ex)
             {

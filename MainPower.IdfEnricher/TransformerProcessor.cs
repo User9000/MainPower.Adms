@@ -156,7 +156,7 @@ namespace MainPower.IdfEnricher
             {
                 _id = Node.Attributes[IDF_TX_ID].InnerText;
                 _name = Node.Attributes[IDF_TX_NAME].InnerText;
-                _transformerType = $"{_id}_type";
+                _transformerType = $"TRANSFORMER_TYPE_HV_MV_Transformer";
                 if (Node.HasAttribute(GIS_T1_ASSET))
                     _t1assetno = Node.Attributes[GIS_T1_ASSET].InnerText;
                 
@@ -199,7 +199,7 @@ namespace MainPower.IdfEnricher
                         ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.LV, out _s2ConnectionType);
                         ValidateRatedVoltage(_s1BaseKv, (asset[T1_TX_PRI_RATEDKV] as int?).ToString(), out _s1RatedKv);
                         ValidateRatedVoltage(_s2BaseKv, (asset[T1_TX_SEC_RATEDKV] as int?).ToString(), out _s2RatedKv);
-                        CalculateStepSize(asset[T1_TX_MINTAP]as double?, (double?)asset[T1_TX_MAXTAP] as double?);
+                        CalculateStepSize(asset[T1_TX_MINTAP]as double?, asset[T1_TX_MAXTAP] as double?);
                         CalculateTransformerImpedances(asset[T1_TX_IMPEDANCE] as double?, asset[T1_TX_LOADLOSS] as int?);
                         
                     }
@@ -217,6 +217,7 @@ namespace MainPower.IdfEnricher
                         //_s2BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //GenerateScadaLinking();
                     }
+                    _transformerType = $"{_id}_type";
                     Processor.AddGroupElement(GenerateTransformerType());
                 }
 
@@ -243,7 +244,9 @@ namespace MainPower.IdfEnricher
                 Node.SetAttribute(IDF_TX_ROTATION, _standardRotation);
                 Node.SetAttribute(IDF_TX_TAPSIDE, _tapSide);
                 Node.SetAttribute(IDF_TX_TXTYPE, _transformerType);
+                Node.SetAttribute("aorGroup", "1");
 
+                Processor.SetSymbolName(_id, SYMBOL_TX_DYN11, 0.1, 0);
                 GenerateScadaLinking();
                 RemoveExtraAttributes();
 

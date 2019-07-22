@@ -36,6 +36,11 @@ namespace MainPower.IdfEnricher
         internal DataTable AdmsSwitch { get; set; }
         internal DataTable AdmsTransformer { get; set; }
 
+        internal int TransformerCount { get; set; }
+        internal int LineCount { get; set; }
+        internal int SwitchCount { get; set; }
+        internal int LoadCount { get; set; }
+
 
         internal void LoadSourceData()
         {
@@ -55,7 +60,7 @@ namespace MainPower.IdfEnricher
         {
             var tasks = new List<Task>();
             XmlDocument doc = new XmlDocument();
-            doc.Load($"{Options.Path}\\ImportConfig.xml");
+            doc.Load($"{Options.Path}\\idf\\ImportConfig.xml");
             var nodes = doc.SelectNodes("//container[@name!=\"Globals\"]/group");
             foreach (XmlNode node in nodes)
             {
@@ -145,7 +150,7 @@ namespace MainPower.IdfEnricher
                     {
                         Warn(queryName, $"More than one {queryName} found with {queryColumn}:{id}");
                     }
-                    p.Key = (result[0]["Key"] as int?).ToString();
+                    p.Key = (result[0]["Key"] as int?).ToString().PadLeft(8,'0');
                     p.PointType = result[0]["Type"] as string;
                     p.PointName = result[0]["Name"] as string;
                     //a point is quad state if there are four states, which are separated by '/'
@@ -182,7 +187,7 @@ namespace MainPower.IdfEnricher
                     {
                         Warn(queryName, $"More than one {queryName} found with {queryColumn}:{id}");
                     }
-                    p.Key = (result[0]["Key"] as int?).ToString();
+                    p.Key = (result[0]["Key"] as int?).ToString().PadLeft(8, '0');
                     p.PointType = result[0]["Type"] as string;
                     p.PointName = result[0]["Name"] as string;
                     p.Units = result[0]["Units"] as string;

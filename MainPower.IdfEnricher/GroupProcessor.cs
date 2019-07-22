@@ -21,7 +21,7 @@ namespace MainPower.IdfEnricher
             Id = id;   
         }
 
-        internal void SetSymbolName(string id, string symbolName, double scale = double.NaN)
+        internal void SetSymbolName(string id, string symbolName, double scale = double.NaN, double rotation = double.NaN, double z = double.NaN)
         {
             lock (Graphics)
             {
@@ -31,8 +31,12 @@ namespace MainPower.IdfEnricher
                     node.SetAttribute("library", "MPNZ.LIB2");
                     if (!scale.Equals(double.NaN))
                         node.SetAttribute("scale", scale.ToString("N3"));
-                    else
-                        node.SetAttribute("scale", "1.0");
+
+                    if (!rotation.Equals(double.NaN))
+                        node.SetAttribute("rotation", rotation.ToString("N0"));
+
+                    if (!z.Equals(double.NaN))
+                        node.SetAttribute("z", z.ToString("N1"));
                 }
             }
         }
@@ -56,9 +60,11 @@ namespace MainPower.IdfEnricher
             {
                 //throw errors to caller
                 Graphics = new XmlDocument();
-                Graphics.Load($"{Enricher.Singleton.Options.Path}\\{Id}_display.xml");
+                Graphics.Load($"{Enricher.Singleton.Options.Path}\\idf\\{Id}_display.xml");
+                ReplaceSymbolLibraryName();
+                DeleteTextElements();
                 Data = new XmlDocument();
-                Data.Load($"{Enricher.Singleton.Options.Path}\\{Id}_data.xml");
+                Data.Load($"{Enricher.Singleton.Options.Path}\\idf\\{Id}_data.xml");
 
                 var tasks = new List<Task>();
                 var nodes = Data.SelectNodes($"//group[@id=\"{Id}\"]/element");
@@ -70,11 +76,14 @@ namespace MainPower.IdfEnricher
                     {
                         case "Switch":
                             d = new SwitchProcessor(node, this);
+                            Enricher.Singleton.SwitchCount++;
                             break;
                         case "Transformer":
                             d = new TransformerProcessor(node, this);
+                            Enricher.Singleton.TransformerCount++;
                             break;
                         case "Line":
+                            Enricher.Singleton.LineCount++;
                             d = new LineProcessor(node, this);
                             break;
                         default:
@@ -95,12 +104,55 @@ namespace MainPower.IdfEnricher
             }
         }
 
+        private void ReplaceSymbolLibraryName()
+        {
+            foreach (XmlNode var in Graphics.SelectNodes("//element[@library=\"OSI.LIB2\"]"))
+            {
+                var.Attributes["library"].InnerText = "MPNZ.LIB2";
+            }
+        }
+
+
+        private void DeleteTextElements()
+        {
+            foreach (XmlNode var in Graphics.SelectNodes("//element[@type=\"Text\"]"))
+            {
+                var.ParentNode.RemoveChild(var);
+            }
+        }
+
         internal void AddGroupElement (string xml)
         {
             XmlDocumentFragment f = Data.CreateDocumentFragment();
             f.InnerXml = xml;
             var node = Data.SelectSingleNode($"//group[@id=\"{Id}\"]");
             node.AppendChild(f);
+        }
+
+        internal void AddScadaCommand(string id, string key)
+        {
+            try
+            {
+                string xmlc = "<command instance=\"Active\" plugin=\"SCADA Interface\" topic=\"OpenPointDialog\"><field name=\"LinkString\" value=\"@URL\" /></command>";
+                string xmldl = $"<dataLink dsID=\"{key}\"><link d=\"SCADA\" f=\"State\" i=\"0\" identityType=\"Key\" o=\"STATUS\"></link></dataLink>";
+
+                XmlDocumentFragment fc = Graphics.CreateDocumentFragment();
+                XmlDocumentFragment fdl = Graphics.CreateDocumentFragment();
+                fc.InnerXml = xmlc;
+                fdl.InnerXml = xmldl;
+
+                var node = Graphics.SelectSingleNode($"//element[@id=\"d_{id}\"]");
+                //var cnode = node.SelectSingleNode("./command");
+                var dlnode = node.SelectSingleNode("./dataLink");
+                //node.RemoveChild(cnode);
+                node.RemoveChild(dlnode);
+                node.AppendChild(fdl);
+                //node.AppendChild(fc);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Uncaught exception: {ex.Message}");
+            }
         }
     }
 }
