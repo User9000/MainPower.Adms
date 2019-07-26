@@ -52,7 +52,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AreaProcessor.cs" />
+    <Compile Include="CircuitProcessor.cs" />
+    <Compile Include="FeederProcessor.cs" />
+    <Compile Include="FileManager.cs" />
+    <Compile Include="GroupSet.cs" />
+    <Compile Include="Idf.cs" />
+    <Compile Include="IdfFileType.cs" />
     <Compile Include="LineProcessor.cs" />
+    <Compile Include="LoadProcessor.cs" />
+    <Compile Include="RegionProcessor.cs" />
+    <Compile Include="RegulatorProcessor.cs" />
+    <Compile Include="SubstationProcessor.cs" />
     <Compile Include="TransformerProcessor.cs" />
     <Compile Include="DeviceProcessor.cs" />
     <Compile Include="Enricher.cs" />
@@ -69,7 +80,9 @@
     <None Include="log4net.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

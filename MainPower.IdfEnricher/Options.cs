@@ -9,7 +9,13 @@ namespace MainPower.IdfEnricher
 {
     class Options
     {
-        [Option('p', "path", HelpText = "default file path", Default = @"C:\Users\hsc\Downloads\admsenrichertest")]
-        internal string Path { get; set; } = @"C:\Users\hsc\Downloads\admsenrichertest";
+        [Option('i', "ipath", HelpText = "input file path", Default = @"C:\Users\hsc\Downloads\admsenrichertest\idf")]
+        internal string InputPath { get; set; } = @"C:\Users\hsc\Downloads\admsenrichertest\idf";
+
+        [Option('o', "opath", HelpText = "output path", Default = @"C:\Users\hsc\Downloads\admsenrichertest\output")]
+        internal string OutputPath { get; set; } = @"C:\Users\hsc\Downloads\admsenrichertest\output";
+
+        [Option('d', "dpath", HelpText = "data path", Default = @"C:\Users\hsc\Downloads\admsenrichertest")]
+        internal string DataPath { get; set; } = @"C:\Users\hsc\Downloads\admsenrichertest";
     }
 }

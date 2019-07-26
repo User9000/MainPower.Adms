@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
@@ -148,23 +149,23 @@ namespace MainPower.IdfEnricher
             LV
         }
 
-        public TransformerProcessor(XmlElement node, GroupProcessor processor) : base(node, processor) { }
+        public TransformerProcessor(XElement node, GroupProcessor processor) : base(node, processor) { }
 
         internal override void Process()
         {
             try
             {
-                _id = Node.Attributes[IDF_TX_ID].InnerText;
-                _name = Node.Attributes[IDF_TX_NAME].InnerText;
+                _id = Node.Attribute(IDF_TX_ID).Value;
+                _name = Node.Attribute(IDF_TX_NAME).Value;
                 _transformerType = $"TRANSFORMER_TYPE_HV_MV_Transformer";
-                if (Node.HasAttribute(GIS_T1_ASSET))
-                    _t1assetno = Node.Attributes[GIS_T1_ASSET].InnerText;
+                if (Node.Attribute(GIS_T1_ASSET) != null)
+                    _t1assetno = Node.Attribute(GIS_T1_ASSET).Value;
                 
 
-                if (Node.HasAttribute(IDF_TX_S1BASEKV))
-                    _s1BaseKv = Node.Attributes[IDF_TX_S1BASEKV].InnerText;
-                if (Node.HasAttribute(IDF_TX_S2BASEKV))
-                    _s2BaseKv = Node.Attributes[IDF_TX_S2BASEKV].InnerText;
+                if (Node.Attribute(IDF_TX_S1BASEKV) != null)
+                    _s1BaseKv = Node.Attribute(IDF_TX_S1BASEKV).Value;
+                if (Node.Attribute(IDF_TX_S2BASEKV) != null)
+                    _s2BaseKv = Node.Attribute(IDF_TX_S2BASEKV).Value;
 
                 _bidirectional = TRUE;
                 _controlPhase = "2G";
@@ -175,13 +176,18 @@ namespace MainPower.IdfEnricher
                 if (string.IsNullOrEmpty(_t1assetno))
                 {
                     Error(ERR_CAT_TX, $"T1 asset number is unset");
+                    ValidateRatedVoltage(_s1BaseKv, _s1BaseKv, out _s1RatedKv);
+                    ValidateRatedVoltage(_s2BaseKv, _s2BaseKv, out _s2RatedKv);
                 }
                 else
                 {
                     var asset = Enricher.Singleton.GetT1TransformerByAssetNumber(_t1assetno);
                     if (asset == null)
                     {
+                        
                         Error(ERR_CAT_TX, $"T1 asset number [{_t1assetno}] was not in T1");
+                        ValidateRatedVoltage(_s1BaseKv, _s1BaseKv, out _s1RatedKv);
+                        ValidateRatedVoltage(_s2BaseKv, _s2BaseKv, out _s2RatedKv);
                     }
                     else
                     {
@@ -218,35 +224,38 @@ namespace MainPower.IdfEnricher
                         //GenerateScadaLinking();
                     }
                     _transformerType = $"{_id}_type";
-                    Processor.AddGroupElement(GenerateTransformerType());
+                    ParentGroup.AddGroupElement(GenerateTransformerType());
                 }
 
 
-                Node.SetAttribute(IDF_TX_BANDWIDTH, _bandwidth);
-                Node.SetAttribute(IDF_TX_BIDIRECTIONAL, _bidirectional);
-                Node.SetAttribute(IDF_TX_CONTROLPHASE, _controlPhase);
-                Node.SetAttribute(IDF_TX_DESIREDVOLTAGE, _desiredVoltage);
+                Node.SetAttributeValue(IDF_TX_BANDWIDTH, _bandwidth);
+                Node.SetAttributeValue(IDF_TX_BIDIRECTIONAL, _bidirectional);
+                Node.SetAttributeValue(IDF_TX_CONTROLPHASE, _controlPhase);
+                Node.SetAttributeValue(IDF_TX_DESIREDVOLTAGE, _desiredVoltage);
                 //TODO these are invalid fields according to maestro
                 //Node.SetAttribute(IDF_TX_INITIALTAP1, _initialTap1);
                 //Node.SetAttribute(IDF_TX_INITIALTAP2, _initialTap2);
                 //Node.SetAttribute(IDF_TX_INITIALTAP3, _initialTap3);
-                Node.SetAttribute(IDF_TX_MAXTAPLIMIT, _maxTapLimit);
-                Node.SetAttribute(IDF_TX_MINTAPLIMIT, _minTapLimit);
-                Node.SetAttribute(IDF_TX_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
-                Node.SetAttribute(IDF_TX_PARALLELSET, _parallelSet);
-                Node.SetAttribute(IDF_TX_REGULATIONTYPE, _regulationType);
-                Node.SetAttribute(IDF_TX_S1BASEKV, _s1BaseKv);
-                Node.SetAttribute(IDF_TX_S1CONNECTIONTYPE, _s1ConnectionType);
-                Node.SetAttribute(IDF_TX_S1RATEDKV, _s1RatedKv);
-                Node.SetAttribute(IDF_TX_S2BASEKV, _s2BaseKv);
-                Node.SetAttribute(IDF_TX_S2CONNECTIONTYPE, _s2ConnectionType);
-                Node.SetAttribute(IDF_TX_S2RATEDKV, _s2RatedKv);
-                Node.SetAttribute(IDF_TX_ROTATION, _standardRotation);
-                Node.SetAttribute(IDF_TX_TAPSIDE, _tapSide);
-                Node.SetAttribute(IDF_TX_TXTYPE, _transformerType);
-                Node.SetAttribute("aorGroup", "1");
+                Node.SetAttributeValue(IDF_TX_MAXTAPLIMIT, _maxTapLimit);
+                Node.SetAttributeValue(IDF_TX_MINTAPLIMIT, _minTapLimit);
+                Node.SetAttributeValue(IDF_TX_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
+                Node.SetAttributeValue(IDF_TX_PARALLELSET, _parallelSet);
+                Node.SetAttributeValue(IDF_TX_REGULATIONTYPE, _regulationType);
+                Node.SetAttributeValue(IDF_TX_S1BASEKV, _s1BaseKv);
+                Node.SetAttributeValue(IDF_TX_S1CONNECTIONTYPE, _s1ConnectionType);
+                Node.SetAttributeValue(IDF_TX_S1RATEDKV, _s1RatedKv);
+                Node.SetAttributeValue(IDF_TX_S2BASEKV, _s2BaseKv);
+                Node.SetAttributeValue(IDF_TX_S2CONNECTIONTYPE, _s2ConnectionType);
+                Node.SetAttributeValue(IDF_TX_S2RATEDKV, _s2RatedKv);
+                Node.SetAttributeValue(IDF_TX_ROTATION, _standardRotation);
+                Node.SetAttributeValue(IDF_TX_TAPSIDE, _tapSide);
+                Node.SetAttributeValue(IDF_TX_TXTYPE, _transformerType);
+                Node.SetAttributeValue("aorGroup", "1");
+                Node.SetAttributeValue("nominalState1", "True");
+                Node.SetAttributeValue("nominalState2", "True");
+                Node.SetAttributeValue("nominalState3", "True");
 
-                Processor.SetSymbolName(_id, SYMBOL_TX_DYN11, 0.1, 0);
+                ParentGroup.SetSymbolName(_id, SYMBOL_TX_DYN11, 0.1, 0);
                 GenerateScadaLinking();
                 RemoveExtraAttributes();
 
@@ -483,8 +492,8 @@ namespace MainPower.IdfEnricher
 
         private void RemoveExtraAttributes()
         {
-            Node.RemoveAttribute(GIS_T1_ASSET);
-            Node.RemoveAttribute(GIS_TAP);
+            Node.SetAttributeValue(GIS_T1_ASSET, null);
+            Node.SetAttributeValue(GIS_TAP, null);
         }
 
         private void GenerateScadaLinking()
@@ -492,9 +501,9 @@ namespace MainPower.IdfEnricher
             //throw new NotImplementedException();
         }
 
-        private string GenerateTransformerType()
+        private XElement GenerateTransformerType()
         {
-            return $"<element type=\"Transformer Type\" id=\"{_id}_type\" name=\"{_name}\" kva=\"{_kva}\" ratedKVA=\"{_kva}\" percentResistance=\"{_percresistance}\" percentReactance=\"{_percreactance}\" maxTap=\"{_maxTap}\" minTap=\"{_minTap}\" phases=\"{_phases}\" tapSteps=\"{_tapSteps}\" transformerType=\"{_transformerTypeType}\" lowNeutralResistance=\"{_nerResistance}\" />";
+            return XElement.Parse($"<element type=\"Transformer Type\" id=\"{_id}_type\" name=\"{_name}\" kva=\"{_kva}\" ratedKVA=\"{_kva}\" percentResistance=\"{_percresistance}\" percentReactance=\"{_percreactance}\" maxTap=\"{_maxTap}\" minTap=\"{_minTap}\" phases=\"{_phases}\" tapSteps=\"{_tapSteps}\" transformerType=\"{_transformerTypeType}\" lowNeutralResistance=\"{_nerResistance}\" />");
         }
 
         #region Overrides

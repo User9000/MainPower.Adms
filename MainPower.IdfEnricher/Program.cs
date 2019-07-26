@@ -32,14 +32,19 @@ namespace MainPower.IdfEnricher
                {
                    try
                    {
-                       //Console.ReadKey();
+                       //clear the output directory
+                       var files = Directory.GetFiles(o.OutputPath);
+                       foreach (var file in files)
+                       {
+                           File.Delete(file);
+                       }
                        DateTime start = DateTime.Now;
                        var enricher = Enricher.Singleton;
                        enricher.Options = o;
                        enricher.LoadSourceData();
                        enricher.ProcessImportConfiguration();
                        TimeSpan runtime = DateTime.Now - start;
-                       Console.WriteLine($"Stats: Tx:{enricher.TransformerCount} Line:{enricher.LineCount} Switch:{enricher.SwitchCount} Runtime:{runtime.TotalMinutes} min");
+                       Console.WriteLine($"Stats: Tx:{enricher.TransformerCount} Line:{enricher.LineCount} Load:{enricher.LoadCount} Switch:{enricher.SwitchCount} Runtime:{runtime.TotalMinutes} min");
                        Console.WriteLine("All done....");
                        Console.ReadKey();
                    }
@@ -50,7 +55,7 @@ namespace MainPower.IdfEnricher
                    }
                    string log = GetLogFileName("file");
                    if (File.Exists(log))
-                   File.Copy(log , $"{o.Path}\\output\\{Path.GetFileName(log)}");
+                   File.Copy(log , $"{o.OutputPath}\\{Path.GetFileName(log)}");
 
 
                });

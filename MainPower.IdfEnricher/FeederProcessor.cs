@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
-    internal class LineProcessor : DeviceProcessor
+    internal class FeederProcessor : DeviceProcessor
     {
         private const string IDF_LINE_ID = "id";
         private const string IDF_LINE_NAME = "name";
@@ -16,7 +16,7 @@ namespace MainPower.IdfEnricher
         private string _id;
         private string _name;
 
-        public LineProcessor(XElement node, GroupProcessor processor) : base(node, processor) { }
+        public FeederProcessor(XElement node, GroupProcessor processor) : base(node, processor) { }
 
         internal override void Process()
         {
@@ -26,37 +26,36 @@ namespace MainPower.IdfEnricher
                 _name = Node.Attribute(IDF_LINE_NAME).Value;
 
                 Node.SetAttributeValue("aorGroup", "1");
-                Node.SetAttributeValue("nominalState1", "True");
-                Node.SetAttributeValue("nominalState2", "True");
-                Node.SetAttributeValue("nominalState3", "True");
+                Node.SetAttributeValue("source", "");
             }
             catch (Exception ex)
             {
                 Error("", $"Uncaught exception: {ex.Message}");
             }
         }
-        
+
         #region Overrides
         protected override void Debug(string code, string message)
         {
-            _log.Debug($"LINE,{_id},{_name},\"{message}\"");
+            _log.Debug($"FEEDER,{_id},{_name},\"{message}\"");
         }
 
         protected override void Error(string code, string message)
         {
-            _log.Error($"LINE,{_id},{_name},\"{message}\"");
+            _log.Error($"FEEDER,{_id},{_name},\"{message}\"");
         }
 
         protected override void Info(string code, string message)
         {
-            _log.Info($"LINE,{_id},{_name},\"{message}\"");
+            _log.Info($"FEEDER,{_id},{_name},\"{message}\"");
         }
 
         protected override void Warn(string code, string message)
         {
-            _log.Warn($"LINE,{_id},{_name},\"{message}\"");
+            _log.Warn($"FEEDER,{_id},{_name},\"{message}\"");
         }
 
         #endregion
     }
 }
+

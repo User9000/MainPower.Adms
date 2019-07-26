@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
@@ -11,13 +12,13 @@ namespace MainPower.IdfEnricher
     {
         protected static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        internal XmlElement Node { get; private set; }
-        internal GroupProcessor Processor { get; private set; }
+        internal XElement Node { get; private set; }
+        internal GroupProcessor ParentGroup { get; private set; }
 
-        internal DeviceProcessor(XmlElement node, GroupProcessor processor)
+        internal DeviceProcessor(XElement node, GroupProcessor processor)
         {
             Node = node;
-            Processor = processor;
+            ParentGroup = processor;
         }
 
         abstract internal void Process();

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
@@ -12,8 +13,6 @@ namespace MainPower.IdfEnricher
     {
         private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        internal XmlDocument Graphics { get; private set; }
-        internal XmlDocument Data { get; private set; }
         internal string Id { get; private set; }
 
         internal GroupProcessor(string id)
@@ -23,26 +22,29 @@ namespace MainPower.IdfEnricher
 
         internal void SetSymbolName(string id, string symbolName, double scale = double.NaN, double rotation = double.NaN, double z = double.NaN)
         {
-            lock (Graphics)
+            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
             {
-                if (Graphics.SelectSingleNode($"//element[@id=\"d_{id}\"]") is XmlElement node)
+                var symbols = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var symbol in symbols)
                 {
-                    node.SetAttribute("name", symbolName);
-                    node.SetAttribute("library", "MPNZ.LIB2");
+                    var parent = symbol.Parent;
+                    parent.SetAttributeValue("name", symbolName);
+                    parent.SetAttributeValue("library", "MPNZ.LIB2");
                     if (!scale.Equals(double.NaN))
-                        node.SetAttribute("scale", scale.ToString("N3"));
+                        parent.SetAttributeValue("scale", scale.ToString("N3"));
 
                     if (!rotation.Equals(double.NaN))
-                        node.SetAttribute("rotation", rotation.ToString("N0"));
+                        parent.SetAttributeValue("rotation", rotation.ToString("N0"));
 
                     if (!z.Equals(double.NaN))
-                        node.SetAttribute("z", z.ToString("N1"));
+                        parent.SetAttributeValue("z", z.ToString("N1"));
                 }
             }
         }
 
         internal void AddColorLink (string id)
         {
+            /*
             lock (Graphics)
             {
                 if (Graphics.SelectSingleNode($"//element[@id=\"d_{id}\"]") is XmlElement node)
@@ -52,26 +54,44 @@ namespace MainPower.IdfEnricher
                     node.AppendChild(f);
                 }
             }
+            */
+            //TODO: implement this
         }
 
-        internal void  Process()
+        private string FindFile(string id)
         {
-            try
-            {
-                //throw errors to caller
-                Graphics = new XmlDocument();
-                Graphics.Load($"{Enricher.Singleton.Options.Path}\\idf\\{Id}_display.xml");
-                ReplaceSymbolLibraryName();
-                DeleteTextElements();
-                Data = new XmlDocument();
-                Data.Load($"{Enricher.Singleton.Options.Path}\\idf\\{Id}_data.xml");
 
+            DirectoryInfo hdDirectoryInWhichToSearch = new DirectoryInfo(Enricher.Singleton.Options.InputPath);
+            FileInfo[] filesInDir = hdDirectoryInWhichToSearch.GetFiles(id + "*");
+
+            foreach (FileInfo foundFile in filesInDir)
+            {
+                if (foundFile.Name.EndsWith("_data.xml"))
+                    return foundFile.Name.Substring(0, foundFile.Name.Length - "_data.xml".Length);
+            }
+            return "";
+        }
+
+        internal void Process()
+        {
+            FileManager fm = FileManager.I;
+            if (!fm.GroupFiles.ContainsKey(Id))
+            {
+                //TODO: log error
+                return;
+            }
+
+            ReplaceSymbolLibraryName();
+            DeleteTextElements();
+
+            foreach (var idf in fm.GroupFiles[Id].DataFiles)
+            {
                 var tasks = new List<Task>();
-                var nodes = Data.SelectNodes($"//group[@id=\"{Id}\"]/element");
-                foreach (XmlElement node in nodes)
+                var nodes = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element");
+                foreach (var node in nodes)
                 {
                     DeviceProcessor d = null;
-                    var elType = node.Attributes["type"].InnerText;
+                    var elType = node.Attribute("type").Value;
                     switch (elType)
                     {
                         case "Switch":
@@ -86,6 +106,34 @@ namespace MainPower.IdfEnricher
                             Enricher.Singleton.LineCount++;
                             d = new LineProcessor(node, this);
                             break;
+                        case "Load":
+                            Enricher.Singleton.LoadCount++;
+                            d = new LoadProcessor(node, this);
+                            break;
+                        case "Feeder":
+                            Enricher.Singleton.LoadCount++;
+                            d = new FeederProcessor(node, this);
+                            break;
+                        case "Circuit":
+                            Enricher.Singleton.LoadCount++;
+                            d = new CircuitProcessor(node, this);
+                            break;
+                        case "Regulator":
+                            Enricher.Singleton.LoadCount++;
+                            d = new RegulatorProcessor(node, this);
+                            break;
+                        case "Substation":
+                            Enricher.Singleton.LoadCount++;
+                            d = new SubstationProcessor(node, this);
+                            break;
+                        case "Area":
+                            Enricher.Singleton.LoadCount++;
+                            d = new AreaProcessor(node, this);
+                            break;
+                        case "Region":
+                            Enricher.Singleton.LoadCount++;
+                            d = new RegionProcessor(node, this);
+                            break;
                         default:
                             break;
                     }
@@ -94,60 +142,69 @@ namespace MainPower.IdfEnricher
                         d.Process();
                     }
                 }
-                Directory.CreateDirectory($"{Enricher.Singleton.Options.Path}\\output\\");
-                Data.Save($"{Enricher.Singleton.Options.Path}\\output\\{Id}_data.xml");
-                Graphics.Save($"{Enricher.Singleton.Options.Path}\\output\\{Id}_display.xml");
-            }
-            catch (Exception ex)
-            {
-                _log.Error($"GROUP,,,{ex.Message}");
             }
         }
 
         private void ReplaceSymbolLibraryName()
         {
-            foreach (XmlNode var in Graphics.SelectNodes("//element[@library=\"OSI.LIB2\"]"))
+            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
             {
-                var.Attributes["library"].InnerText = "MPNZ.LIB2";
+                var symbols  = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type")?.Value == "Symbol" && n.Attribute("library")?.Value == "OSI.LIB2");
+                foreach (var symbol in symbols)
+                {
+                    symbol.SetAttributeValue("library", "MPNZ.LIB2");
+                }
             }
         }
-
 
         private void DeleteTextElements()
         {
-            foreach (XmlNode var in Graphics.SelectNodes("//element[@type=\"Text\"]"))
+            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
             {
-                var.ParentNode.RemoveChild(var);
+
+                var texts = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type").Value == "Text");
+                
+                foreach (var text in texts.ToList())
+                {
+                    text.Remove();
+                }
             }
         }
 
-        internal void AddGroupElement (string xml)
+        /// <summary>
+        /// Adds an element to the first data file containing the group
+        /// </summary>
+        /// <param name="xml"></param>
+        internal void AddGroupElement (XElement xml)
         {
-            XmlDocumentFragment f = Data.CreateDocumentFragment();
-            f.InnerXml = xml;
-            var node = Data.SelectSingleNode($"//group[@id=\"{Id}\"]");
-            node.AppendChild(f);
+            var groupnode = FileManager.I.GroupFiles[Id].DataFiles[0].Content.Descendants("group").Where(n => n.Attribute("id")?.Value == Id).First();
+            groupnode.Add(xml);
         }
 
         internal void AddScadaCommand(string id, string key)
         {
             try
             {
-                string xmlc = "<command instance=\"Active\" plugin=\"SCADA Interface\" topic=\"OpenPointDialog\"><field name=\"LinkString\" value=\"@URL\" /></command>";
-                string xmldl = $"<dataLink dsID=\"{key}\"><link d=\"SCADA\" f=\"State\" i=\"0\" identityType=\"Key\" o=\"STATUS\"></link></dataLink>";
-
-                XmlDocumentFragment fc = Graphics.CreateDocumentFragment();
-                XmlDocumentFragment fdl = Graphics.CreateDocumentFragment();
-                fc.InnerXml = xmlc;
-                fdl.InnerXml = xmldl;
-
-                var node = Graphics.SelectSingleNode($"//element[@id=\"d_{id}\"]");
-                //var cnode = node.SelectSingleNode("./command");
-                var dlnode = node.SelectSingleNode("./dataLink");
-                //node.RemoveChild(cnode);
-                node.RemoveChild(dlnode);
-                node.AppendChild(fdl);
-                //node.AppendChild(fc);
+                foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
+                {
+                    var symbols = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n=> n.Attribute("id")?.Value == id);
+                    foreach (var symbol in symbols.ToList())
+                    {
+                        var parent = symbol.Parent;
+                        symbol.Remove();
+                        XElement x = new XElement("dataLink",
+                            new XAttribute("dsID", key),
+                            new XElement("link",
+                                new XAttribute("d", "SCADA"),
+                                new XAttribute("f", "State"),
+                                new XAttribute("i", "0"),
+                                new XAttribute("identityType", "Key"),
+                                new XAttribute("o", "STATUS")
+                            )
+                        );
+                        parent.Add(x);
+                    }
+                }
             }
             catch (Exception ex)
             {

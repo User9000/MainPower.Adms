@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
@@ -15,7 +16,6 @@ namespace MainPower.IdfEnricher
         AnalogInput, 
         AnalogOutput
     }
-
 
     class Enricher
     {
@@ -41,24 +41,35 @@ namespace MainPower.IdfEnricher
         internal int SwitchCount { get; set; }
         internal int LoadCount { get; set; }
 
+        internal bool FatalErrorOccurred { get; set; } = false;
 
         internal void LoadSourceData()
         {
-            T1Disconnectors = Util.GetDataTableFromCsv($"{Options.Path}\\T1Disconnectors.csv", true);
-            T1Fuses = Util.GetDataTableFromCsv($"{Options.Path}\\T1Fuses.csv", true);
-            T1HvCircuitBreakers = Util.GetDataTableFromCsv($"{Options.Path}\\T1HvCircuitBreakers.csv", true);
-            T1RingMainUnits = Util.GetDataTableFromCsv($"{Options.Path}\\T1RingMainUnits.csv", true);
-            T1Transformers = Util.GetDataTableFromCsv($"{Options.Path}\\T1Transformers.csv", true);
-            ScadaStatus = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaStatus.csv", true);
-            ScadaAnalog = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaAnalog.csv", true);
-            ScadaAccumulator = Util.GetDataTableFromCsv($"{Options.Path}\\ScadaAccumulator.csv", true);
-            AdmsSwitch = Util.GetDataTableFromCsv($"{Options.Path}\\AdmsSwitch.csv", true);
-            AdmsTransformer = Util.GetDataTableFromCsv($"{Options.Path}\\AdmsTransformer.csv", true);
+            T1Disconnectors = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1Disconnectors.csv", true);
+            T1Fuses = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1Fuses.csv", true);
+            T1HvCircuitBreakers = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1HvCircuitBreakers.csv", true);
+            T1RingMainUnits = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1RingMainUnits.csv", true);
+            T1Transformers = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1Transformers.csv", true);
+            ScadaStatus = Util.GetDataTableFromCsv($"{Options.DataPath}\\ScadaStatus.csv", true);
+            ScadaAnalog = Util.GetDataTableFromCsv($"{Options.DataPath}\\ScadaAnalog.csv", true);
+            ScadaAccumulator = Util.GetDataTableFromCsv($"{Options.DataPath}\\ScadaAccumulator.csv", true);
+            AdmsSwitch = Util.GetDataTableFromCsv($"{Options.DataPath}\\AdmsSwitch.csv", true);
+            AdmsTransformer = Util.GetDataTableFromCsv($"{Options.DataPath}\\AdmsTransformer.csv", true);
         }
 
         internal void ProcessImportConfiguration()
         {
+            FileManager fm = FileManager.I;
+            fm.Initialize(Options.InputPath);
             var tasks = new List<Task>();
+
+            var groups = fm.ImportConfig.Content.Descendants("group").Attributes("id");
+            foreach (var id in groups)
+            {
+                GroupProcessor p = new GroupProcessor(id.Value);
+                tasks.Add(Task.Run((Action)p.Process));
+            }
+            /* old version
             XmlDocument doc = new XmlDocument();
             doc.Load($"{Options.Path}\\idf\\ImportConfig.xml");
             var nodes = doc.SelectNodes("//container[@name!=\"Globals\"]/group");
@@ -68,7 +79,9 @@ namespace MainPower.IdfEnricher
                 GroupProcessor p = new GroupProcessor(id);
                 tasks.Add(Task.Run((Action)p.Process));
             }
+            */
             Task.WaitAll(tasks.ToArray());
+            fm.SaveFiles(Options.OutputPath);
         }
 
         private DataRow GenericDatasetQuery(DataTable data, string queryColumn, string queryName, bool trueforstringfalseforint, string id)
