@@ -40,7 +40,7 @@ namespace MainPower.IdfEnricher
         internal int LineCount { get; set; }
         internal int SwitchCount { get; set; }
         internal int LoadCount { get; set; }
-
+        internal NodeModel Model { get; set; } = new NodeModel();
         internal bool FatalErrorOccurred { get; set; } = false;
 
         internal void LoadSourceData()

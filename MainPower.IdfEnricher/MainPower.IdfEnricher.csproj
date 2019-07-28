@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="AreaProcessor.cs" />
     <Compile Include="CircuitProcessor.cs" />
+    <Compile Include="Device.cs" />
     <Compile Include="FeederProcessor.cs" />
     <Compile Include="FileManager.cs" />
     <Compile Include="GroupSet.cs" />
@@ -61,8 +62,12 @@
     <Compile Include="IdfFileType.cs" />
     <Compile Include="LineProcessor.cs" />
     <Compile Include="LoadProcessor.cs" />
+    <Compile Include="Node.cs" />
+    <Compile Include="NodeModel.cs" />
+    <Compile Include="PFDetail.cs" />
     <Compile Include="RegionProcessor.cs" />
     <Compile Include="RegulatorProcessor.cs" />
+    <Compile Include="Source.cs" />
     <Compile Include="SubstationProcessor.cs" />
     <Compile Include="TransformerProcessor.cs" />
     <Compile Include="DeviceProcessor.cs" />

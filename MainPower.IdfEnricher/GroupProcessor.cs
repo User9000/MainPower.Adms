@@ -96,19 +96,23 @@ namespace MainPower.IdfEnricher
                     {
                         case "Switch":
                             d = new SwitchProcessor(node, this);
+                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Switch);
                             Enricher.Singleton.SwitchCount++;
                             break;
                         case "Transformer":
                             d = new TransformerProcessor(node, this);
+                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Transformer);
                             Enricher.Singleton.TransformerCount++;
                             break;
                         case "Line":
                             Enricher.Singleton.LineCount++;
+                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Line);
                             d = new LineProcessor(node, this);
                             break;
                         case "Load":
                             Enricher.Singleton.LoadCount++;
                             d = new LoadProcessor(node, this);
+                            //Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Load);
                             break;
                         case "Feeder":
                             Enricher.Singleton.LoadCount++;
@@ -121,6 +125,7 @@ namespace MainPower.IdfEnricher
                         case "Regulator":
                             Enricher.Singleton.LoadCount++;
                             d = new RegulatorProcessor(node, this);
+                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Regulator);
                             break;
                         case "Substation":
                             Enricher.Singleton.LoadCount++;
@@ -133,6 +138,9 @@ namespace MainPower.IdfEnricher
                         case "Region":
                             Enricher.Singleton.LoadCount++;
                             d = new RegionProcessor(node, this);
+                            break;
+                        case "Source":
+                            Enricher.Singleton.Model.AddSource(node, Id);
                             break;
                         default:
                             break;
