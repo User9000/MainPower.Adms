@@ -198,6 +198,9 @@ namespace MainPower.IdfEnricher
                     case @"MV Isolator\MV Switch":
                         ProcessSwitch();
                         break;
+                    case @"MV Isolator\Earth Switch":
+
+                        break;
                     case @"MV Isolator\Disconnector":
                         ProcessDisconnector(true);
                         break;
@@ -231,9 +234,16 @@ namespace MainPower.IdfEnricher
                         break;
                     //LV Line Switch
                     case @"LV Line Switch\OH LV Open Point":
+                    case @"LV Isolator\LV Circuit Breaker"://TODO
                         ProcessLVSwitch();
                         break;
-                    case @"LV Line Switch\LV Fuse":
+                    case @"LV Line Switch\LV Fuse": //pole fuse
+                    case @"LV Isolator\LV Fuse"://TODO //indoor panel
+                    case @"LV Isolator\LV Switch Fuse"://TODO //indoor panel
+                    case @"LV Isolator\LV Switch Link"://TODO //indoor pabel
+                    case @"LV Isolator\LV Link"://TODO //pole fuse link
+                    case @"LV Isolator\LV Direct Connector": //direct connection
+                    case @"LV Isolator\Streetlight - Relay":
                         ProcessLVFuse();
                         break;
                     //Others
@@ -292,7 +302,7 @@ namespace MainPower.IdfEnricher
             string us = _nominalUpstreamSide;
             string ds = us == "1" ? "2" : "1";
 
-            var status = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var status = Enricher.I.GetScadaStatusPointInfo(_name);
             bool hasVolts = false;
             if (status == null)
                 return ("", null);
@@ -305,19 +315,19 @@ namespace MainPower.IdfEnricher
             x.SetAttributeValue("p3State", status.Key);
             
 
-            var rAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps RØ");
+            var rAmps = Enricher.I.GetScadaAnalogPointInfo($"{_name} Amps RØ");
             if (rAmps != null)
             {
                 x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
                 x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
             }
-            var yAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps YØ");
+            var yAmps = Enricher.I.GetScadaAnalogPointInfo($"{_name} Amps YØ");
             if (yAmps != null)
             {
                 x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
                 x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
             }
-            var bAmps = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Amps BØ");
+            var bAmps = Enricher.I.GetScadaAnalogPointInfo($"{_name} Amps BØ");
             if (bAmps != null)
             {
                 x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
@@ -339,42 +349,42 @@ namespace MainPower.IdfEnricher
                 x.SetAttributeValue("s1p3AmpsUCF", "1");
             }
             */
-            var s1RYVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts RY");
+            var s1RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts RY");
             if (s1RYVolts != null)
             {
                 x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s1YBVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts YB");
+            var s1YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts YB");
             if (s1YBVolts != null)
             {
                 x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s1BRVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts BR");
+            var s1BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts BR");
             if (s1BRVolts != null)
             {
                 x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2RYVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts RY2");
+            var s2RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts RY2");
             if (s2RYVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
                 x.SetAttributeValue($"s{ds}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2YBVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts YB2");
+            var s2YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts YB2");
             if (s2YBVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
                 x.SetAttributeValue($"s{ds}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2BRVolts = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} Volts BR2");
+            var s2BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts BR2");
             if (s2BRVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
@@ -413,13 +423,13 @@ namespace MainPower.IdfEnricher
         private void ProcessCircuitBreaker2(bool internals)
         {
             if (!string.IsNullOrEmpty(_t1assetno)) {
-                var asset = Enricher.Singleton.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
+                var asset = Enricher.I.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
                 if (asset != null)
                 {
                     ProcessCircuitBreaker(internals);
                     return;
                 }
-                asset = Enricher.Singleton.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
                 if (asset != null)
                 {
                     ProcessRingMainCb();
@@ -440,7 +450,7 @@ namespace MainPower.IdfEnricher
 
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
 
-            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -468,7 +478,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -484,7 +494,7 @@ namespace MainPower.IdfEnricher
 
             }
 
-            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -512,7 +522,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -527,7 +537,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -558,7 +568,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -573,7 +583,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -643,7 +653,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -675,7 +685,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1DisconnectorByAssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1DisconnectorByAssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -691,7 +701,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -719,7 +729,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1FuseByAssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1FuseByAssetNumber(_t1assetno);
 
                 if (asset == null)
                 {
@@ -747,7 +757,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1DisconnectorByAssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1DisconnectorByAssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -764,7 +774,7 @@ namespace MainPower.IdfEnricher
 
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -793,7 +803,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -810,7 +820,7 @@ namespace MainPower.IdfEnricher
             }
 
             var scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            var p = Enricher.Singleton.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(_name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -826,7 +836,7 @@ namespace MainPower.IdfEnricher
 
         private void ProcessCircuitBreakerAdms()
         {
-            if (Enricher.Singleton.GetAdmsSwitch(_name) is DataRow asset)
+            if (Enricher.I.GetAdmsSwitch(_name) is DataRow asset)
             {
                 //TODO: RMU circuit breakers are generally not in the protection database... they use generic settings based on tx size.
                 //how are we going to handle these?
@@ -862,7 +872,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                asset = Enricher.Singleton.GetT1FuseByAssetNumber(_t1assetno);
+                asset = Enricher.I.GetT1FuseByAssetNumber(_t1assetno);
 
                 if (asset != null)
                 {
@@ -1070,22 +1080,22 @@ namespace MainPower.IdfEnricher
 
         protected override void Debug(string code,  string message)
         {
-            _log.Debug($"SWITCH\\{code},{_id},{_name},\"{message}\"");
+            _log.Debug(Util.FormatLogString(LogLevel.Debug, $"SWITCH\\{code}", _id, _name, message));
         }
 
         protected override void Info(string code,  string message)
         {
-            _log.Info($"SWITCH\\{code},{_id},{_name},\"{message}\"");
+            _log.Info(Util.FormatLogString(LogLevel.Info, $"SWITCH\\{code}", _id, _name, message));
         }
 
         protected override void Warn(string code,  string message)
         {
-            _log.Warn($"SWITCH\\{code},{_id},{_name},\"{message}\"");
+            _log.Warn(Util.FormatLogString(LogLevel.Warn, $"SWITCH\\{code}", _id, _name, message));
         }
 
         protected override void Error(string code,  string message)
         {
-            _log.Error($"SWITCH\\{code},{_id},{_name},\"{message}\"");
+            _log.Error(Util.FormatLogString(LogLevel.Error, $"SWITCH\\{code}", _id, _name, message));
         }
         #endregion
     }

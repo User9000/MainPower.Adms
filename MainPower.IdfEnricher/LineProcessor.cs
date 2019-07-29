@@ -29,6 +29,8 @@ namespace MainPower.IdfEnricher
                 Node.SetAttributeValue("nominalState1", "True");
                 Node.SetAttributeValue("nominalState2", "True");
                 Node.SetAttributeValue("nominalState3", "True");
+                Node.SetAttributeValue("inSubstation", "False");
+                ParentGroup.AddDatalink(_id);
             }
             catch (Exception ex)
             {
@@ -39,22 +41,22 @@ namespace MainPower.IdfEnricher
         #region Overrides
         protected override void Debug(string code, string message)
         {
-            _log.Debug($"LINE,{_id},{_name},\"{message}\"");
+            _log.Debug(Util.FormatLogString(LogLevel.Debug, "LINE", _id, _name, message));
         }
 
         protected override void Error(string code, string message)
         {
-            _log.Error($"LINE,{_id},{_name},\"{message}\"");
+            _log.Error(Util.FormatLogString(LogLevel.Error, "LINE", _id, _name, message));
         }
 
         protected override void Info(string code, string message)
         {
-            _log.Info($"LINE,{_id},{_name},\"{message}\"");
+            _log.Info(Util.FormatLogString(LogLevel.Info, "LINE", _id, _name, message));
         }
 
         protected override void Warn(string code, string message)
         {
-            _log.Warn($"LINE,{_id},{_name},\"{message}\"");
+            _log.Warn(Util.FormatLogString(LogLevel.Warn, "LINE", _id, _name, message));
         }
 
         #endregion

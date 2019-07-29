@@ -91,7 +91,12 @@ namespace MainPower.IdfEnricher
                         GroupFiles.Add(id, new GroupSet());
                     }
                     if (idf.Type == IdfFileType.Data)
-                        GroupFiles[id].DataFiles.Add(idf);
+                    {
+                        if (GroupFiles[id].DataFile == null)
+                            GroupFiles[id].DataFile = idf;
+                        else
+                            _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "FILEMANAGER", id, "", "Group data file was already specified"));
+                    }
                     else if (idf.Type == IdfFileType.Graphics)
                         GroupFiles[id].GraphicFiles.Add(idf);
                 }

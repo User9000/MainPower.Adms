@@ -42,6 +42,11 @@ namespace MainPower.IdfEnricher
             }
         }
 
+        internal void SetSwitchInSubstation(string value)
+        {
+            throw new NotImplementedException();
+        }
+
         internal void AddColorLink (string id)
         {
             /*
@@ -57,19 +62,27 @@ namespace MainPower.IdfEnricher
             */
             //TODO: implement this
         }
-
-        private string FindFile(string id)
+        internal void AddDatalink(string id)
         {
-
-            DirectoryInfo hdDirectoryInWhichToSearch = new DirectoryInfo(Enricher.Singleton.Options.InputPath);
-            FileInfo[] filesInDir = hdDirectoryInWhichToSearch.GetFiles(id + "*");
-
-            foreach (FileInfo foundFile in filesInDir)
+            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
             {
-                if (foundFile.Name.EndsWith("_data.xml"))
-                    return foundFile.Name.Substring(0, foundFile.Name.Length - "_data.xml".Length);
+                var symbols = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("colorLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var symbol in symbols)
+                {
+                    var parent = symbol.Parent;
+                    XElement x = new XElement("dataLink",
+                        new XAttribute("id", id),
+                        new XElement("link",
+                            new XAttribute("d", "EMAP"),
+                            new XAttribute("f", "AggregateState"),
+                            new XAttribute("i", "0"),
+                            new XAttribute("identityType", "Key"),
+                            new XAttribute("o", "EMAP_DEVICE")
+                        )
+                    );
+                    parent.Add(x);
+                }
             }
-            return "";
         }
 
         internal void Process()
@@ -83,73 +96,73 @@ namespace MainPower.IdfEnricher
 
             ReplaceSymbolLibraryName();
             DeleteTextElements();
-
-            foreach (var idf in fm.GroupFiles[Id].DataFiles)
+            var tasks = new List<Task>();
+            var dataidf = fm.GroupFiles[Id].DataFile;
+            if (dataidf == null)
+                return;
+            var nodes = dataidf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element");
+            foreach (var node in nodes)
             {
-                var tasks = new List<Task>();
-                var nodes = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element");
-                foreach (var node in nodes)
+                DeviceProcessor d = null;
+                var elType = node.Attribute("type").Value;
+                switch (elType)
                 {
-                    DeviceProcessor d = null;
-                    var elType = node.Attribute("type").Value;
-                    switch (elType)
-                    {
-                        case "Switch":
-                            d = new SwitchProcessor(node, this);
-                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Switch);
-                            Enricher.Singleton.SwitchCount++;
-                            break;
-                        case "Transformer":
-                            d = new TransformerProcessor(node, this);
-                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Transformer);
-                            Enricher.Singleton.TransformerCount++;
-                            break;
-                        case "Line":
-                            Enricher.Singleton.LineCount++;
-                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Line);
-                            d = new LineProcessor(node, this);
-                            break;
-                        case "Load":
-                            Enricher.Singleton.LoadCount++;
-                            d = new LoadProcessor(node, this);
-                            //Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Load);
-                            break;
-                        case "Feeder":
-                            Enricher.Singleton.LoadCount++;
-                            d = new FeederProcessor(node, this);
-                            break;
-                        case "Circuit":
-                            Enricher.Singleton.LoadCount++;
-                            d = new CircuitProcessor(node, this);
-                            break;
-                        case "Regulator":
-                            Enricher.Singleton.LoadCount++;
-                            d = new RegulatorProcessor(node, this);
-                            Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Regulator);
-                            break;
-                        case "Substation":
-                            Enricher.Singleton.LoadCount++;
-                            d = new SubstationProcessor(node, this);
-                            break;
-                        case "Area":
-                            Enricher.Singleton.LoadCount++;
-                            d = new AreaProcessor(node, this);
-                            break;
-                        case "Region":
-                            Enricher.Singleton.LoadCount++;
-                            d = new RegionProcessor(node, this);
-                            break;
-                        case "Source":
-                            Enricher.Singleton.Model.AddSource(node, Id);
-                            break;
-                        default:
-                            break;
-                    }
-                    if (d != null)
-                    {
-                        d.Process();
-                    }
+                    case "Switch":
+                        d = new SwitchProcessor(node, this);
+                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Switch);
+                        Enricher.I.SwitchCount++;
+                        break;
+                    case "Transformer":
+                        d = new TransformerProcessor(node, this);
+                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Transformer);
+                        Enricher.I.TransformerCount++;
+                        break;
+                    case "Line":
+                        Enricher.I.LineCount++;
+                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Line);
+                        d = new LineProcessor(node, this);
+                        break;
+                    case "Load":
+                        Enricher.I.LoadCount++;
+                        d = new LoadProcessor(node, this);
+                        //Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Load);
+                        break;
+                    case "Feeder":
+                        Enricher.I.LoadCount++;
+                        d = new FeederProcessor(node, this);
+                        break;
+                    case "Circuit":
+                        Enricher.I.LoadCount++;
+                        d = new CircuitProcessor(node, this);
+                        break;
+                    case "Regulator":
+                        Enricher.I.LoadCount++;
+                        d = new RegulatorProcessor(node, this);
+                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Regulator);
+                        break;
+                    case "Substation":
+                        Enricher.I.LoadCount++;
+                        d = new SubstationProcessor(node, this);
+                        break;
+                    case "Area":
+                        Enricher.I.LoadCount++;
+                        d = new AreaProcessor(node, this);
+                        break;
+                    case "Region":
+                        Enricher.I.LoadCount++;
+                        d = new RegionProcessor(node, this);
+                        break;
+                    case "Source":
+                        Enricher.I.Model.AddSource(node, Id);
+                        break;
+                    default:
+                        break;
                 }
+                if (d != null)
+                {
+                    d.Process();
+                }
+
             }
         }
 
@@ -185,7 +198,7 @@ namespace MainPower.IdfEnricher
         /// <param name="xml"></param>
         internal void AddGroupElement (XElement xml)
         {
-            var groupnode = FileManager.I.GroupFiles[Id].DataFiles[0].Content.Descendants("group").Where(n => n.Attribute("id")?.Value == Id).First();
+            var groupnode = FileManager.I.GroupFiles[Id].DataFile.Content.Descendants("group").Where(n => n.Attribute("id")?.Value == Id).First();
             groupnode.Add(xml);
         }
 

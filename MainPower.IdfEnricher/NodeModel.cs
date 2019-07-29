@@ -1,33 +1,50 @@
-﻿using System;
+﻿using MessagePack;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
-    internal class NodeModel
+    [Serializable]
+    [MessagePackObject]
+    public class NodeModel
     {
-        public Dictionary<string, Node> Nodes = new Dictionary<string, Node>();
+        [Key(0)]
         public Dictionary<string, Device> Devices = new Dictionary<string, Device>();
+        [Key(1)]
+        public Dictionary<string, Node> Nodes = new Dictionary<string, Node>();
+        [Key(2)]
         public Dictionary<string, Source> Sources = new Dictionary<string, Source>();
+
+        private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private void CleanOrphanNodes()
         {
-            var nodes = from n in Nodes.Values where n.Devices.Count == 0 select n;
-            foreach (var node in nodes)
+            lock (Nodes)
             {
-                Nodes.Remove(node.Id);
+                var nodes = from n in Nodes.Values where n.Devices.Count == 0 select n;
+                foreach (var node in nodes.ToList())
+                {
+                    Nodes.Remove(node.Id);
+                }
             }
         }
 
         private void RemoveDevice(Device d)
         {
-            d.Node1.Devices.Remove(d);
-            d.Node2.Devices.Remove(d);
-            Devices.Remove(d.Id);
+            lock (Devices)
+            {
+                d.Node1.Devices.Remove(d);
+                d.Node2.Devices.Remove(d);
+                Devices.Remove(d.Id);
+            }
         }
 
         public void AddDevice(string id, string n1id, string n2id, string gid, string name, DeviceType type, bool state = false, double length = 0)
@@ -37,7 +54,7 @@ namespace MainPower.IdfEnricher
                 //error
                 return;
             }
-            lock (Devices)
+            lock (Devices) lock (Nodes)
             {
                 Node n1, n2;
                 if (Nodes.ContainsKey(n1id))
@@ -214,17 +231,20 @@ namespace MainPower.IdfEnricher
 
         public void RemoveGroup(string id)
         {
-            var devices = from d in Devices.Values where d.GroupId == id select d;
-            foreach (Device d in devices)
+            lock (Devices) lock (Nodes) lock (Sources)
             {
-                RemoveDevice(d);
+                var devices = from d in Devices.Values where d.GroupId == id select d;
+                foreach (Device d in devices.ToList())
+                {
+                    RemoveDevice(d);
+                }
+                var sources = from s in Sources.Values where s.GroupId == id select s;
+                foreach (Source s in sources.ToList())
+                {
+                    Sources.Remove(s.Id);
+                }
+                CleanOrphanNodes();
             }
-            var sources = from s in Sources.Values where s.GroupId == id select s;
-            foreach (Source s in sources)
-            {
-                Sources.Remove(s.Id);
-            }
-            CleanOrphanNodes();
         }
 
         public int GetUpstreamSideByName(string name)
@@ -247,6 +267,135 @@ namespace MainPower.IdfEnricher
             else
             {
                 d.PrintPFResults();
+            }
+        }
+
+        public void Serialize(string file)
+        {
+            SerializeMessagePack(file);
+        }
+
+        private void SerializeMessagePack(string file)
+        {
+            try
+            {                
+                using (var f = File.OpenWrite(file))
+                {
+                    LZ4MessagePackSerializer.Serialize(f, this);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to serialize model to file [{file}] using MessagePack. {ex.Message}"));
+            }
+        }
+
+        private void SerialzeBinaryFormatter(string file)
+        {
+            try
+            {
+                using (var f = File.OpenWrite(file))
+                {
+                    BinaryFormatter b = new BinaryFormatter();
+                    b.Serialize(f, this);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to serialize model to file [{file}] using Binary Formatter. {ex.Message}"));
+            }
+        }
+
+        private void SerializeNewtonsoft(string file)
+        {
+            try
+            {
+                using (var f = File.CreateText(file))
+                {
+                    JsonSerializer s = new JsonSerializer
+                    {
+                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                        Formatting = Formatting.None
+                    };
+                    s.Serialize(f, this);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to serialize model to file [{file}] using Newtonsoft. {ex.Message}"));
+            }
+        }
+
+        public static NodeModel Deserialize(string file)
+        {
+            var model = DeserializeMessagePack(file);
+            if (model != null)
+                model.RebuildNodeReferences();
+            return model;
+        }
+
+        private void RebuildNodeReferences()
+        {
+            foreach (var device in Devices.Values)
+            {
+                device.Node1.Devices.Add(device);
+                device.Node2.Devices.Add(device);
+            }
+        }
+
+        private static NodeModel DeserializeMessagePack(string file)
+        {
+            try
+            {
+                using (var f = File.OpenRead(file))
+                {
+                    NodeModel m = LZ4MessagePackSerializer.Deserialize<NodeModel>(f);
+                    return m;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to deserialize model from file [{file}] using MessagePack. {ex.Message}"));
+                return null;
+            }
+        }
+
+        private static NodeModel DeserializeNewtonsoft(string file)
+        {
+            try
+            {
+                using (var f = File.OpenText(file))
+                {
+                    JsonTextReader r = new JsonTextReader(f);
+                    JsonSerializer s = new JsonSerializer()
+                    {
+                        PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                    };
+                    return s.Deserialize<NodeModel>(r);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to deserialize model from file [{file}] using Newtonsoft. {ex.Message}"));
+                return null;
+            }
+
+        }
+
+        private static NodeModel DeserializeBinaryFormatter(string file)
+        {
+            try
+            {
+                using (var f = File.OpenRead(file))
+                {
+                    BinaryFormatter b = new BinaryFormatter();
+                    return b.Deserialize(f) as NodeModel;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to deserialize model from file [{file}] using Binary Formatter. {ex.Message}"));
+                return null;
             }
         }
     }

@@ -21,9 +21,13 @@ namespace MainPower.IdfEnricher
     {
         private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        internal static Enricher Singleton { get; } = new Enricher();
+        internal static Enricher I { get; } = new Enricher();
 
-        internal Options Options { get; set; }
+        public Options Options { get; set; }
+
+        private const string ICP_ICP = "ICP";
+        private const string ICP_Month = "Month";
+        private const string ICP_Consumption = "Consumption";
 
         internal DataTable T1Disconnectors { get; set; }
         internal DataTable T1Fuses { get; set; }
@@ -36,25 +40,139 @@ namespace MainPower.IdfEnricher
         internal DataTable AdmsSwitch { get; set; }
         internal DataTable AdmsTransformer { get; set; }
 
+        internal Dictionary<string, double> IcpConsumption { get; set; }
+        
+        internal int Errors { get; set; }
+        internal int Severes { get; set; }
+        internal int Fatals { get; set; }
+        internal int Warns { get; set; }
+        internal int Debugs { get; set; }
+        internal int Infos { get; set; }
         internal int TransformerCount { get; set; }
         internal int LineCount { get; set; }
         internal int SwitchCount { get; set; }
         internal int LoadCount { get; set; }
+
         internal NodeModel Model { get; set; } = new NodeModel();
         internal bool FatalErrorOccurred { get; set; } = false;
 
+        internal void Go(Options o)
+        {
+            DateTime start = DateTime.Now;
+            Options = o;
+            if (o.ProcessTopology)
+            {
+                if (!o.BlankModel)
+                {
+                    Console.WriteLine("Loading previous model...");
+                    var model = NodeModel.Deserialize($"{o.DataPath}\\model");
+                    if (model != null)
+                    {
+                        Model = model;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Creating a new model...");
+                    }
+                }
+            }
+            LoadSourceData();
+            ProcessImportConfiguration();
+            TimeSpan runtime = DateTime.Now - start;
+            if (o.ProcessTopology)
+            {
+                start = DateTime.Now;
+                Model.DoConnectivity();
+                runtime = DateTime.Now - start;
+                Console.WriteLine($"Connectivity check: {Model.GetDisconnectedCount()} devices disconnected ({runtime.TotalSeconds} seconds)");
+                start = DateTime.Now;
+                Model.DoPowerFlow();
+                runtime = DateTime.Now - start;
+                Console.WriteLine($"Power flow check: {Model.GetDeenergizedCount()} devices deenergized ({runtime.TotalSeconds} seconds)");
+                if (!FatalErrorOccurred)
+                {
+                    Model.Serialize($"{o.DataPath}\\model");
+                    if (o.CheckSwitchFlow || o.UpdateSwitchFlow)
+                    {
+
+                    }
+                }    
+                else
+                {
+                    Console.WriteLine("Skipping model serialization and flow checking due to the ocurrence of previous fatal errors");
+                }
+
+                
+            }
+            if (FatalErrorOccurred)
+            {
+                Console.WriteLine("Output was not generated due to one or more fatal errors. Please review the log for more detail.");
+            }
+            else
+            {
+                FileManager.I.SaveFiles(o.OutputPath);
+            }
+            Console.WriteLine($"Stats: Tx:{TransformerCount} Line:{LineCount} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
+            Console.WriteLine($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
+
+        }
+
+
+
         internal void LoadSourceData()
         {
+            Console.WriteLine("Loading Disconnectors...");
             T1Disconnectors = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1Disconnectors.csv", true);
+            Console.WriteLine("Loading Fuses...");
             T1Fuses = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1Fuses.csv", true);
+            Console.WriteLine("Loading Circuit Breakers...");
             T1HvCircuitBreakers = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1HvCircuitBreakers.csv", true);
+            Console.WriteLine("Loading RMUs...");
             T1RingMainUnits = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1RingMainUnits.csv", true);
+            Console.WriteLine("Loading Transformers...");
             T1Transformers = Util.GetDataTableFromCsv($"{Options.DataPath}\\T1Transformers.csv", true);
+            Console.WriteLine("Loading SCADA...");
             ScadaStatus = Util.GetDataTableFromCsv($"{Options.DataPath}\\ScadaStatus.csv", true);
             ScadaAnalog = Util.GetDataTableFromCsv($"{Options.DataPath}\\ScadaAnalog.csv", true);
             ScadaAccumulator = Util.GetDataTableFromCsv($"{Options.DataPath}\\ScadaAccumulator.csv", true);
+            Console.WriteLine("Loading ADMS...");
             AdmsSwitch = Util.GetDataTableFromCsv($"{Options.DataPath}\\AdmsSwitch.csv", true);
             AdmsTransformer = Util.GetDataTableFromCsv($"{Options.DataPath}\\AdmsTransformer.csv", true);
+            Console.WriteLine("Loading ICPs...");
+            LoadIcpDatabase();
+        }
+
+        private void LoadIcpDatabase()
+        {
+            DataTable icps = Util.GetDataTableFromCsv($"{Options.DataPath}\\ICPs.csv", true);
+            IcpConsumption = new Dictionary<string, double>();
+            //to start with we are just going for a plain jane average
+            for (int i = 0; i < icps.Rows.Count; i++)
+            {
+                string icp = icps.Rows[i][ICP_ICP] as string;
+                double c = icps.Rows[i][ICP_Consumption] as double? ?? 0;
+
+                if (IcpConsumption.ContainsKey(icp))
+                {
+                    IcpConsumption[icp] = (IcpConsumption[icp] + c) / 2;
+                }
+                else
+                {
+                    IcpConsumption.Add(icp, c);
+                }
+            }
+        }
+
+        public double GetIcpLoad(string icp)
+        {
+            if (IcpConsumption.ContainsKey(icp))
+            {
+                return IcpConsumption[icp];
+            }
+            else
+            {
+                return double.NaN;
+            }
         }
 
         internal void ProcessImportConfiguration()
@@ -67,21 +185,12 @@ namespace MainPower.IdfEnricher
             foreach (var id in groups)
             {
                 GroupProcessor p = new GroupProcessor(id.Value);
+                if (Options.ProcessTopology)
+                    Model.RemoveGroup(id.Value);
                 tasks.Add(Task.Run((Action)p.Process));
             }
-            /* old version
-            XmlDocument doc = new XmlDocument();
-            doc.Load($"{Options.Path}\\idf\\ImportConfig.xml");
-            var nodes = doc.SelectNodes("//container[@name!=\"Globals\"]/group");
-            foreach (XmlNode node in nodes)
-            {
-                var id = node.Attributes["id"].InnerText;
-                GroupProcessor p = new GroupProcessor(id);
-                tasks.Add(Task.Run((Action)p.Process));
-            }
-            */
+
             Task.WaitAll(tasks.ToArray());
-            fm.SaveFiles(Options.OutputPath);
         }
 
         private DataRow GenericDatasetQuery(DataTable data, string queryColumn, string queryName, bool trueforstringfalseforint, string id)
@@ -222,22 +331,22 @@ namespace MainPower.IdfEnricher
 
         protected void Debug(string code, string message)
         {
-            _log.Debug($"ENRICHER,{code},,{message}");
+            _log.Debug(Util.FormatLogString(LogLevel.Debug, $"ENRICHER\\{code}", "", "", message));
         }
 
         protected void Info(string code, string message)
         {
-            _log.Info($"ENRICHER,{code},,,{message}");
+            _log.Info(Util.FormatLogString(LogLevel.Info, $"ENRICHER\\{code}", "", "", message));
         }
 
         protected void Warn(string code, string message)
         {
-            _log.Warn($"ENRICHER,{code},,{message}");
+            _log.Warn(Util.FormatLogString(LogLevel.Warn, $"ENRICHER\\{code}", "", "", message));
         }
 
         protected void Error(string code, string message)
         {
-            _log.Error($"ENRICHER,{code},,{message}");
+            _log.Error(Util.FormatLogString(LogLevel.Error, $"ENRICHER\\{code}", "", "", message));
         }
     }
 }

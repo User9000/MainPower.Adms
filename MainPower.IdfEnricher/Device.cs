@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MessagePack;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,21 +8,41 @@ using System.Threading.Tasks;
 
 namespace MainPower.IdfEnricher
 {
-    internal class Device
+    [Serializable]
+    [MessagePackObject]
+    public class Device
     {
+        [Key(0)]
         public Node Node1 { get; set; }
+        [Key(1)]
         public Node Node2 { get; set; }
+        [Key(2)]
         public string Id { get; set; }
+        [Key(3)]
         public string GroupId { get; set; }
+        [JsonIgnore]
+        [Key(4)]
         public bool ConnectivityMark { get; set; }
+        [JsonIgnore]
+        [Key(5)]
         public bool PFMark { get; set; }
+        [JsonIgnore]
+        [Key(6)]
         public int Upstream { get; set; }
+        [JsonIgnore]
+        [Key(7)]
         public Source ClosestUpstreamSource { get; set; }
+        [Key(8)]
         public DeviceType Type { get; set; }
         //true for closed, false for open
+        [Key(9)]
         public bool SwitchState { get; set; }
+        [Key(10)]
         public string Name { get; set; }
+        [Key(11)]
         public double Length { get; set; } = 0;
+        [JsonIgnore]
+        [Key(12)]
         public Dictionary<Source, PFDetail> PF { get; set; } = new Dictionary<Source, PFDetail>();
 
         public void CalculateUpstreamSide()
@@ -54,7 +76,7 @@ namespace MainPower.IdfEnricher
         }
     }
 
-    internal enum DeviceType
+    public enum DeviceType
     {
         Line,
         Switch,

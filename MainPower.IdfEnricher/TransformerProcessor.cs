@@ -181,7 +181,7 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    var asset = Enricher.Singleton.GetT1TransformerByAssetNumber(_t1assetno);
+                    var asset = Enricher.I.GetT1TransformerByAssetNumber(_t1assetno);
                     if (asset == null)
                     {
                         
@@ -209,7 +209,7 @@ namespace MainPower.IdfEnricher
                         CalculateTransformerImpedances(asset[T1_TX_IMPEDANCE] as double?, asset[T1_TX_LOADLOSS] as int?);
                         
                     }
-                    asset = Enricher.Singleton.GetAdmsTransformerByAssetNumber(_t1assetno);
+                    asset = Enricher.I.GetAdmsTransformerByAssetNumber(_t1assetno);
                     if (asset != null)//not being in the adms database is not an error
                     {
                         //TODO process data from adms database
@@ -509,22 +509,22 @@ namespace MainPower.IdfEnricher
         #region Overrides
         protected override void Debug(string code, string message)
         {
-            _log.Debug($"TRANSFORMER,{_id},{_name},\"{message}\"");
+            _log.Debug(Util.FormatLogString(LogLevel.Debug, $"TRANSFORMER", _id, _name, message));
         }
 
         protected override void Error(string code, string message)
         {
-            _log.Error($"TRANSFORMER,{_id},{_name},\"{message}\"");
+            _log.Error(Util.FormatLogString(LogLevel.Error, $"TRANSFORMER", _id, _name, message));
         }
 
         protected override void Info(string code, string message)
         {
-            _log.Info($"TRANSFORMER,{_id},{_name},\"{message}\"");
+            _log.Info(Util.FormatLogString(LogLevel.Info, $"TRANSFORMER", _id, _name, message));
         }
 
         protected override void Warn(string code, string message)
         {
-            _log.Warn($"TRANSFORMER,{_id},{_name},\"{message}\"");
+            _log.Warn(Util.FormatLogString(LogLevel.Warn, $"TRANSFORMER", _id, _name, message));
         }
         #endregion
     }

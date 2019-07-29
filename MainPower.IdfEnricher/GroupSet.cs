@@ -8,7 +8,7 @@ namespace MainPower.IdfEnricher
 {
     internal class GroupSet
     {
-        public List<Idf> GraphicFiles = new List<Idf>();
-        public List<Idf> DataFiles = new List<Idf>();
+        public List<Idf> GraphicFiles { get; set; } = new List<Idf>();
+        public Idf DataFile { get; set; } = null;
     }
 }

@@ -42,5 +42,48 @@ namespace MainPower.IdfEnricher
                 return dataTable;
             }
         }
+
+        internal static string FormatLogString(LogLevel level, string code, string id, string name, string message)
+        {
+            switch (level)
+            {
+                case LogLevel.Debug:
+                    Enricher.I.Debugs++;
+                    break;
+                case LogLevel.Error:
+                    Enricher.I.Errors++;
+                    break;
+                case LogLevel.Fatal:
+                    Enricher.I.Fatals++;
+                    Enricher.I.FatalErrorOccurred = true;
+                    break;
+                case LogLevel.Info:
+                    Enricher.I.Infos++;
+                    break;
+                case LogLevel.Severe:
+                    Enricher.I.Severes++;
+                    break;
+                case LogLevel.Warn:
+                    Enricher.I.Warns++;
+                    break;
+            }
+            //TODO: loglevel stats counters
+            if (level == LogLevel.Error)
+                return string.Format("{0,-21},{1,-40},{2,-20},{3,-80}", code, id, name, $"\"{message}\"");
+            else
+                return string.Format("{0,-22},{1,-40},{2,-20},{3,-80}", code, id, name, $"\"{message}\"");
+        }
+
+
+    }
+
+    internal enum LogLevel
+    {
+        Debug,
+        Info,
+        Warn,
+        Error,
+        Severe,
+        Fatal
     }
 }

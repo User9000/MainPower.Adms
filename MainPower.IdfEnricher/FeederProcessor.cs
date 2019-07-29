@@ -27,6 +27,7 @@ namespace MainPower.IdfEnricher
 
                 Node.SetAttributeValue("aorGroup", "1");
                 Node.SetAttributeValue("source", "");
+                ParentGroup.SetSwitchInSubstation(Node.Attribute("device").Value);
             }
             catch (Exception ex)
             {
@@ -37,22 +38,22 @@ namespace MainPower.IdfEnricher
         #region Overrides
         protected override void Debug(string code, string message)
         {
-            _log.Debug($"FEEDER,{_id},{_name},\"{message}\"");
+            _log.Debug(Util.FormatLogString(LogLevel.Debug, "FEEDER", _id, _name, message));
         }
 
         protected override void Error(string code, string message)
         {
-            _log.Error($"FEEDER,{_id},{_name},\"{message}\"");
+            _log.Error(Util.FormatLogString(LogLevel.Error, "FEEDER", _id, _name, message));
         }
 
         protected override void Info(string code, string message)
         {
-            _log.Info($"FEEDER,{_id},{_name},\"{message}\"");
+            _log.Info(Util.FormatLogString(LogLevel.Info, "FEEDER", _id, _name, message));
         }
 
         protected override void Warn(string code, string message)
         {
-            _log.Warn($"FEEDER,{_id},{_name},\"{message}\"");
+            _log.Warn(Util.FormatLogString(LogLevel.Warn, "FEEDER", _id, _name, message));
         }
 
         #endregion
