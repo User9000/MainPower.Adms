@@ -14,6 +14,7 @@ namespace MainPower.IdfEnricher
     {
         [Key(0)]
         public string Id { get; set; }
+
         [IgnoreMember]
         [JsonIgnore]
         public List<Device> Devices { get; set; } = new List<Device>();

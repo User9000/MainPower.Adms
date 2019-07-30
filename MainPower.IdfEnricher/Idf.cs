@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
@@ -11,6 +7,11 @@ namespace MainPower.IdfEnricher
     internal class Idf
     {
         private string _fullFileName = "";
+
+        public XDocument Content { get; set; }
+        public IdfFileType Type { get; set; }
+        public string FileName { get; private set; }
+        public Dictionary<string, XElement> GroupElements { get; set; } = new Dictionary<string, XElement>();
         public string FullFileName
         {
             get
@@ -22,8 +23,5 @@ namespace MainPower.IdfEnricher
                 FileName = Path.GetFileName(_fullFileName);
             }
         }
-        public XDocument Content { get; set; }
-        public IdfFileType Type { get; set; }
-        public string FileName { get; private set; }
     }
 }

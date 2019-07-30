@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MainPower.IdfEnricher
 {
@@ -42,39 +38,6 @@ namespace MainPower.IdfEnricher
                 return dataTable;
             }
         }
-
-        internal static string FormatLogString(LogLevel level, string code, string id, string name, string message)
-        {
-            switch (level)
-            {
-                case LogLevel.Debug:
-                    Enricher.I.Debugs++;
-                    break;
-                case LogLevel.Error:
-                    Enricher.I.Errors++;
-                    break;
-                case LogLevel.Fatal:
-                    Enricher.I.Fatals++;
-                    Enricher.I.FatalErrorOccurred = true;
-                    break;
-                case LogLevel.Info:
-                    Enricher.I.Infos++;
-                    break;
-                case LogLevel.Severe:
-                    Enricher.I.Severes++;
-                    break;
-                case LogLevel.Warn:
-                    Enricher.I.Warns++;
-                    break;
-            }
-            //TODO: loglevel stats counters
-            if (level == LogLevel.Error)
-                return string.Format("{0,-21},{1,-40},{2,-20},{3,-80}", code, id, name, $"\"{message}\"");
-            else
-                return string.Format("{0,-22},{1,-40},{2,-20},{3,-80}", code, id, name, $"\"{message}\"");
-        }
-
-
     }
 
     internal enum LogLevel
@@ -85,5 +48,59 @@ namespace MainPower.IdfEnricher
         Error,
         Severe,
         Fatal
+    }
+
+    public enum DeviceType
+    {
+        Line,
+        Switch,
+        Transformer,
+        Load,
+        Regulator,
+    }
+
+    enum ScadaPointType
+    {
+        StatusInput,
+        StatusOutput,
+        AnalogInput,
+        AnalogOutput
+    }
+
+    internal class GroupSet
+    {
+        public List<Idf> GraphicFiles { get; set; } = new List<Idf>();
+        public Idf DataFile { get; set; } = null;
+    }
+
+    internal enum IdfFileType
+    {
+        Data,
+        Graphics,
+        ImportConfig
+    }
+
+    public class PFDetail
+    {
+        public bool Node1Mark { get; set; }
+        public bool Node2Mark { get; set; }
+        public double Node1Distance { get; set; } = double.NaN;
+        public double Node2Distance { get; set; } = double.NaN;
+    }
+
+    class ScadaStatusPointInfo
+    {
+        public string PointName { get; set; } = "";
+        public string Key { get; set; } = "";
+        public string PointType { get; set; } = "";
+        public bool QuadState { get; set; } = false;
+    }
+
+    class ScadaAnalogPointInfo
+    {
+        public string PointName { get; set; } = "";
+        public string Key { get; set; } = "";
+        public string PointType { get; set; } = "";
+        public string Units { get; set; } = "";
     }
 }

@@ -2,28 +2,25 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
     [Serializable]
     [MessagePackObject]
-    public class NodeModel
+    public class NodeModel : ErrorReporter
     {
         [Key(0)]
         public Dictionary<string, Device> Devices = new Dictionary<string, Device>();
+
         [Key(1)]
         public Dictionary<string, Node> Nodes = new Dictionary<string, Node>();
+
         [Key(2)]
         public Dictionary<string, Source> Sources = new Dictionary<string, Source>();
-
-        private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private void CleanOrphanNodes()
         {
@@ -51,7 +48,7 @@ namespace MainPower.IdfEnricher
         {
             if (Devices.ContainsKey(id))
             {
-                //error
+                //TODO error
                 return;
             }
             lock (Devices) lock (Nodes)
@@ -179,30 +176,30 @@ namespace MainPower.IdfEnricher
         private void TraceNodePowerFlow(Device d, Node n, Source s, double distance = 0)
         {
             Node traceNode;
-            if (!d.PF.ContainsKey(s))
-                d.PF.Add(s, new PFDetail());
-            d.PFMark = true;
+            if (!d.SP2S.ContainsKey(s))
+                d.SP2S.Add(s, new PFDetail());
+            d.SP2SMark = true;
 
             if (d.Node1 == n)
             {
-                if (d.PF[s].Node1Mark)
+                if (d.SP2S[s].Node1Mark)
                 {
-                    if (distance >= d.PF[s].Node1Distance)
+                    if (distance >= d.SP2S[s].Node1Distance)
                         return;
                 }
-                d.PF[s].Node1Mark = true;
-                d.PF[s].Node1Distance = distance;
+                d.SP2S[s].Node1Mark = true;
+                d.SP2S[s].Node1Distance = distance;
                 traceNode = d.Node2;
             }
             else
             {
-                if (d.PF[s].Node2Mark)
+                if (d.SP2S[s].Node2Mark)
                 {
-                    if (distance >= d.PF[s].Node2Distance)
+                    if (distance >= d.SP2S[s].Node2Distance)
                         return;
                 }
-                d.PF[s].Node2Mark = true;
-                d.PF[s].Node2Distance = distance;
+                d.SP2S[s].Node2Mark = true;
+                d.SP2S[s].Node2Distance = distance;
                 traceNode = d.Node1;
             }
             if (d.SwitchState || d.Type != DeviceType.Switch)
@@ -225,7 +222,7 @@ namespace MainPower.IdfEnricher
 
         public int GetDeenergizedCount()
         {
-            var devices = from d in Devices.Values where !d.PFMark select d;
+            var devices = from d in Devices.Values where !d.SP2SMark select d;
             return devices.Count();
         }
 
@@ -286,7 +283,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to serialize model to file [{file}] using MessagePack. {ex.Message}"));
+                Fatal($"Failed to serialize model to file [{file}] using MessagePack. {ex.Message}");
             }
         }
 
@@ -302,7 +299,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to serialize model to file [{file}] using Binary Formatter. {ex.Message}"));
+                Fatal($"Failed to serialize model to file [{file}] using Binary Formatter. {ex.Message}");
             }
         }
 
@@ -322,7 +319,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to serialize model to file [{file}] using Newtonsoft. {ex.Message}"));
+                Fatal($"Failed to serialize model to file [{file}] using Newtonsoft. {ex.Message}");
             }
         }
 
@@ -355,7 +352,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to deserialize model from file [{file}] using MessagePack. {ex.Message}"));
+                StaticFatal($"Failed to deserialize model from file [{file}] using MessagePack. {ex.Message}", typeof(NodeModel));
                 return null;
             }
         }
@@ -376,7 +373,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to deserialize model from file [{file}] using Newtonsoft. {ex.Message}"));
+                StaticFatal($"Failed to deserialize model from file [{file}] using Newtonsoft. {ex.Message}", typeof(NodeModel));
                 return null;
             }
 
@@ -394,7 +391,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "NODEMODEL", "", "", $"Failed to deserialize model from file [{file}] using Binary Formatter. {ex.Message}"));
+                StaticFatal($"Failed to deserialize model from file [{file}] using Binary Formatter. {ex.Message}", typeof(NodeModel));
                 return null;
             }
         }

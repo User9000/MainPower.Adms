@@ -1,50 +1,103 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
-    class GroupProcessor
+    internal class Group : Element
     {
-        private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private GroupSet _groupset = null;
+        private XElement _group = null;
 
-        internal string Id { get; private set; }
-
-        internal GroupProcessor(string id)
+        internal bool NoGroup
         {
-            Id = id;   
+            get
+            {
+                return _groupset == null;
+            }
         }
 
-        internal void SetSymbolName(string id, string symbolName, double scale = double.NaN, double rotation = double.NaN, double z = double.NaN)
+
+        internal bool NoData
         {
-            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
+            get
             {
-                var symbols = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var symbol in symbols)
+                return _group == null;
+            }
+        }
+
+        public Group(XElement node, Group processor) : base(node, processor)
+        {
+            if (!FileManager.I.GroupFiles.ContainsKey(Id))
+            {
+                Error("There were no files containing this group");
+                return;
+            }
+            _groupset = FileManager.I.GroupFiles[Id];
+            if (_groupset.DataFile != null)
+                _group = _groupset.DataFile.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).First();
+        }
+
+        /// <summary>
+        /// Finds all symbol elements with the provided datalink id, and sets the symbol parameters
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="symbolName"></param>
+        /// <param name="scale"></param>
+        /// <param name="rotation"></param>
+        /// <param name="z"></param>
+        internal void SetSymbolNameByDataLink(string id, string symbolName, double scale = double.NaN, double rotation = double.NaN, double z = double.NaN)
+        {
+            foreach (var idf in _groupset.GraphicFiles)
+            {
+                var dataLinks = _group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var dataLink in dataLinks)
                 {
-                    var parent = symbol.Parent;
-                    parent.SetAttributeValue("name", symbolName);
-                    parent.SetAttributeValue("library", "MPNZ.LIB2");
+                    var symbol = dataLink.Parent;
+                    symbol.SetAttributeValue("name", symbolName);
+                    symbol.SetAttributeValue("library", "MPNZ.LIB2");
                     if (!scale.Equals(double.NaN))
-                        parent.SetAttributeValue("scale", scale.ToString("N3"));
+                        symbol.SetAttributeValue("scale", scale.ToString("N3"));
 
                     if (!rotation.Equals(double.NaN))
-                        parent.SetAttributeValue("rotation", rotation.ToString("N0"));
+                        symbol.SetAttributeValue("rotation", rotation.ToString("N0"));
 
                     if (!z.Equals(double.NaN))
-                        parent.SetAttributeValue("z", z.ToString("N1"));
+                        symbol.SetAttributeValue("z", z.ToString("N1"));
                 }
             }
         }
 
-        internal void SetSwitchInSubstation(string value)
+        /// <summary>
+        /// Set the InSubstation of a Switch with the given id
+        /// </summary>
+        /// <param name="value"></param>
+        internal void SetSwitchInSubstation(string id, string value)
         {
-            throw new NotImplementedException();
+            var switches = _group.Descendants("element").Where(n => n.Attribute("id")?.Value == id);
+            foreach (var sw in switches)
+            {
+                //TODO attribute name constant
+                sw.SetAttributeValue("inSubstation", value);
+            }
+        }
+
+        /// <summary>
+        /// Finds all symbols with a given datalink id and deletes the datalink
+        /// </summary>
+        /// <param name="id"></param>
+        internal void RemoveDataLinksFromSymbols(string id)
+        {
+            foreach (var idf in _groupset.GraphicFiles)
+            {
+                var dataLinks = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var dataLink in dataLinks.ToList())
+                {
+                    dataLink.Remove();
+                }
+            }
         }
 
         internal void AddColorLink (string id)
@@ -64,7 +117,7 @@ namespace MainPower.IdfEnricher
         }
         internal void AddDatalink(string id)
         {
-            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
+            foreach (var idf in _groupset.GraphicFiles)
             {
                 var symbols = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("colorLink").Where(n => n.Attribute("id")?.Value == id);
                 foreach (var symbol in symbols)
@@ -85,72 +138,64 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        internal void Process()
+        internal override void Process()
         {
-            FileManager fm = FileManager.I;
-            if (!fm.GroupFiles.ContainsKey(Id))
-            {
-                //TODO: log error
-                return;
-            }
-
+            //TODO: Backport into GIS Extractor
             ReplaceSymbolLibraryName();
             DeleteTextElements();
             var tasks = new List<Task>();
-            var dataidf = fm.GroupFiles[Id].DataFile;
-            if (dataidf == null)
-                return;
-            var nodes = dataidf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element");
-            foreach (var node in nodes)
+
+            var nodes = _group.Descendants("element");
+            foreach (var node in nodes.ToList())
             {
-                DeviceProcessor d = null;
+                Element d = null;
                 var elType = node.Attribute("type").Value;
                 switch (elType)
                 {
                     case "Switch":
-                        d = new SwitchProcessor(node, this);
+                        d = new Switch(node, this);
                         Enricher.I.Model.AddDevice(node, Id, DeviceType.Switch);
                         Enricher.I.SwitchCount++;
                         break;
                     case "Transformer":
-                        d = new TransformerProcessor(node, this);
+                        d = new Transformer(node, this);
                         Enricher.I.Model.AddDevice(node, Id, DeviceType.Transformer);
                         Enricher.I.TransformerCount++;
                         break;
                     case "Line":
                         Enricher.I.LineCount++;
                         Enricher.I.Model.AddDevice(node, Id, DeviceType.Line);
-                        d = new LineProcessor(node, this);
+                        d = new Line(node, this);
                         break;
                     case "Load":
                         Enricher.I.LoadCount++;
-                        d = new LoadProcessor(node, this);
-                        //Enricher.Singleton.Model.AddDevice(node, Id, DeviceType.Load);
+                        d = new Load(node, this);
+                        //Enricher.I.Model.AddDevice(node, Id, DeviceType.Load);
                         break;
                     case "Feeder":
                         Enricher.I.LoadCount++;
-                        d = new FeederProcessor(node, this);
+                        d = new Feeder(node, this);
                         break;
                     case "Circuit":
                         Enricher.I.LoadCount++;
-                        d = new CircuitProcessor(node, this);
+                        d = new Circuit(node, this);
                         break;
                     case "Regulator":
                         Enricher.I.LoadCount++;
-                        d = new RegulatorProcessor(node, this);
+                        d = new Regulator(node, this);
                         Enricher.I.Model.AddDevice(node, Id, DeviceType.Regulator);
                         break;
                     case "Substation":
                         Enricher.I.LoadCount++;
-                        d = new SubstationProcessor(node, this);
+                        d = new Substation(node, this);
                         break;
                     case "Area":
                         Enricher.I.LoadCount++;
-                        d = new AreaProcessor(node, this);
+                        d = new Area(node, this);
                         break;
                     case "Region":
                         Enricher.I.LoadCount++;
-                        d = new RegionProcessor(node, this);
+                        d = new Region(node, this);
                         break;
                     case "Source":
                         Enricher.I.Model.AddSource(node, Id);
@@ -162,13 +207,12 @@ namespace MainPower.IdfEnricher
                 {
                     d.Process();
                 }
-
             }
         }
 
         private void ReplaceSymbolLibraryName()
         {
-            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
+            foreach (var idf in _groupset.GraphicFiles)
             {
                 var symbols  = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type")?.Value == "Symbol" && n.Attribute("library")?.Value == "OSI.LIB2");
                 foreach (var symbol in symbols)
@@ -180,7 +224,7 @@ namespace MainPower.IdfEnricher
 
         private void DeleteTextElements()
         {
-            foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
+            foreach (var idf in _groupset.GraphicFiles)
             {
 
                 var texts = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type").Value == "Text");
@@ -229,7 +273,7 @@ namespace MainPower.IdfEnricher
             }
             catch (Exception ex)
             {
-                _log.Error($"Uncaught exception: {ex.Message}");
+                Fatal($"Uncaught exception: {ex.Message}");
             }
         }
     }

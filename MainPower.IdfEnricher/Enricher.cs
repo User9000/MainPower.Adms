@@ -2,25 +2,13 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
-    enum PointType
+    internal class Enricher : ErrorReporter
     {
-        StatusInput,
-        StatusOutput,
-        AnalogInput, 
-        AnalogOutput
-    }
-
-    class Enricher
-    {
-        private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         internal static Enricher I { get; } = new Enricher();
 
         public Options Options { get; set; }
@@ -42,19 +30,12 @@ namespace MainPower.IdfEnricher
 
         internal Dictionary<string, double> IcpConsumption { get; set; }
         
-        internal int Errors { get; set; }
-        internal int Severes { get; set; }
-        internal int Fatals { get; set; }
-        internal int Warns { get; set; }
-        internal int Debugs { get; set; }
-        internal int Infos { get; set; }
         internal int TransformerCount { get; set; }
         internal int LineCount { get; set; }
         internal int SwitchCount { get; set; }
         internal int LoadCount { get; set; }
 
         internal NodeModel Model { get; set; } = new NodeModel();
-        internal bool FatalErrorOccurred { get; set; } = false;
 
         internal void Go(Options o)
         {
@@ -89,7 +70,7 @@ namespace MainPower.IdfEnricher
                 Model.DoPowerFlow();
                 runtime = DateTime.Now - start;
                 Console.WriteLine($"Power flow check: {Model.GetDeenergizedCount()} devices deenergized ({runtime.TotalSeconds} seconds)");
-                if (!FatalErrorOccurred)
+                if (Fatals == 0)
                 {
                     Model.Serialize($"{o.DataPath}\\model");
                     if (o.CheckSwitchFlow || o.UpdateSwitchFlow)
@@ -104,7 +85,7 @@ namespace MainPower.IdfEnricher
 
                 
             }
-            if (FatalErrorOccurred)
+            if (Fatals > 0)
             {
                 Console.WriteLine("Output was not generated due to one or more fatal errors. Please review the log for more detail.");
             }
@@ -114,10 +95,7 @@ namespace MainPower.IdfEnricher
             }
             Console.WriteLine($"Stats: Tx:{TransformerCount} Line:{LineCount} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
             Console.WriteLine($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
-
         }
-
-
 
         internal void LoadSourceData()
         {
@@ -181,13 +159,22 @@ namespace MainPower.IdfEnricher
             fm.Initialize(Options.InputPath);
             var tasks = new List<Task>();
 
-            var groups = fm.ImportConfig.Content.Descendants("group").Attributes("id");
-            foreach (var id in groups)
+            var groups = fm.ImportConfig.Content.Descendants("group");
+            foreach (var group in groups)
             {
-                GroupProcessor p = new GroupProcessor(id.Value);
-                if (Options.ProcessTopology)
-                    Model.RemoveGroup(id.Value);
-                tasks.Add(Task.Run((Action)p.Process));
+                try
+                {
+                    Group p = new Group(group, null);
+                    if (p.NoData || p.NoGroup)
+                        continue;
+                    if (Options.ProcessTopology)
+                        Model.RemoveGroup(p.Id);
+                    tasks.Add(Task.Run((Action)p.Process));
+                }
+                catch (Exception ex)
+                {
+                    Fatal($"Uncaugut exception: {ex.Message}");
+                }
             }
 
             Task.WaitAll(tasks.ToArray());
@@ -204,12 +191,12 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] = {s}{id}{s}");
                     if (result.Length == 0)
                     {
-                        Debug(queryName,  $"Not found with {queryColumn}:{id}");
+                        Debug($"{queryName}: Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        Warn(queryName,  $"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn($"{queryName}: More than one {queryName} found with {queryColumn}:{id}");
                     }
                     return result[0];
                 }
@@ -302,12 +289,12 @@ namespace MainPower.IdfEnricher
                     var result = data.Select($"[{queryColumn}] LIKE '*{id}'");
                     if (result.Length == 0)
                     {
-                        Debug(queryName, "Not found with {queryColumn}:{id}");
+                        Debug($"{queryName}: Not found with {queryColumn}:{id}");
                         return null;
                     }
                     else if (result.Length > 1)
                     {
-                        Warn(queryName, $"More than one {queryName} found with {queryColumn}:{id}");
+                        Warn($"{queryName}: More than one {queryName} found with {queryColumn}:{id}");
                     }
                     p.Key = (result[0]["Key"] as int?).ToString().PadLeft(8, '0');
                     p.PointType = result[0]["Type"] as string;
@@ -318,7 +305,7 @@ namespace MainPower.IdfEnricher
                 }
                 catch (Exception ex)
                 {
-                    _log.Error(ex.ToString());
+                    Fatal($"Uncaught exception: {ex.Message}");
                     return null;
                 }
             }
@@ -327,26 +314,6 @@ namespace MainPower.IdfEnricher
         internal DataRow GetAdmsSwitch(string id)
         {
             return GenericDatasetQuery(AdmsSwitch, "Switch Number", "Adms Switch", true, id);
-        }
-
-        protected void Debug(string code, string message)
-        {
-            _log.Debug(Util.FormatLogString(LogLevel.Debug, $"ENRICHER\\{code}", "", "", message));
-        }
-
-        protected void Info(string code, string message)
-        {
-            _log.Info(Util.FormatLogString(LogLevel.Info, $"ENRICHER\\{code}", "", "", message));
-        }
-
-        protected void Warn(string code, string message)
-        {
-            _log.Warn(Util.FormatLogString(LogLevel.Warn, $"ENRICHER\\{code}", "", "", message));
-        }
-
-        protected void Error(string code, string message)
-        {
-            _log.Error(Util.FormatLogString(LogLevel.Error, $"ENRICHER\\{code}", "", "", message));
         }
     }
 }

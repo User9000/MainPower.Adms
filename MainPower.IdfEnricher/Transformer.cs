@@ -9,7 +9,7 @@ using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
-    internal class TransformerProcessor : DeviceProcessor
+    internal class Transformer : Element
     {
         #region Constants
         private const string SYMBOL_TX = "Symbol 1";
@@ -19,9 +19,6 @@ namespace MainPower.IdfEnricher
         private const string SYMBOL_TX_DYN11 = "Symbol 21";
         private const string SYMBOL_TX_DYN3 = "Symbol 22";
         
-        private const string TRUE = "True";
-        private const string FALSE = "False";
-
         private const string T1_TX_PRI_OPERATINGKV = "Op Voltage";            //the primary operating voltage
         private const string T1_TX_PRI_RATEDKV = "Rated Voltage";             //the rated primary voltage
         private const string T1_TX_IMPEDANCE = "Z @ Nom Tap & ONAN";          //the impedance at the base kva and base HV voltage(NOT THE ONAN rating)
@@ -38,7 +35,6 @@ namespace MainPower.IdfEnricher
         private const string T1_TX_SEC_OPERATINGKV = "Op Voltage (Sec)";   //the base secondary voltage
 
         private const string GIS_TAP = "mpwr_tap_position";
-        private const string GIS_T1_ASSET = "mpwr_t1_asset_nbr";
         
         private const string ADMS_TX_BASEKVA = "basekVA";                    //the base kVA to be used for calculation
         private const string ADMS_TX_S1BASEKV = "s1basekV";                  //the primary side base kV used for calculation
@@ -78,24 +74,12 @@ namespace MainPower.IdfEnricher
         private const string IDF_TX_WINDING_WYEG = "Wye-G";
         private const string IDF_TX_WINDING_DELTA = "Delta";
 
-        private const string IDF_TX_NAME = "name";
-        private const string IDF_TX_ID = "id";
-
         private const string IDF_SWITCH_TYPE_FUSE = "Fuse";
         private const string IDF_SWITCH_TYPE_BREAKER = "Breaker";
         private const string IDF_SWITCH_TYPE_SWITCH = "Switch";
         private const string IDF_SWITCH_TYPE_RECLOSER = "Recloser";
         private const string IDF_SWITCH_TYPE_SECTIONALISER = "Sectionaliser";
-
-        private const string ERR_CAT_TX = "TRANSFORMER";
-        private const string ERR_CAT_SCADA = "SCADA";
-        private const string ERR_CAT_GENERAL = "GENERAL";
-
         #endregion
-
-        //compulsory fields
-        private string _name = "";
-        private string _id = "";
 
         //temporary fields from GIS
         private string _t1assetno = "";
@@ -149,14 +133,12 @@ namespace MainPower.IdfEnricher
             LV
         }
 
-        public TransformerProcessor(XElement node, GroupProcessor processor) : base(node, processor) { }
+        public Transformer(XElement node, Group processor) : base(node, processor) { }
 
         internal override void Process()
         {
             try
             {
-                _id = Node.Attribute(IDF_TX_ID).Value;
-                _name = Node.Attribute(IDF_TX_NAME).Value;
                 _transformerType = $"TRANSFORMER_TYPE_HV_MV_Transformer";
                 if (Node.Attribute(GIS_T1_ASSET) != null)
                     _t1assetno = Node.Attribute(GIS_T1_ASSET).Value;
@@ -167,15 +149,15 @@ namespace MainPower.IdfEnricher
                 if (Node.Attribute(IDF_TX_S2BASEKV) != null)
                     _s2BaseKv = Node.Attribute(IDF_TX_S2BASEKV).Value;
 
-                _bidirectional = TRUE;
+                _bidirectional = IDF_TRUE;
                 _controlPhase = "2G";
                 _nominalUpstreamSide = "1";
-                _standardRotation = TRUE;
+                _standardRotation = IDF_TRUE;
                 _tapSide = "1";
 
                 if (string.IsNullOrEmpty(_t1assetno))
                 {
-                    Error(ERR_CAT_TX, $"T1 asset number is unset");
+                    Error( $"T1 asset number is unset");
                     ValidateRatedVoltage(_s1BaseKv, _s1BaseKv, out _s1RatedKv);
                     ValidateRatedVoltage(_s2BaseKv, _s2BaseKv, out _s2RatedKv);
                 }
@@ -185,7 +167,7 @@ namespace MainPower.IdfEnricher
                     if (asset == null)
                     {
                         
-                        Error(ERR_CAT_TX, $"T1 asset number [{_t1assetno}] was not in T1");
+                        Error( $"T1 asset number [{_t1assetno}] was not in T1");
                         ValidateRatedVoltage(_s1BaseKv, _s1BaseKv, out _s1RatedKv);
                         ValidateRatedVoltage(_s2BaseKv, _s2BaseKv, out _s2RatedKv);
                     }
@@ -223,7 +205,7 @@ namespace MainPower.IdfEnricher
                         //_s2BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //GenerateScadaLinking();
                     }
-                    _transformerType = $"{_id}_type";
+                    _transformerType = $"{Id}_type";
                     ParentGroup.AddGroupElement(GenerateTransformerType());
                 }
 
@@ -250,19 +232,21 @@ namespace MainPower.IdfEnricher
                 Node.SetAttributeValue(IDF_TX_ROTATION, _standardRotation);
                 Node.SetAttributeValue(IDF_TX_TAPSIDE, _tapSide);
                 Node.SetAttributeValue(IDF_TX_TXTYPE, _transformerType);
-                Node.SetAttributeValue("aorGroup", "1");
-                Node.SetAttributeValue("nominalState1", "True");
-                Node.SetAttributeValue("nominalState2", "True");
-                Node.SetAttributeValue("nominalState3", "True");
 
-                ParentGroup.SetSymbolName(_id, SYMBOL_TX_DYN11, 0.1, 0);
+                //TODO: Backport into GIS Extractor
+                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
+                Node.SetAttributeValue(IDF_DEVICE_NOMSTATE1, IDF_TRUE);
+                Node.SetAttributeValue(IDF_DEVICE_NOMSTATE2, IDF_TRUE);
+                Node.SetAttributeValue(IDF_DEVICE_NOMSTATE3, IDF_TRUE);
+
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_TX_DYN11, 0.1, 0);
                 GenerateScadaLinking();
                 RemoveExtraAttributes();
 
             }
             catch (Exception ex)
             {
-                Error(ERR_CAT_GENERAL, $"Uncaught exception in {nameof(Process)}: {ex.Message}");
+                Fatal( $"Uncaught exception: {ex.Message}");
             }
         }
 
@@ -292,12 +276,12 @@ namespace MainPower.IdfEnricher
                     rpu = Math.Pow(_dkva, -0.161) * 2.7351;
                     _percreactance = xpu.ToString("N5");
                     _percresistance = rpu.ToString("N5");
-                    Info(ERR_CAT_TX, $"Estimating transformer parameters based on kva as input parameters are not valid ({_dkva}kVA, x:{_percreactance} r:{_percresistance}).");
+                    Info( $"Estimating transformer parameters based on kva as input parameters are not valid ({_dkva}kVA, x:{_percreactance} r:{_percresistance}).");
                     return;
                 }
                 else
                 {
-                    Warn(ERR_CAT_TX, "Could not calculate transformer impedances - input parameters were null");
+                    Warn( "Could not calculate transformer impedances - input parameters were null");
                     return;
                 }
             }
@@ -320,7 +304,7 @@ namespace MainPower.IdfEnricher
         {
             if (v == null)
             {
-                Warn(ERR_CAT_TX, "Number of phases is null, assuming 3");
+                Warn( "Number of phases is null, assuming 3");
                 _phases = 3;
             }
             else if (v == 1 || v == 3)
@@ -329,7 +313,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                Warn(ERR_CAT_TX, $"Invalid number of phases [{v}], assuming 3");
+                Warn( $"Invalid number of phases [{v}], assuming 3");
                 _phases = 3;
             }
         }
@@ -342,7 +326,7 @@ namespace MainPower.IdfEnricher
                 _kva = v.Value.ToString();
             }
             else
-                Warn(ERR_CAT_TX, "kVA is unset");
+                Warn( "kVA is unset");
         }
 
         private void CalculateStepSize(double? v1, double? v2)
@@ -350,7 +334,7 @@ namespace MainPower.IdfEnricher
             double tapLow, tapHigh, kva;
 
             if (_kva == "") {
-                Warn(ERR_CAT_TX, "Can't calculate tap steps as kva is unknown");
+                Warn( "Can't calculate tap steps as kva is unknown");
                 return;
             }
             else
@@ -361,12 +345,12 @@ namespace MainPower.IdfEnricher
             
             if (v1 == null)
             {
-                Warn(ERR_CAT_TX, "Can't calculate tap steps as tapLow wasn't a valid int");
+                Warn( "Can't calculate tap steps as tapLow wasn't a valid int");
                 return;
             }
             if (v2 == null)
             {
-                Warn(ERR_CAT_TX, "Can't calculate tap steps as tapHigh wasn't a valid int");
+                Warn( "Can't calculate tap steps as tapHigh wasn't a valid int");
                 return;
             }
             tapLow = v1.Value ;
@@ -379,7 +363,7 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    Warn(ERR_CAT_TX, $"Was expecting tapLow {tapLow} and tapHigh {tapHigh} to be multiples of 1.25");
+                    Warn( $"Was expecting tapLow {tapLow} and tapHigh {tapHigh} to be multiples of 1.25");
                     return;
                 }
             }
@@ -399,7 +383,7 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    Warn(ERR_CAT_TX, $"Could not determine tap size, it wasn't 2.5, 2 or 1.25");
+                    Warn( $"Could not determine tap size, it wasn't 2.5, 2 or 1.25");
                 }
                 _numTaps = (int)((tapLow - tapHigh) / 1.25 + 1);
                 _tapSteps = _numTaps.ToString();
@@ -431,18 +415,18 @@ namespace MainPower.IdfEnricher
                     }
                     else
                     {
-                        Error(ERR_CAT_TX, $"Rated voltage [{iNewValue}] is < or = to the operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                        Error($"Rated voltage [{iNewValue}] is < or = to the operating voltage [{opVoltage}], setting to 110% of operating voltage");
                     }
                 }
                 else
                 {
-                    Error(ERR_CAT_TX, $"Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
+                    Error( $"Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
                 }
                 v = (iOpVoltage * 1.1).ToString();
             }
             catch
             {
-                Error(ERR_CAT_TX, $"Operating voltage [{opVoltage}] is not a valid float");
+                Error( $"Operating voltage [{opVoltage}] is not a valid float");
                 v =  opVoltage;
             }
         }
@@ -451,7 +435,7 @@ namespace MainPower.IdfEnricher
         {
             if (string.IsNullOrWhiteSpace(v))
             {
-                Warn(ERR_CAT_TX, "Vector group is unset, assuming Dyn11");
+                Warn("Vector group is unset, assuming Dyn11");
                 conn = lV == TransformerSide.HV ? IDF_TX_WINDING_DELTA : IDF_TX_WINDING_WYEG;
                 return;
             }
@@ -483,7 +467,7 @@ namespace MainPower.IdfEnricher
                         conn = lV == TransformerSide.HV ? IDF_TX_WINDING_WYE : IDF_TX_WINDING_WYEG;
                         return;
                     default:
-                        Warn(ERR_CAT_TX, $"Couldn't parse vector group [{v}], assuming Dyn11");
+                        Warn($"Couldn't parse vector group [{v}], assuming Dyn11");
                         break;
                 }
             }
@@ -503,29 +487,7 @@ namespace MainPower.IdfEnricher
 
         private XElement GenerateTransformerType()
         {
-            return XElement.Parse($"<element type=\"Transformer Type\" id=\"{_id}_type\" name=\"{_name}\" kva=\"{_kva}\" ratedKVA=\"{_kva}\" percentResistance=\"{_percresistance}\" percentReactance=\"{_percreactance}\" maxTap=\"{_maxTap}\" minTap=\"{_minTap}\" phases=\"{_phases}\" tapSteps=\"{_tapSteps}\" transformerType=\"{_transformerTypeType}\" lowNeutralResistance=\"{_nerResistance}\" />");
+            return XElement.Parse($"<element type=\"Transformer Type\" id=\"{Id}_type\" name=\"{Name}\" kva=\"{_kva}\" ratedKVA=\"{_kva}\" percentResistance=\"{_percresistance}\" percentReactance=\"{_percreactance}\" maxTap=\"{_maxTap}\" minTap=\"{_minTap}\" phases=\"{_phases}\" tapSteps=\"{_tapSteps}\" transformerType=\"{_transformerTypeType}\" lowNeutralResistance=\"{_nerResistance}\" />");
         }
-
-        #region Overrides
-        protected override void Debug(string code, string message)
-        {
-            _log.Debug(Util.FormatLogString(LogLevel.Debug, $"TRANSFORMER", _id, _name, message));
-        }
-
-        protected override void Error(string code, string message)
-        {
-            _log.Error(Util.FormatLogString(LogLevel.Error, $"TRANSFORMER", _id, _name, message));
-        }
-
-        protected override void Info(string code, string message)
-        {
-            _log.Info(Util.FormatLogString(LogLevel.Info, $"TRANSFORMER", _id, _name, message));
-        }
-
-        protected override void Warn(string code, string message)
-        {
-            _log.Warn(Util.FormatLogString(LogLevel.Warn, $"TRANSFORMER", _id, _name, message));
-        }
-        #endregion
     }
 }

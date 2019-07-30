@@ -33,19 +33,19 @@ namespace MainPower.IdfEnricher
                    try
                    {
                        //clear the output directory
-                       var files = Directory.GetFiles(o.OutputPath);
+                       var files = Directory.GetFiles(o.OutputPath, "*.xml");
                        foreach (var file in files)
                        {
                            File.Delete(file);
                        }
                        Enricher.I.Go(o);
-                       Enricher.I.Model.PrintPFDetailsByName("P91");
-                       Enricher.I.Model.PrintPFDetailsByName("P92");
-                       Enricher.I.Model.PrintPFDetailsByName("P21");
-                       Enricher.I.Model.PrintPFDetailsByName("P22");
-                       Enricher.I.Model.PrintPFDetailsByName("P35");
-                       Enricher.I.Model.PrintPFDetailsByName("P45");
-                       Enricher.I.Model.PrintPFDetailsByName("P55");
+                       //Enricher.I.Model.PrintPFDetailsByName("P91");
+                       //Enricher.I.Model.PrintPFDetailsByName("P92");
+                       //Enricher.I.Model.PrintPFDetailsByName("P21");
+                       //Enricher.I.Model.PrintPFDetailsByName("P22");
+                       //Enricher.I.Model.PrintPFDetailsByName("P35");
+                       //Enricher.I.Model.PrintPFDetailsByName("P45");
+                       //Enricher.I.Model.PrintPFDetailsByName("P55");
                        Console.WriteLine("All done....");
                    }
                    catch (Exception ex)
@@ -67,11 +67,11 @@ namespace MainPower.IdfEnricher
                    {
                        Console.WriteLine(ex.ToString());
                    }
-                   if (Enricher.I.Fatals > 0)
+                   if (ErrorReporter.Fatals > 0)
                        retCode = 3;
-                   else if (Enricher.I.Errors > 0)
+                   else if (ErrorReporter.Errors > 0)
                        retCode = 2;
-                   else if (Enricher.I.Warns > 0)
+                   else if (ErrorReporter.Warns > 0)
                        retCode = 1;
                    else
                        retCode = 0;

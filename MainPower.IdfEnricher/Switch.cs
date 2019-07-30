@@ -11,7 +11,7 @@ using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
-    class SwitchProcessor : DeviceProcessor
+    class Switch : Element
     {
 
         #region Constants
@@ -34,9 +34,6 @@ namespace MainPower.IdfEnricher
         private const string SYMBOL_HVFUSESWITCH = "Symbol 17";
         private const string SYMBOL_HVFUSESWITCH_QUAD = "Symbol 17";
 
-        private const string TRUE = "True";
-        private const string FALSE = "False";
-
         private const string T1_FUSE_GANGED = "Is Tri Fuse";
         private const string T1_SWITCH_SWNUMBER = "Switch Number";
         private const string T1_SWITCH_RATED_VOLTAGE = "Rated Voltage";
@@ -48,10 +45,6 @@ namespace MainPower.IdfEnricher
         private const string T1_SWITCH_SW3 = "SW 3";
         private const string T1_SWITCH_SW4 = "SW4";
 
-        private const string GIS_SWITCH_TYPE = "mpwr_gis_switch_type";
-        private const string GIS_T1_ASSET = "mpwr_t1_asset_nbr";
-        private const string GIS_FUSE_RATING = "mpwr_fuse_rating";
-
         private const string IDF_SWITCH_BIDIRECTIONAL = "bidirectional";
         private const string IDF_SWITCH_FORWARDTRIPAMPS = "forwardTripAmps";
         private const string IDF_SWITCH_REVERSETRIPAMPS = "reverseTripAmps";
@@ -62,8 +55,6 @@ namespace MainPower.IdfEnricher
         private const string IDF_SWITCH_RATEDKV = "ratedKV";
         private const string IDF_SWITCH_BASEKV = "baseKV";
         private const string IDF_SWITCH_SWITCHTYPE = "switchType";
-        private const string IDF_SWITCH_NAME = "name";
-        private const string IDF_SWITCH_ID = "id";
         private const string IDF_SWITCH_NOMINALUPSTREAMSIDE = "nominalUpstreamSide";
 
         private const string IDF_SWITCH_TYPE_FUSE = "Fuse";
@@ -71,21 +62,6 @@ namespace MainPower.IdfEnricher
         private const string IDF_SWITCH_TYPE_SWITCH = "Switch";
         private const string IDF_SWITCH_TYPE_RECLOSER = "Recloser";
         private const string IDF_SWITCH_TYPE_SECTIONALISER = "Sectionaliser";
-
-        private const string ERR_CAT_FUSE = "FUSE";
-        private const string ERR_CAT_BREAKER = "BREAKER";
-        private const string ERR_CAT_DISCONNECTOR = "DISCONNECTOR";
-        private const string ERR_CAT_LINKS = "LINKS";
-        private const string ERR_CAT_FUSESAVER = "FUSESAVER";
-        private const string ERR_CAT_RINGMAINCB = "RMU CB";
-        private const string ERR_CAT_ENTEC = "ENTEC";
-        private const string ERR_CAT_RINGMAINSWITCH = "RMU SWITCH";
-        private const string ERR_CAT_RINGMAINFUSESWITCH = "RMU FUSE SWITCH";
-        private const string ERR_CAT_LVFUSE = "LV FUSE";
-        private const string ERR_CAT_LVSWITCH = "LV SWITCH";
-        private const string ERR_CAT_SWITCH = "SWITCH";
-        private const string ERR_CAT_SCADA = "SCADA";
-        private const string ERR_CAT_GENERAL = "GENERAL";
 
         private const string ADMS_SWITCH_FORWARDTRIPAMPS = "forwardTripAmps";
         private const string ADMS_SWITCH_REVERSETRIPAMPS = "reverseTripAmps";
@@ -117,11 +93,7 @@ namespace MainPower.IdfEnricher
         private const double IDF_SCALE_INTERNALS = 0.1;
         private const double IDF_SWITCH_Z = 2;
         #endregion
-
-        //compulsory fields
-        private string _name = "";
-        private string _id = "";
-
+     
         //temporary fields from GIS
         private string _t1assetno = "";
         private string _gisswitchtype = "";
@@ -129,10 +101,10 @@ namespace MainPower.IdfEnricher
         
         //fields that should be set and validated by this class
         private string _baseKv = "";//GIS will set this to the operating voltage
-        private string _bidirectional = TRUE;
+        private string _bidirectional = IDF_TRUE;
         private string _forwardTripAmps = "";
-        private string _ganged = FALSE;
-        private string _loadBreakCapable = FALSE;
+        private string _ganged = IDF_FALSE;
+        private string _loadBreakCapable = IDF_FALSE;
         private string _maxInterruptAmps = "";
         private string _ratedAmps = "";
         private string _ratedKv = "";
@@ -140,14 +112,12 @@ namespace MainPower.IdfEnricher
         private string _switchType = "";
         private string _nominalUpstreamSide = "";
 
-        internal SwitchProcessor(XElement node, GroupProcessor processor) : base(node, processor) { }
+        internal Switch(XElement node, Group processor) : base(node, processor) { }
         
         internal override void Process()
         {
             try
             {                
-                _id = Node.Attribute(IDF_SWITCH_ID).Value;
-                _name = Node.Attribute(IDF_SWITCH_NAME).Value;
                 if (Node.Attribute(GIS_T1_ASSET)!= null)
                     _t1assetno = Node.Attribute(GIS_T1_ASSET).Value;
                 if (Node.Attribute(GIS_SWITCH_TYPE) != null)
@@ -180,8 +150,8 @@ namespace MainPower.IdfEnricher
                     case @"MV Isolator\Knife Isolator":
                         //basically a non ganged disconnector e.g. links
                         ProcessDisconnector(true);
-                        _ganged = FALSE;
-                        _loadBreakCapable = FALSE;
+                        _ganged = IDF_FALSE;
+                        _loadBreakCapable = IDF_FALSE;
                         break;
                     case @"MV Isolator\HV Fuse":
                         ProcessHVFuse(true);
@@ -251,10 +221,10 @@ namespace MainPower.IdfEnricher
                         ProcessServiceFuse();
                         break;
                     case "":
-                        Error("GEN", $"Gis Switch Type is not set");
+                        Error($"Gis Switch Type is not set");
                         break;
                     default:
-                        Error("GEN", $"Unrecognised GisSwitchType [{_gisswitchtype}]");
+                        Error($"Unrecognised GisSwitchType [{_gisswitchtype}]");
                         break;
                 }
                 
@@ -271,19 +241,18 @@ namespace MainPower.IdfEnricher
                 if (!string.IsNullOrWhiteSpace(_nominalUpstreamSide))
                     Node.SetAttributeValue(IDF_SWITCH_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
 
-                Node.SetAttributeValue("aorGroup", "1");
+                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
                 var scada = GenerateScadaLinking();
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
                     ParentGroup.AddGroupElement(scada.Item2);
-                    ParentGroup.AddScadaCommand(_id, scada.Item1);
+                    ParentGroup.AddScadaCommand(Id, scada.Item1);
                 }
                 RemoveExtraAttributes();
-                //Debug("SWITCH",  ToString());
             }
             catch (Exception ex)
             {
-                Error(ERR_CAT_GENERAL,$"Uncaught exception in {nameof(Process)}: {ex.Message}");
+                Fatal($"Uncaught exception in {nameof(Process)}: {ex.Message}");
             }
         }
 
@@ -302,46 +271,46 @@ namespace MainPower.IdfEnricher
             string us = _nominalUpstreamSide;
             string ds = us == "1" ? "2" : "1";
 
-            var status = Enricher.I.GetScadaStatusPointInfo(_name);
+            var status = Enricher.I.GetScadaStatusPointInfo(Name);
             bool hasVolts = false;
             if (status == null)
                 return ("", null);
             XElement x = new XElement("element");
             x.SetAttributeValue("type", "SCADA");
-            x.SetAttributeValue("id", _id);
+            x.SetAttributeValue("id", Id);
 
             x.SetAttributeValue("p1State", status.Key);
             x.SetAttributeValue("p2State", status.Key);
             x.SetAttributeValue("p3State", status.Key);
             
 
-            var rAmps = Enricher.I.GetScadaAnalogPointInfo($"{_name} Amps RØ");
+            var rAmps = Enricher.I.GetScadaAnalogPointInfo($"{Name} Amps RØ");
             if (rAmps != null)
             {
                 x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
                 x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
             }
-            var yAmps = Enricher.I.GetScadaAnalogPointInfo($"{_name} Amps YØ");
+            var yAmps = Enricher.I.GetScadaAnalogPointInfo($"{Name} Amps YØ");
             if (yAmps != null)
             {
                 x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
                 x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
             }
-            var bAmps = Enricher.I.GetScadaAnalogPointInfo($"{_name} Amps BØ");
+            var bAmps = Enricher.I.GetScadaAnalogPointInfo($"{Name} Amps BØ");
             if (bAmps != null)
             {
                 x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
                 x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
             }
             /*
-            var kw = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} kW");
+            var kw = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} kW");
             if (bAmps != null)
             {
                 x.SetAttributeValue("s1p3Amps", bAmps.Key);
                 x.SetAttributeValue("s1p3AmpsUCF", "1");
             }
 
-            var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{_name} PF");
+            var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} PF");
             
             if (bAmps != null)
             {
@@ -349,42 +318,42 @@ namespace MainPower.IdfEnricher
                 x.SetAttributeValue("s1p3AmpsUCF", "1");
             }
             */
-            var s1RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts RY");
+            var s1RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts RY");
             if (s1RYVolts != null)
             {
                 x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s1YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts YB");
+            var s1YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts YB");
             if (s1YBVolts != null)
             {
                 x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s1BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts BR");
+            var s1BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts BR");
             if (s1BRVolts != null)
             {
                 x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts RY2");
+            var s2RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts RY2");
             if (s2RYVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
                 x.SetAttributeValue($"s{ds}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts YB2");
+            var s2YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts YB2");
             if (s2YBVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
                 x.SetAttributeValue($"s{ds}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{_name} Volts BR2");
+            var s2BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts BR2");
             if (s2BRVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
@@ -417,7 +386,7 @@ namespace MainPower.IdfEnricher
             _reverseTripAmps = "";
             _switchType = "";
             */
-            Warn(ERR_CAT_SWITCH,  "Wasn't expecting this function to be used");
+            Warn("Wasn't expecting this function to be used");
         }
 
         private void ProcessCircuitBreaker2(bool internals)
@@ -435,46 +404,46 @@ namespace MainPower.IdfEnricher
                     ProcessRingMainCb();
                     return;
                 }
-                Error(ERR_CAT_BREAKER, $"T1 asset number [{_t1assetno}] did not match HV Breaker or RMU asset");
+                Error($"T1 asset number [{_t1assetno}] did not match HV Breaker or RMU asset");
             }
             else
             {
-                Error(ERR_CAT_BREAKER, "T1 asset number not set");
+                Error("T1 asset number not set");
             }
 
-            _bidirectional = TRUE;
-            _ganged = TRUE;
-            _loadBreakCapable = TRUE;
+            _bidirectional = IDF_TRUE;
+            _ganged = IDF_TRUE;
+            _loadBreakCapable = IDF_TRUE;
 
             ProcessCircuitBreakerAdms();
 
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
 
-            var p = Enricher.I.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
                 else
-                    ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
         }
 
         private void ProcessRingMainFuseSwitch()
         {
-            _bidirectional = TRUE;
-            _ganged = TRUE;
-            _loadBreakCapable = TRUE;
+            _bidirectional = IDF_TRUE;
+            _ganged = IDF_TRUE;
+            _loadBreakCapable = IDF_TRUE;
             _switchType = IDF_SWITCH_TYPE_SWITCH; //TODO
 
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_RINGMAINFUSESWITCH, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -489,36 +458,36 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    Error(ERR_CAT_RINGMAINFUSESWITCH, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
 
             }
 
-            var p = Enricher.I.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolName(_id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
                 else
-                    ParentGroup.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                ParentGroup.SetSymbolName(_id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
         }
 
         private void ProcessRingMainSwitch()
         {
-            _bidirectional = TRUE;
-            _ganged = TRUE;
-            _loadBreakCapable = TRUE;
+            _bidirectional = IDF_TRUE;
+            _ganged = IDF_TRUE;
+            _loadBreakCapable = IDF_TRUE;
             _switchType = IDF_SWITCH_TYPE_SWITCH;
             
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_RINGMAINSWITCH, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -533,29 +502,29 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    Error(ERR_CAT_RINGMAINSWITCH, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
 
             }
-            var p = Enricher.I.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolName(_id, SYMBOL_SWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
                 else
-                    ParentGroup.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                ParentGroup.SetSymbolName(_id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
         }
         
         private void ProcessRingMainCb()
         {
-            _bidirectional = TRUE;
-            _ganged = TRUE;
-            _loadBreakCapable = TRUE;
+            _bidirectional = IDF_TRUE;
+            _ganged = IDF_TRUE;
+            _loadBreakCapable = IDF_TRUE;
 
             //TODO: generally these won't be in the protection spreadsheet, will have generic settings
             //TODO: how to link with the tx size?
@@ -564,7 +533,7 @@ namespace MainPower.IdfEnricher
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_RINGMAINCB, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -579,54 +548,54 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    Error(ERR_CAT_RINGMAINCB, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
 
             }
-            var p = Enricher.I.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
                 else
-                    ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
             }
         }
 
         private void ProcessLVSwitch()
         {
             if (!string.IsNullOrEmpty(_t1assetno))
-                Warn(ERR_CAT_LVSWITCH, $"T1 asset number [{_t1assetno}] is not unset");
+                Warn($"T1 asset number [{_t1assetno}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
-            _ganged = FALSE; //TODO check
-            _loadBreakCapable = TRUE; //TODO check
+            _ganged = IDF_FALSE; //TODO check
+            _loadBreakCapable = IDF_TRUE; //TODO check
             //_maxInterruptAmps = "";
             //_ratedAmps = "";
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_SWITCH;
-            ParentGroup.SetSymbolName(_id, SYMBOL_LVSWITCH, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVSWITCH, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessLVFuse()
         {
             if (!string.IsNullOrEmpty(_t1assetno))
-                Warn(ERR_CAT_LVFUSE,  $"T1 asset number [{_t1assetno}] is not unset");
+                Warn($"T1 asset number [{_t1assetno}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
-            _ganged = FALSE; //TODO check
-            _loadBreakCapable = TRUE; //TODO check
+            _ganged = IDF_FALSE; //TODO check
+            _loadBreakCapable = IDF_TRUE; //TODO check
             //_maxInterruptAmps = "";
             //_ratedAmps = "";
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_FUSE;
-            ParentGroup.SetSymbolName(_id, SYMBOL_LVFUSE, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVFUSE, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessFuseSaver()
@@ -639,9 +608,9 @@ namespace MainPower.IdfEnricher
             _reverseTripAmps = "";
             */
 
-            _bidirectional = TRUE;
-            _ganged = TRUE;
-            _loadBreakCapable = TRUE;
+            _bidirectional = IDF_TRUE;
+            _ganged = IDF_TRUE;
+            _loadBreakCapable = IDF_TRUE;
 
             //ProcessCircuitBreakerAdms();
 
@@ -649,7 +618,7 @@ namespace MainPower.IdfEnricher
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_BREAKER, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -664,24 +633,24 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    Error(ERR_CAT_BREAKER, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
 
             }
-            ParentGroup.SetSymbolName(_id, SYMBOL_FUSESAVER, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSESAVER, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessEntec()
         {
             //_bidirectional //TODO
             //TODO: need to get sectionliser function from AdmsDatabase
-            _ganged = TRUE;
+            _ganged = IDF_TRUE;
             _switchType = IDF_SWITCH_TYPE_SWITCH;
             
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_ENTEC, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -691,41 +660,41 @@ namespace MainPower.IdfEnricher
                 {
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? FALSE : TRUE;
+                    _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
                     _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error(ERR_CAT_ENTEC,  $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
 
             }
-            var p = Enricher.I.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolName(_id, SYMBOL_ENTEC_QUAD, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC_QUAD, double.NaN, IDF_SWITCH_Z);
                 else
-                    ParentGroup.SetSymbolName(_id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                ParentGroup.SetSymbolName(_id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
             }
         }
 
         private void ProcessHVLinks(bool internals)
         {
-            _ganged = FALSE;
-            _loadBreakCapable = FALSE;//TODO
+            _ganged = IDF_FALSE;
+            _loadBreakCapable = IDF_FALSE;//TODO
             _ratedAmps = "300";//confirmed by robert
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_LINKS, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -733,7 +702,7 @@ namespace MainPower.IdfEnricher
 
                 if (asset == null)
                 {
-                    Error(ERR_CAT_LINKS, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
                 else
                 {
@@ -742,18 +711,18 @@ namespace MainPower.IdfEnricher
                 }
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            ParentGroup.SetSymbolName(_id, SYMBOL_LINKS, scale, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LINKS, scale, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessDisconnector(bool internals)
         {
-            _ganged = TRUE;          
+            _ganged = IDF_TRUE;          
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_DISCONNECTOR, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -763,43 +732,43 @@ namespace MainPower.IdfEnricher
                 {
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? FALSE : TRUE;
+                    _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
                     _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error(ERR_CAT_DISCONNECTOR, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
 
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            var p = Enricher.I.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolName(_id, SYMBOL_DISCONNECTOR_QUAD, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR_QUAD, scale, double.NaN, IDF_SWITCH_Z);
                 else
-                    ParentGroup.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                ParentGroup.SetSymbolName(_id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
             }
         }
      
         private void ProcessCircuitBreaker(bool internals)
         {
-            _bidirectional = TRUE;
-            _ganged = TRUE;
-            _loadBreakCapable = TRUE;
+            _bidirectional = IDF_TRUE;
+            _ganged = IDF_TRUE;
+            _loadBreakCapable = IDF_TRUE;
 
             ProcessCircuitBreakerAdms();
             
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_BREAKER,  $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -814,29 +783,29 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    Error(ERR_CAT_BREAKER, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
 
             }
 
             var scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            var p = Enricher.I.GetScadaStatusPointInfo(_name);
+            var p = Enricher.I.GetScadaStatusPointInfo(Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
                 else
-                    ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
             else
             {
-                ParentGroup.SetSymbolName(_id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
             }
         }
 
         private void ProcessCircuitBreakerAdms()
         {
-            if (Enricher.I.GetAdmsSwitch(_name) is DataRow asset)
+            if (Enricher.I.GetAdmsSwitch(Name) is DataRow asset)
             {
                 //TODO: RMU circuit breakers are generally not in the protection database... they use generic settings based on tx size.
                 //how are we going to handle these?
@@ -857,10 +826,10 @@ namespace MainPower.IdfEnricher
 
         private void ProcessHVFuse(bool internals)
         {
-            _bidirectional = TRUE;
+            _bidirectional = IDF_TRUE;
             _forwardTripAmps = _reverseTripAmps = ValidateFuseTrip(_fuserating);
-            _ganged = FALSE;
-            _loadBreakCapable = FALSE;
+            _ganged = IDF_FALSE;
+            _loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "10000";//TODO check with sjw
             _ratedAmps = _forwardTripAmps == "" ? "" : (int.Parse(_forwardTripAmps) / 2).ToString();
             _switchType = IDF_SWITCH_TYPE_FUSE;
@@ -868,7 +837,7 @@ namespace MainPower.IdfEnricher
             DataRow asset = null;
             if (_t1assetno == "")
             {
-                Error(ERR_CAT_FUSE, $"No T1 asset number assigned");
+                Error($"No T1 asset number assigned");
             }
             else
             {
@@ -878,31 +847,31 @@ namespace MainPower.IdfEnricher
                 {
                     if (asset[T1_FUSE_GANGED] as string == "2")
                     {
-                        _ganged = TRUE;
+                        _ganged = IDF_TRUE;
                     }
                     _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error(ERR_CAT_FUSE, $"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
                 }
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            ParentGroup.SetSymbolName(_id, SYMBOL_FUSE, scale, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSE, scale, double.NaN, IDF_SWITCH_Z);
         }
 
         private void ProcessServiceFuse()
         {
-            _bidirectional = TRUE;
+            _bidirectional = IDF_TRUE;
             _forwardTripAmps = _reverseTripAmps = "";
-            _ganged = FALSE;
-            _loadBreakCapable = FALSE;
+            _ganged = IDF_FALSE;
+            _loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "";//TODO check with sjw
             _ratedAmps = "";//TODO?
             _switchType = "Fuse";
             _ratedKv = ValidateRatedVoltage(_baseKv, _ratedKv as string);
-            ParentGroup.SetSymbolName(_id, SYMBOL_SERVICE_FUSE, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SERVICE_FUSE, double.NaN, IDF_SWITCH_Z);
         }
         #endregion
 
@@ -933,18 +902,18 @@ namespace MainPower.IdfEnricher
                     }
                     else
                     {
-                        Error(ERR_CAT_GENERAL, $"Rated voltage [{ratedVoltage}] is less than operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                        Error($"Rated voltage [{ratedVoltage}] is less than operating voltage [{opVoltage}], setting to 110% of operating voltage");
                     }
                 }
                 else
                 {
-                    Error(ERR_CAT_GENERAL,$"Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
+                    Error("Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
                 }
                 return (iOpVoltage * 1.1).ToString();
             }
             catch
             {
-                Error(ERR_CAT_GENERAL,$"Operating voltage [{opVoltage}] is not a valid float");
+                Error("Operating voltage [{opVoltage}] is not a valid float");
                 return opVoltage;
             }
         }
@@ -953,7 +922,7 @@ namespace MainPower.IdfEnricher
         {
             if (string.IsNullOrEmpty(amps))
             {
-                Info(ERR_CAT_GENERAL, "T1 load break rating is unset");
+                Info("T1 load break rating is unset");
                 return "";
             }
             if (int.TryParse(amps, out var res))
@@ -962,7 +931,7 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                Warn(ERR_CAT_GENERAL, "Couldn't parse T1 load break rating");
+                Warn("Couldn't parse T1 load break rating");
                 return "";
             }
         }
@@ -971,7 +940,7 @@ namespace MainPower.IdfEnricher
         {
             if (string.IsNullOrEmpty(amps))
             {
-                Info(ERR_CAT_GENERAL, $"T1 max interrupt amps is unset");
+                Info($"T1 max interrupt amps is unset");
                 return "";
             }
             Regex r = new Regex("[0-9]+(?=kA)");
@@ -982,14 +951,14 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                Warn(ERR_CAT_GENERAL,  $"Could not parse T1 max interrupt amps [{amps}]");
+                Warn( $"Could not parse T1 max interrupt amps [{amps}]");
                 return "";
             }
         }
 
         private void ValidateSwitchNumber(string swno, params string[] swnos)
         {
-            if (swno == _name)
+            if (swno == Name)
                 return;
             if (swnos != null)
             {
@@ -997,14 +966,14 @@ namespace MainPower.IdfEnricher
                 {
                     foreach (var sw in swnos)
                     {
-                        if (sw == _name)
+                        if (sw == Name)
                             return;
                     }
-                    Error(ERR_CAT_GENERAL,  $"T1 switch number [{swno}:{string.Join(":", swnos)}] doesn't match GIS switch number [{_name}]");
+                    Error( $"T1 switch number [{swno}:{string.Join(":", swnos)}] doesn't match GIS switch number [{Name}]");
                     return;
                 }
             }
-            Error(ERR_CAT_GENERAL, $"T1 switch number [{swno}] doesn't match GIS switch number [{_name}]");
+            Error($"T1 switch number [{swno}] doesn't match GIS switch number [{Name}]");
 
         }
 
@@ -1015,7 +984,7 @@ namespace MainPower.IdfEnricher
             //handle the simple case
             if (string.IsNullOrEmpty(amps))
             {
-                Info(ERR_CAT_GENERAL, "T1 rated amps is unset");
+                Info("T1 rated amps is unset");
                 return "";
             }
             if (int.TryParse(amps, out var res))
@@ -1040,7 +1009,7 @@ namespace MainPower.IdfEnricher
                         }
                     }
                 }
-                Warn(ERR_CAT_GENERAL, $"Could not parse T1 rated amps [{amps}]");
+                Warn($"Could not parse T1 rated amps [{amps}]");
                 return "";
             }
         }
@@ -1055,7 +1024,7 @@ namespace MainPower.IdfEnricher
         {
             if (fuserating == "")
             {
-                Info(ERR_CAT_FUSE,  "GIS fuse rating is unset");
+                Info( "GIS fuse rating is unset");
                 return "";
             }
             Regex r = new Regex("[0-9]+(?=(T|K))");
@@ -1066,37 +1035,11 @@ namespace MainPower.IdfEnricher
             }
             else
             {
-                Warn(ERR_CAT_FUSE,  $"Could not parse GIS fuse rating [{fuserating}]");
+                Warn( $"Could not parse GIS fuse rating [{fuserating}]");
                 return "";
             }
         }
         #endregion
 
-        #region OVerrides
-        public override string ToString()
-        {
-            return Node.ToString();
-        }
-
-        protected override void Debug(string code,  string message)
-        {
-            _log.Debug(Util.FormatLogString(LogLevel.Debug, $"SWITCH\\{code}", _id, _name, message));
-        }
-
-        protected override void Info(string code,  string message)
-        {
-            _log.Info(Util.FormatLogString(LogLevel.Info, $"SWITCH\\{code}", _id, _name, message));
-        }
-
-        protected override void Warn(string code,  string message)
-        {
-            _log.Warn(Util.FormatLogString(LogLevel.Warn, $"SWITCH\\{code}", _id, _name, message));
-        }
-
-        protected override void Error(string code,  string message)
-        {
-            _log.Error(Util.FormatLogString(LogLevel.Error, $"SWITCH\\{code}", _id, _name, message));
-        }
-        #endregion
     }
 }

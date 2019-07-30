@@ -70,33 +70,30 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AreaProcessor.cs" />
-    <Compile Include="CircuitProcessor.cs" />
+    <Compile Include="Area.cs" />
+    <Compile Include="Circuit.cs" />
     <Compile Include="Device.cs" />
-    <Compile Include="FeederProcessor.cs" />
+    <Compile Include="ErrorReporter.cs" />
+    <Compile Include="Feeder.cs" />
     <Compile Include="FileManager.cs" />
-    <Compile Include="GroupSet.cs" />
     <Compile Include="Idf.cs" />
-    <Compile Include="IdfFileType.cs" />
-    <Compile Include="LineProcessor.cs" />
-    <Compile Include="LoadProcessor.cs" />
+    <Compile Include="Line.cs" />
+    <Compile Include="Load.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="NodeModel.cs" />
-    <Compile Include="PFDetail.cs" />
-    <Compile Include="RegionProcessor.cs" />
-    <Compile Include="RegulatorProcessor.cs" />
+    <Compile Include="Region.cs" />
+    <Compile Include="Regulator.cs" />
     <Compile Include="Source.cs" />
-    <Compile Include="SubstationProcessor.cs" />
-    <Compile Include="TransformerProcessor.cs" />
-    <Compile Include="DeviceProcessor.cs" />
+    <Compile Include="Substation.cs" />
+    <Compile Include="Transformer.cs" />
+    <Compile Include="Element.cs" />
     <Compile Include="Enricher.cs" />
-    <Compile Include="GroupProcessor.cs" />
+    <Compile Include="Group.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ScadaPointInfo.cs" />
-    <Compile Include="SwitchProcessor.cs" />
-    <Compile Include="Util.cs" />
+    <Compile Include="Switch.cs" />
+    <Compile Include="RatsAndMice.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

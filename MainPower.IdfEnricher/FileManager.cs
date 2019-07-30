@@ -1,30 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
 {
-    internal class FileManager
+    internal class FileManager : ErrorReporter
     {
-        private static readonly log4net.ILog _log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        private static FileManager _singleton = null;
-
-        public static FileManager I
-        {
-            get
-            {
-                if (_singleton == null)
-                {
-                    _singleton = new FileManager();
-                }
-                return _singleton;
-            }
-        }
+        public static FileManager I { get; } = new FileManager();
 
         internal List<Idf> DataFiles = new List<Idf>();
         internal List<Idf> GraphicsFiles = new List<Idf>();
@@ -57,7 +40,7 @@ namespace MainPower.IdfEnricher
                             }
                             else
                             {
-                                _log.Error($"Import Configuration is already set ({ImportConfig.FullFileName}), ignoring second import configuration ({idf.FullFileName})");
+                                Fatal($"Import Configuration is already set ({ImportConfig.FullFileName}), ignoring second import configuration ({idf.FullFileName})");
                             }
                             break;
                         case "Electric Distribution":
@@ -65,15 +48,14 @@ namespace MainPower.IdfEnricher
                             DataFiles.Add(idf);
                             break;
                         default:
-                            _log.Error($"File {file} had an unrecognised type ({type})");
+                            Fatal($"File {file} had an unrecognised type ({type})");
                             break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _log.Error($"Error processing xml file {file}: {ex.Message}");
+                    Fatal($"Error processing xml file {file}: {ex.Message}");
                 }
-
             }
 
             //work out which groups are in which files
@@ -95,14 +77,12 @@ namespace MainPower.IdfEnricher
                         if (GroupFiles[id].DataFile == null)
                             GroupFiles[id].DataFile = idf;
                         else
-                            _log.Fatal(Util.FormatLogString(LogLevel.Fatal, "FILEMANAGER", id, "", "Group data file was already specified"));
+                            Fatal("Group data file was already specified");
                     }
                     else if (idf.Type == IdfFileType.Graphics)
                         GroupFiles[id].GraphicFiles.Add(idf);
                 }
             }
-
-
         }
 
         public void SaveFiles(string path)
