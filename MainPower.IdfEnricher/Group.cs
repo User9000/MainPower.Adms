@@ -52,7 +52,7 @@ namespace MainPower.IdfEnricher
         {
             foreach (var idf in _groupset.GraphicFiles)
             {
-                var dataLinks = _group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                var dataLinks = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
                 foreach (var dataLink in dataLinks)
                 {
                     var symbol = dataLink.Parent;
@@ -100,6 +100,22 @@ namespace MainPower.IdfEnricher
             }
         }
 
+        /// <summary>
+        /// Sets the width of all lines in the group
+        /// </summary>
+        /// <param name="width"></param>
+        internal void SetLineWidth(int width = 5)
+        {
+            foreach (var idf in _groupset.GraphicFiles)
+            {
+                var lines = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type").Value == "Line");
+                foreach (var line in lines)
+                {
+                    line.SetAttributeValue("width", width.ToString());
+                }
+            }
+        }
+
         internal void AddColorLink (string id)
         {
             /*
@@ -141,6 +157,7 @@ namespace MainPower.IdfEnricher
         internal override void Process()
         {
             //TODO: Backport into GIS Extractor
+            SetLineWidth();
             ReplaceSymbolLibraryName();
             DeleteTextElements();
             var tasks = new List<Task>();

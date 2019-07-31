@@ -91,7 +91,7 @@ namespace MainPower.IdfEnricher
 
         private const double IDF_SCALE_GEOGRAPHIC = 1.0;
         private const double IDF_SCALE_INTERNALS = 0.1;
-        private const double IDF_SWITCH_Z = 2;
+        private const double IDF_SWITCH_Z = double.NaN;
         #endregion
      
         //temporary fields from GIS

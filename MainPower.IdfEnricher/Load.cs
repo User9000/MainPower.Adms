@@ -5,7 +5,7 @@ namespace MainPower.IdfEnricher
 {
     internal class Load : Element
     {
-        private const string LOAD_SL_SYMBOL = "Symbol 23";
+        private const string LOAD_SL_SYMBOL = "Symbol 24";
 
         public Load(XElement node, Group processor) : base(node, processor) { }
 
