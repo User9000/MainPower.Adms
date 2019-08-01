@@ -50,6 +50,13 @@ namespace MainPower.IdfEnricher
         [Key(7)]
         public double Length { get; set; } = 0;
 
+        [Key(8)]
+        public double Base1kV { get; set; }
+
+        [Key(9)]
+        public double Base2kV { get; set; }
+
+
         [JsonIgnore]
         [IgnoreMember]
         public Dictionary<Source, PFDetail> SP2S { get; set; } = new Dictionary<Source, PFDetail>();

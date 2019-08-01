@@ -64,6 +64,7 @@ namespace MainPower.IdfEnricher
             {
                 start = DateTime.Now;
                 Model.DoConnectivity();
+                Model.CheckVoltageConsistency();
                 runtime = DateTime.Now - start;
                 Console.WriteLine($"Connectivity check: {Model.GetDisconnectedCount()} devices disconnected ({runtime.TotalSeconds} seconds)");
                 start = DateTime.Now;

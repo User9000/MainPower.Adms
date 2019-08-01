@@ -29,6 +29,8 @@ namespace MainPower.IdfEnricher
 
                 Node.SetAttributeValue("ratedKV", "12");
                 Node.SetAttributeValue(GIS_T1_ASSET, null);
+
+                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Regulator);
             }
             catch (Exception ex)
             {

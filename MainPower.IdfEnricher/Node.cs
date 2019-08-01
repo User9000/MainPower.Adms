@@ -18,5 +18,9 @@ namespace MainPower.IdfEnricher
         [IgnoreMember]
         [JsonIgnore]
         public List<Device> Devices { get; set; } = new List<Device>();
+
+        [IgnoreMember]
+        [JsonIgnore]
+        public bool IsDirty { get; set; }
     }
 }

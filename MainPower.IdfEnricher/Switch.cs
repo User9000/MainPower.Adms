@@ -142,6 +142,12 @@ namespace MainPower.IdfEnricher
                     _ratedKv = Node.Attribute(IDF_SWITCH_RATEDKV).Value;
 
                 _switchType = Node.Attribute(IDF_SWITCH_SWITCHTYPE).Value;
+
+                if (Node.Attribute("baseKV").Value == "0.2300")
+                {
+                    Node.SetAttributeValue("baseKV", "0.4000");
+                    Info("Overriding base voltage from 230V to 400V");
+                }
                 _baseKv = Node.Attribute(IDF_SWITCH_BASEKV).Value;
 
                 switch (_gisswitchtype)
@@ -249,6 +255,8 @@ namespace MainPower.IdfEnricher
                     ParentGroup.AddScadaCommand(Id, scada.Item1);
                 }
                 RemoveExtraAttributes();
+
+                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Switch);
             }
             catch (Exception ex)
             {
@@ -302,14 +310,31 @@ namespace MainPower.IdfEnricher
                 x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
                 x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
             }
-            /*
-            var kw = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} kW");
-            if (bAmps != null)
+            
+            var kw = Enricher.I.GetScadaAnalogPointInfo($"{Name} kW");
+            if (kw != null)
             {
-                x.SetAttributeValue("s1p3Amps", bAmps.Key);
-                x.SetAttributeValue("s1p3AmpsUCF", "1");
+                x.SetAttributeValue($"s{ds}AggregateKW", kw.Key);
+                x.SetAttributeValue($"s{ds}AggregateKWUCF", "1");
+            }
+            else if ((kw = Enricher.I.GetScadaAnalogPointInfo($"{Name} MW")) != null)
+            {
+                x.SetAttributeValue($"s{ds}AggregateKW", kw.Key);
+                x.SetAttributeValue($"s{ds}AggregateKWUCF", "1000");
             }
 
+            var kvar = Enricher.I.GetScadaAnalogPointInfo($"{Name} kVar");
+            if (kvar != null)
+            {
+                x.SetAttributeValue($"s{ds}AggregateKVAR", kvar.Key);
+                x.SetAttributeValue($"s{ds}AggregateKVARUCF", "1");
+            }
+            else if ((kvar = Enricher.I.GetScadaAnalogPointInfo($"{Name} MVar")) != null)
+            {
+                x.SetAttributeValue($"s{ds}AggregateKVAR", kvar.Key);
+                x.SetAttributeValue($"s{ds}AggregateKVARUCF", "1000");
+            }
+            /*
             var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} PF");
             
             if (bAmps != null)

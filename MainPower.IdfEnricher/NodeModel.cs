@@ -44,7 +44,7 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        public void AddDevice(string id, string n1id, string n2id, string gid, string name, DeviceType type, bool state = false, double length = 0)
+        public void AddDevice(string id, string n1id, string n2id, string gid, string name, DeviceType type, double base1kv, double base2kv, bool state = false, double length = 0)
         {
             if (Devices.ContainsKey(id))
             {
@@ -77,7 +77,9 @@ namespace MainPower.IdfEnricher
                     GroupId = gid,
                     Type = type,
                     SwitchState = state,
-                    Length = length
+                    Length = length,
+                    Base1kV = base1kv,
+                    Base2kV = base2kv
                 };
 
                 Devices.Add(id, d);
@@ -106,9 +108,61 @@ namespace MainPower.IdfEnricher
             AddSource(node.Attribute("id").Value, gid, node.Attribute("name").Value, node.Attribute("device").Value);
         }
 
+        public void CheckVoltageConsistency()
+        {
+            long count = 0;
+            foreach (var node in Nodes.Values)
+            {
+                var basekv = double.NaN;
+                foreach (var device in node.Devices)
+                {
+                    double nodevoltage;
+                    int side;
+                    if (device.Node1 == node)
+                    {
+                        nodevoltage = device.Base1kV;
+                        side = 1;
+                    }
+                    else
+                    {
+                        nodevoltage = device.Base2kV;
+                        side = 2;
+                    }
+                    if (basekv.Equals(double.NaN))
+                        basekv = nodevoltage;
+                    else
+                    {
+                        if (basekv != nodevoltage)
+                        {
+                            count++;
+                            node.IsDirty = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            var dirtynodes = from n in Nodes.Values where n.IsDirty select n;
+            foreach (var node in dirtynodes)
+            {
+                foreach (var device in node.Devices)
+                {
+                    Warn($"Device [{device.Id}\\{device.Name} is connected to a dirty node [{node.Id}] with inconsistent voltages");
+                }
+            }
+            Info($"There were {count} nodes with inconsistent base voltages");
+        }
+
         public void AddDevice(XElement node, string gid, DeviceType type)
         {
-            AddDevice(node.Attribute("id").Value, node.Attribute("s1node").Value, node.Attribute("s2node").Value, gid, node.Attribute("name").Value, type, type == DeviceType.Switch? bool.Parse(node.Attribute("nominalState1").Value) : false, type== DeviceType.Line? double.Parse(node.Attribute("length").Value): 0);
+            AddDevice(node.Attribute("id").Value,
+                node.Attribute("s1node").Value,
+                node.Attribute("s2node").Value,
+                gid, node.Attribute("name").Value,
+                type,
+                type == DeviceType.Transformer? double.Parse(node.Attribute("s1baseKV").Value): double.Parse(node.Attribute("baseKV").Value),
+                type == DeviceType.Transformer ? double.Parse(node.Attribute("s2baseKV").Value) : double.Parse(node.Attribute("baseKV").Value),
+                type == DeviceType.Switch? bool.Parse(node.Attribute("nominalState1").Value) : false,
+                type== DeviceType.Line? double.Parse(node.Attribute("length").Value): 0);
         }
 
         /// <summary>

@@ -51,6 +51,7 @@ namespace MainPower.IdfEnricher
                             Fatal($"File {file} had an unrecognised type ({type})");
                             break;
                     }
+                    idf.Content.Root.SetAttributeValue("timestamp", DateTime.UtcNow.ToString("s"));
                 }
                 catch (Exception ex)
                 {

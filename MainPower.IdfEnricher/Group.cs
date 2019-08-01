@@ -171,17 +171,14 @@ namespace MainPower.IdfEnricher
                 {
                     case "Switch":
                         d = new Switch(node, this);
-                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Switch);
                         Enricher.I.SwitchCount++;
                         break;
                     case "Transformer":
                         d = new Transformer(node, this);
-                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Transformer);
                         Enricher.I.TransformerCount++;
                         break;
                     case "Line":
                         Enricher.I.LineCount++;
-                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Line);
                         d = new Line(node, this);
                         break;
                     case "Load":
@@ -200,7 +197,6 @@ namespace MainPower.IdfEnricher
                     case "Regulator":
                         Enricher.I.LoadCount++;
                         d = new Regulator(node, this);
-                        Enricher.I.Model.AddDevice(node, Id, DeviceType.Regulator);
                         break;
                     case "Substation":
                         Enricher.I.LoadCount++;

@@ -146,6 +146,13 @@ namespace MainPower.IdfEnricher
 
                 if (Node.Attribute(IDF_TX_S1BASEKV) != null)
                     _s1BaseKv = Node.Attribute(IDF_TX_S1BASEKV).Value;
+
+                if (Node.Attribute("s2baseKV").Value == "0.2300")
+                {
+                    Node.SetAttributeValue("s2baseKV", "0.4000");
+                    Info("Overriding base voltage from 230V to 400V");
+                }
+
                 if (Node.Attribute(IDF_TX_S2BASEKV) != null)
                     _s2BaseKv = Node.Attribute(IDF_TX_S2BASEKV).Value;
 
@@ -173,14 +180,38 @@ namespace MainPower.IdfEnricher
                     }
                     else
                     {
-                        if (double.TryParse(_s1BaseKv, out double result))
-                            ValidateOperatingVoltage(asset[T1_TX_PRI_OPERATINGKV] as int?, out _s1kV, out string _s1BasekV);
+                        _s1kV = double.Parse(_s1BaseKv) * 1000;
+                        _s2kV = double.Parse(_s2BaseKv) * 1000;
+
+                        var t1s1kv = asset[T1_TX_PRI_OPERATINGKV] as int?;
+                        if (t1s1kv.HasValue && t1s1kv != 99)
+                        {
+                            if (t1s1kv.Value != _s1kV)
+                            {
+                                Error($"T1 s1kv [{t1s1kv.Value}] doesn't equal GIS [{_s1kV}]");
+                                _s1kV = t1s1kv.Value;
+                                _s1BaseKv = (t1s1kv.Value / 1000).ToString();
+                            }
+                        }
                         else
-                            ValidateOperatingVoltage(result*1000, out _s1kV, out _s1BaseKv);
-                        if (double.TryParse(_s2BaseKv, out result))
-                            ValidateOperatingVoltage(asset[T1_TX_SEC_OPERATINGKV] as int?, out _s2kV, out string _s2BaseKv);
+                        {
+                            Warn("T1 s1kv is unset");
+                        }
+                        var t1s2kv = asset[T1_TX_SEC_OPERATINGKV] as int?;
+                        if (t1s2kv.HasValue && t1s2kv != 99)
+                        {
+                            if (t1s2kv.Value != _s2kV)
+                            {
+                                Error($"T1 s2kv [{t1s2kv.Value}] doesn't equal GIS [{_s2kV}]");
+                                _s2kV = t1s2kv.Value;
+                                _s2BaseKv = (t1s2kv.Value / 1000).ToString();
+                            }
+                        }
                         else
-                            ValidateOperatingVoltage(result*1000, out _s2kV, out _s2BaseKv);
+                        {
+                            Warn("T1 s2kv is unset");
+                        }
+
                         ValidatePhases(asset[T1_TX_PHASES] as int?);
                         ValidatekVA(asset[T1_TX_KVA] as double?);
                         ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.HV, out _s1ConnectionType);
@@ -243,6 +274,7 @@ namespace MainPower.IdfEnricher
                 GenerateScadaLinking();
                 RemoveExtraAttributes();
 
+                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Transformer);
             }
             catch (Exception ex)
             {
@@ -398,6 +430,7 @@ namespace MainPower.IdfEnricher
         private void ValidateRatedVoltage(string opVoltage, string ratedVoltage, out string v)
         {
             //TODO voltages should be line to line, but what about single phase?
+            //TODO clean up this mess
             try
             {
                 var iOpVoltage = float.Parse(opVoltage);
@@ -412,6 +445,10 @@ namespace MainPower.IdfEnricher
                     if (iNewValue > iOpVoltage)
                     {
                         v = iNewValue.ToString();
+                    }
+                    else if (iNewValue == iOpVoltage)
+                    {
+
                     }
                     else
                     {

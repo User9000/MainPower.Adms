@@ -25,15 +25,18 @@ namespace MainPower.IdfEnricher
                     Node.SetAttributeValue("nominalState1", "True");
                     Node.SetAttributeValue("nominalState2", "True");
                     Node.SetAttributeValue("nominalState3", "True");
-                    Node.SetAttributeValue("ratedKV", "0.4000");
+                    Node.SetAttributeValue("ratedKV", "0.4400");
                     Node.SetAttributeValue("secondaryBaseKV", "0.4000");
+                    Node.SetAttributeValue("baseKV", "0.4000");
 
-                    var basekv = Node.Attribute("baseKV")?.Value;
-                    if (string.IsNullOrWhiteSpace(basekv))
-                    {
-                        Node.SetAttributeValue("baseKV", "0.2300");
-                    }
-                    //if (basekv = "0.4000)
+                    int phases = 0;
+                    if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+                        phases++;
+                    if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
+                        phases++;
+                    if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
+                        phases++;
+
                     double load = Enricher.I.GetIcpLoad(Node.Attribute("name").Value);
                     if (load.Equals(double.NaN))
                     {
@@ -44,10 +47,18 @@ namespace MainPower.IdfEnricher
                     {
                         load = load / 72;
                     }
-                    //Node.SetAttributeValue("nominalkW1", load.ToString("N1");
-                    //Node.SetAttributeValue("nominalkW1", load.ToString("N1");
-                    //Node.SetAttributeValue("nominalkW1", load.ToString("N1");
-                    Node.SetAttributeValue("nominalKWAggregate", load.ToString("N1"));
+                    if (phases != 0)
+                        load /= phases;
+                    else
+                        Error("No phase IDs are set");
+
+                    if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+                        Node.SetAttributeValue("nominalKW1", load.ToString("N1"));
+                    if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
+                        Node.SetAttributeValue("nominalKW2", load.ToString("N1"));
+                    if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
+                        Node.SetAttributeValue("nominalKW3", load.ToString("N1"));
+                    Node.SetAttributeValue("nominalKWAggregate", "");
                     ParentGroup.SetSymbolNameByDataLink(Id, "Symbol 13", 2.0);
                 }
             }
