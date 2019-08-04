@@ -38,6 +38,11 @@ namespace MainPower.IdfEnricher
                         phases++;
 
                     double load = Enricher.I.GetIcpLoad(Node.Attribute("name").Value);
+                    if (load < 72)
+                    {
+                        Warn($"ICP had low load ({load}) - assigning default load of 7.5kW");
+                        load = 7.5;
+                    }
                     if (load.Equals(double.NaN))
                     {
                         Warn($"ICP was not found in the ICP database, assigning default load of 7.5kW");
@@ -53,12 +58,12 @@ namespace MainPower.IdfEnricher
                         Error("No phase IDs are set");
 
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
-                        Node.SetAttributeValue("nominalKW1", load.ToString("N1"));
+                        Node.SetAttributeValue("nominalKW1", load.ToString("N2"));
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
-                        Node.SetAttributeValue("nominalKW2", load.ToString("N1"));
+                        Node.SetAttributeValue("nominalKW2", load.ToString("N2"));
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
-                        Node.SetAttributeValue("nominalKW3", load.ToString("N1"));
-                    Node.SetAttributeValue("nominalKWAggregate", "");
+                        Node.SetAttributeValue("nominalKW3", load.ToString("N2"));
+                    Node.SetAttributeValue("nominalKWAggregate", null);
                     ParentGroup.SetSymbolNameByDataLink(Id, "Symbol 13", 2.0);
                 }
             }

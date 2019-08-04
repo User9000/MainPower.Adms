@@ -16,7 +16,8 @@ namespace MainPower.IdfEnricher
             {
                 Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
                 Node.SetAttributeValue(IDF_FEEDER_SOURCE, "");
-                ParentGroup.SetSwitchInSubstation(Node.Attribute(IDF_FEEDER_DEVICE).Value, IDF_TRUE);
+                //TODO
+                //ParentGroup.SetSwitchInSubstation(Node.Attribute(IDF_FEEDER_DEVICE).Value, IDF_TRUE);
             }
             catch (Exception ex)
             {

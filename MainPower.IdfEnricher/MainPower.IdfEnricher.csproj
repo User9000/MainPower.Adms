@@ -84,6 +84,7 @@
     <Compile Include="Region.cs" />
     <Compile Include="Regulator.cs" />
     <Compile Include="Source.cs" />
+    <Compile Include="SourceDataManager.cs" />
     <Compile Include="Substation.cs" />
     <Compile Include="Transformer.cs" />
     <Compile Include="Element.cs" />

@@ -141,6 +141,10 @@ namespace MainPower.IdfEnricher
                 if (Node.Attribute(IDF_SWITCH_RATEDKV) != null)
                     _ratedKv = Node.Attribute(IDF_SWITCH_RATEDKV).Value;
 
+                //TODO: backport into GIS
+                //TODO: IDF bug?
+                Node.SetAttributeValue("inSubstation", null);
+
                 _switchType = Node.Attribute(IDF_SWITCH_SWITCHTYPE).Value;
 
                 if (Node.Attribute("baseKV").Value == "0.2300")

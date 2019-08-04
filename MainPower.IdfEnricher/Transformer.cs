@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
@@ -184,7 +179,7 @@ namespace MainPower.IdfEnricher
                         _s2kV = double.Parse(_s2BaseKv) * 1000;
 
                         var t1s1kv = asset[T1_TX_PRI_OPERATINGKV] as int?;
-                        if (t1s1kv.HasValue && t1s1kv != 99)
+                        if (t1s1kv.HasValue && t1s1kv > 300)
                         {
                             if (t1s1kv.Value != _s1kV)
                             {
@@ -198,7 +193,7 @@ namespace MainPower.IdfEnricher
                             Warn("T1 s1kv is unset");
                         }
                         var t1s2kv = asset[T1_TX_SEC_OPERATINGKV] as int?;
-                        if (t1s2kv.HasValue && t1s2kv != 99)
+                        if (t1s2kv.HasValue && t1s2kv > 300)
                         {
                             if (t1s2kv.Value != _s2kV)
                             {
@@ -209,7 +204,7 @@ namespace MainPower.IdfEnricher
                         }
                         else
                         {
-                            Warn("T1 s2kv is unset");
+                            Warn("T1 s2kv is unset or invalid");
                         }
 
                         ValidatePhases(asset[T1_TX_PHASES] as int?);
@@ -246,9 +241,9 @@ namespace MainPower.IdfEnricher
                 Node.SetAttributeValue(IDF_TX_CONTROLPHASE, _controlPhase);
                 Node.SetAttributeValue(IDF_TX_DESIREDVOLTAGE, _desiredVoltage);
                 //TODO these are invalid fields according to maestro
-                //Node.SetAttribute(IDF_TX_INITIALTAP1, _initialTap1);
-                //Node.SetAttribute(IDF_TX_INITIALTAP2, _initialTap2);
-                //Node.SetAttribute(IDF_TX_INITIALTAP3, _initialTap3);
+                //Node.SetAttributeValue(IDF_TX_INITIALTAP1, _initialTap1);
+                //Node.SetAttributeValue(IDF_TX_INITIALTAP2, _initialTap2);
+                //Node.SetAttributeValue(IDF_TX_INITIALTAP3, _initialTap3);
                 Node.SetAttributeValue(IDF_TX_MAXTAPLIMIT, _maxTapLimit);
                 Node.SetAttributeValue(IDF_TX_MINTAPLIMIT, _minTapLimit);
                 Node.SetAttributeValue(IDF_TX_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
