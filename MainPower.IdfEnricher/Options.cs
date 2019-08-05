@@ -1,9 +1,4 @@
 ﻿using CommandLine;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MainPower.IdfEnricher
 {
@@ -36,5 +31,7 @@ namespace MainPower.IdfEnricher
         [Option('z', "archiveidf", HelpText = "Archive the input idfs to the log directory", Default = true)]
         public bool ArchiveIdf { get; set; }
 
+        [Option("converticps", HelpText = "Convert the icp database", Default = true)]
+        public bool ConvertIcps { get; set; }
     }
 }

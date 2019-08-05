@@ -1,12 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace MainPower.IdfEnricher
@@ -150,7 +144,7 @@ namespace MainPower.IdfEnricher
                 if (Node.Attribute("baseKV").Value == "0.2300")
                 {
                     Node.SetAttributeValue("baseKV", "0.4000");
-                    Info("Overriding base voltage from 230V to 400V");
+                    Debug("Overriding base voltage from 230V to 400V");
                 }
                 _baseKv = Node.Attribute(IDF_SWITCH_BASEKV).Value;
 
@@ -283,7 +277,7 @@ namespace MainPower.IdfEnricher
             string us = _nominalUpstreamSide;
             string ds = us == "1" ? "2" : "1";
 
-            var status = Enricher.I.GetScadaStatusPointInfo(Name);
+            var status = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             bool hasVolts = false;
             if (status == null)
                 return ("", null);
@@ -296,44 +290,44 @@ namespace MainPower.IdfEnricher
             x.SetAttributeValue("p3State", status.Key);
             
 
-            var rAmps = Enricher.I.GetScadaAnalogPointInfo($"{Name} Amps RØ");
+            var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps RØ");
             if (rAmps != null)
             {
                 x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
                 x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
             }
-            var yAmps = Enricher.I.GetScadaAnalogPointInfo($"{Name} Amps YØ");
+            var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps YØ");
             if (yAmps != null)
             {
                 x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
                 x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
             }
-            var bAmps = Enricher.I.GetScadaAnalogPointInfo($"{Name} Amps BØ");
+            var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps BØ");
             if (bAmps != null)
             {
                 x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
                 x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
             }
             
-            var kw = Enricher.I.GetScadaAnalogPointInfo($"{Name} kW");
+            var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kW");
             if (kw != null)
             {
                 x.SetAttributeValue($"s{ds}AggregateKW", kw.Key);
                 x.SetAttributeValue($"s{ds}AggregateKWUCF", "1");
             }
-            else if ((kw = Enricher.I.GetScadaAnalogPointInfo($"{Name} MW")) != null)
+            else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MW")) != null)
             {
                 x.SetAttributeValue($"s{ds}AggregateKW", kw.Key);
                 x.SetAttributeValue($"s{ds}AggregateKWUCF", "1000");
             }
 
-            var kvar = Enricher.I.GetScadaAnalogPointInfo($"{Name} kVar");
+            var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kVar");
             if (kvar != null)
             {
                 x.SetAttributeValue($"s{ds}AggregateKVAR", kvar.Key);
                 x.SetAttributeValue($"s{ds}AggregateKVARUCF", "1");
             }
-            else if ((kvar = Enricher.I.GetScadaAnalogPointInfo($"{Name} MVar")) != null)
+            else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MVar")) != null)
             {
                 x.SetAttributeValue($"s{ds}AggregateKVAR", kvar.Key);
                 x.SetAttributeValue($"s{ds}AggregateKVARUCF", "1000");
@@ -347,42 +341,42 @@ namespace MainPower.IdfEnricher
                 x.SetAttributeValue("s1p3AmpsUCF", "1");
             }
             */
-            var s1RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts RY");
+            var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts RY");
             if (s1RYVolts != null)
             {
                 x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s1YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts YB");
+            var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts YB");
             if (s1YBVolts != null)
             {
                 x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s1BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts BR");
+            var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts BR");
             if (s1BRVolts != null)
             {
                 x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
                 x.SetAttributeValue($"s{us}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2RYVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts RY2");
+            var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts RY2");
             if (s2RYVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
                 x.SetAttributeValue($"s{ds}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2YBVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts YB2");
+            var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts YB2");
             if (s2YBVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
                 x.SetAttributeValue($"s{ds}VoltageType", "LL");
                 hasVolts = true;
             }
-            var s2BRVolts = Enricher.I.GetScadaAnalogPointInfo($"{Name} Volts BR2");
+            var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts BR2");
             if (s2BRVolts != null)
             {
                 x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
@@ -421,13 +415,13 @@ namespace MainPower.IdfEnricher
         private void ProcessCircuitBreaker2(bool internals)
         {
             if (!string.IsNullOrEmpty(_t1assetno)) {
-                var asset = Enricher.I.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
+                DataType asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(_t1assetno);
                 if (asset != null)
                 {
                     ProcessCircuitBreaker(internals);
                     return;
                 }
-                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
                 if (asset != null)
                 {
                     ProcessRingMainCb();
@@ -448,7 +442,7 @@ namespace MainPower.IdfEnricher
 
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
 
-            var p = Enricher.I.GetScadaStatusPointInfo(Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -469,14 +463,14 @@ namespace MainPower.IdfEnricher
             _loadBreakCapable = IDF_TRUE;
             _switchType = IDF_SWITCH_TYPE_SWITCH; //TODO
 
-            DataRow asset = null;
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -492,7 +486,7 @@ namespace MainPower.IdfEnricher
 
             }
 
-            var p = Enricher.I.GetScadaStatusPointInfo(Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -513,14 +507,14 @@ namespace MainPower.IdfEnricher
             _loadBreakCapable = IDF_TRUE;
             _switchType = IDF_SWITCH_TYPE_SWITCH;
             
-            DataRow asset = null;
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -535,7 +529,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.I.GetScadaStatusPointInfo(Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -559,14 +553,14 @@ namespace MainPower.IdfEnricher
             //TODO: how to link with the tx size?
             ProcessCircuitBreakerAdms();
 
-            DataRow asset = null;
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1RingMainUnitByT1AssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -581,7 +575,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.I.GetScadaStatusPointInfo(Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -644,14 +638,14 @@ namespace MainPower.IdfEnricher
             //ProcessCircuitBreakerAdms();
 
             _switchType = IDF_SWITCH_TYPE_RECLOSER;
-            DataRow asset = null;
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -675,15 +669,15 @@ namespace MainPower.IdfEnricher
             //TODO: need to get sectionliser function from AdmsDatabase
             _ganged = IDF_TRUE;
             _switchType = IDF_SWITCH_TYPE_SWITCH;
-            
-            DataRow asset = null;
+
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1DisconnectorByAssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Disconnector>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -699,7 +693,7 @@ namespace MainPower.IdfEnricher
                 }
 
             }
-            var p = Enricher.I.GetScadaStatusPointInfo(Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -720,14 +714,14 @@ namespace MainPower.IdfEnricher
             _ratedAmps = "300";//confirmed by robert
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
-            DataRow asset = null;
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1FuseByAssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Fuse>(_t1assetno);
 
                 if (asset == null)
                 {
@@ -748,14 +742,14 @@ namespace MainPower.IdfEnricher
             _ganged = IDF_TRUE;          
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
-            DataRow asset = null;
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1DisconnectorByAssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Disconnector>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -772,7 +766,7 @@ namespace MainPower.IdfEnricher
 
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            var p = Enricher.I.GetScadaStatusPointInfo(Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -793,15 +787,15 @@ namespace MainPower.IdfEnricher
             _loadBreakCapable = IDF_TRUE;
 
             ProcessCircuitBreakerAdms();
-            
-            DataRow asset = null;
+
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1HvCircuitBreakerByAssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -818,7 +812,7 @@ namespace MainPower.IdfEnricher
             }
 
             var scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            var p = Enricher.I.GetScadaStatusPointInfo(Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
@@ -834,16 +828,16 @@ namespace MainPower.IdfEnricher
 
         private void ProcessCircuitBreakerAdms()
         {
-            if (Enricher.I.GetAdmsSwitch(Name) is DataRow asset)
+            if (DataManager.I.RequestRecordById<AdmsSwitch>(Name) is DataType asset)
             {
                 //TODO: RMU circuit breakers are generally not in the protection database... they use generic settings based on tx size.
                 //how are we going to handle these?
                 //TODO: validation on these?
                 //if (_name == "P45")
                 //    Debugger.Break();
-                _nominalUpstreamSide = (asset[ADMS_SWITCH_NOMINALUPSTREAMSIDE] as string);
-                _forwardTripAmps = (asset[ADMS_SWITCH_FORWARDTRIPAMPS] as int?).ToString();
-                _reverseTripAmps = (asset[ADMS_SWITCH_REVERSETRIPAMPS] as int?).ToString();
+                _nominalUpstreamSide = asset[ADMS_SWITCH_NOMINALUPSTREAMSIDE];
+                _forwardTripAmps = asset[ADMS_SWITCH_FORWARDTRIPAMPS];
+                _reverseTripAmps = asset[ADMS_SWITCH_REVERSETRIPAMPS];
                 _switchType = asset[ADMS_SWITCH_RECLOSER_ENABLED] as string == "Y" ? IDF_SWITCH_TYPE_RECLOSER : IDF_SWITCH_TYPE_BREAKER;
             }
             else
@@ -863,14 +857,14 @@ namespace MainPower.IdfEnricher
             _ratedAmps = _forwardTripAmps == "" ? "" : (int.Parse(_forwardTripAmps) / 2).ToString();
             _switchType = IDF_SWITCH_TYPE_FUSE;
 
-            DataRow asset = null;
+            DataType asset = null;
             if (_t1assetno == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = Enricher.I.GetT1FuseByAssetNumber(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Fuse>(_t1assetno);
 
                 if (asset != null)
                 {
@@ -929,20 +923,24 @@ namespace MainPower.IdfEnricher
                     {
                         return iNewValue.ToString();
                     }
+                    else if (iNewValue == iOpVoltage)
+                    {
+                        Info($"Rated voltage [{iNewValue}] == operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                    }
                     else
                     {
-                        Error($"Rated voltage [{ratedVoltage}] is less than operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                        Error($"Rated voltage [{iNewValue}] is less than operating voltage [{opVoltage}], setting to 110% of operating voltage");
                     }
                 }
                 else
                 {
-                    Error("Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
+                    Error($"Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
                 }
                 return (iOpVoltage * 1.1).ToString();
             }
             catch
             {
-                Error("Operating voltage [{opVoltage}] is not a valid float");
+                Error($"Operating voltage [{opVoltage}] is not a valid float");
                 return opVoltage;
             }
         }

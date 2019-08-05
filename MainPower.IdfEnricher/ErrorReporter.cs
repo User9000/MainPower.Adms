@@ -63,23 +63,23 @@ namespace MainPower.IdfEnricher
             _log.Fatal(FormatLogString(LogLevel.Fatal, $"{GetType().Name}\\{caller}", "", "", message));
         }
 
-        static protected void StaticDebug(string message, Type type, [CallerMemberName]string caller = "")
+        static public void StaticDebug(string message, Type type, [CallerMemberName]string caller = "")
         {
             _log.Debug(FormatLogString(LogLevel.Debug, $"{type.Name}\\{caller}", "", "", message));
         }
-        static protected void StaticInfo(string message, Type type, [CallerMemberName]string caller = "")
+        static public void StaticInfo(string message, Type type, [CallerMemberName]string caller = "")
         {
             _log.Info(FormatLogString(LogLevel.Info, $"{type.Name}\\{caller}", "", "", message));
         }
-        static protected void StaticWarn(string message, Type type, [CallerMemberName]string caller = "")
+        static public void StaticWarn(string message, Type type, [CallerMemberName]string caller = "")
         {
             _log.Warn(FormatLogString(LogLevel.Warn, $"{type.Name}\\{caller}", "", "", message));
         }
-        static protected void StaticError(string message, Type type, [CallerMemberName]string caller = "")
+        static public void StaticError(string message, Type type, [CallerMemberName]string caller = "")
         {
             _log.Error(FormatLogString(LogLevel.Error, $"{type.Name}\\{caller}", "", "", message));
         }
-        static protected void StaticFatal(string message, Type type, [CallerMemberName]string caller = "")
+        static public void StaticFatal(string message, Type type, [CallerMemberName]string caller = "")
         {
             _log.Fatal(FormatLogString(LogLevel.Fatal, $"{type.Name}\\{caller}", "", "", message));
         }

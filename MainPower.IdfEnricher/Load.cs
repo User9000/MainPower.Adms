@@ -6,6 +6,7 @@ namespace MainPower.IdfEnricher
     internal class Load : Element
     {
         private const string LOAD_SL_SYMBOL = "Symbol 24";
+        private const string LOAD_ICP_LOAD = "AverageMontlyLoad";
 
         public Load(XElement node, Group processor) : base(node, processor) { }
 
@@ -37,15 +38,15 @@ namespace MainPower.IdfEnricher
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
                         phases++;
 
-                    double load = Enricher.I.GetIcpLoad(Node.Attribute("name").Value);
-                    if (load < 72)
-                    {
-                        Warn($"ICP had low load ({load}) - assigning default load of 7.5kW");
-                        load = 7.5;
-                    }
-                    if (load.Equals(double.NaN))
+                    double? load = DataManager.I.RequestRecordById<Icp>(Node.Attribute("name").Value)?.AsDouble(LOAD_ICP_LOAD);
+                    if (!load.HasValue)
                     {
                         Warn($"ICP was not found in the ICP database, assigning default load of 7.5kW");
+                        load = 7.5;
+                    }
+                    else if (load < 72)
+                    {
+                        Warn($"ICP had low load ({load}) - assigning default load of 7.5kW");
                         load = 7.5;
                     }
                     else
@@ -58,11 +59,11 @@ namespace MainPower.IdfEnricher
                         Error("No phase IDs are set");
 
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
-                        Node.SetAttributeValue("nominalKW1", load.ToString("N2"));
+                        Node.SetAttributeValue("nominalKW1", load?.ToString("N2"));
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
-                        Node.SetAttributeValue("nominalKW2", load.ToString("N2"));
+                        Node.SetAttributeValue("nominalKW2", load?.ToString("N2"));
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
-                        Node.SetAttributeValue("nominalKW3", load.ToString("N2"));
+                        Node.SetAttributeValue("nominalKW3", load?.ToString("N2"));
                     Node.SetAttributeValue("nominalKWAggregate", null);
                     ParentGroup.SetSymbolNameByDataLink(Id, "Symbol 13", 2.0);
                 }

@@ -72,6 +72,9 @@
   <ItemGroup>
     <Compile Include="Area.cs" />
     <Compile Include="Circuit.cs" />
+    <Compile Include="DataSet.cs" />
+    <Compile Include="DataSources.cs" />
+    <Compile Include="DataTypes.cs" />
     <Compile Include="Device.cs" />
     <Compile Include="ErrorReporter.cs" />
     <Compile Include="Feeder.cs" />
@@ -84,7 +87,7 @@
     <Compile Include="Region.cs" />
     <Compile Include="Regulator.cs" />
     <Compile Include="Source.cs" />
-    <Compile Include="SourceDataManager.cs" />
+    <Compile Include="DataManager.cs" />
     <Compile Include="Substation.cs" />
     <Compile Include="Transformer.cs" />
     <Compile Include="Element.cs" />

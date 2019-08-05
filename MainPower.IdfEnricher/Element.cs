@@ -28,6 +28,8 @@ namespace MainPower.IdfEnricher
 
         protected const string AOR_DEFAULT = "1";
 
+        protected const string SCADA_NAME = "Name";
+
         internal Element(XElement node, Group processor)
         {
             Node = node;

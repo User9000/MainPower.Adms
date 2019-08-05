@@ -165,7 +165,7 @@ namespace MainPower.IdfEnricher
                 }
                 else
                 {
-                    var asset = Enricher.I.GetT1TransformerByAssetNumber(_t1assetno);
+                    DataType asset = DataManager.I.RequestRecordById<T1Transformer>(_t1assetno);
                     if (asset == null)
                     {
                         
@@ -178,7 +178,7 @@ namespace MainPower.IdfEnricher
                         _s1kV = double.Parse(_s1BaseKv) * 1000;
                         _s2kV = double.Parse(_s2BaseKv) * 1000;
 
-                        var t1s1kv = asset[T1_TX_PRI_OPERATINGKV] as int?;
+                        var t1s1kv = asset.AsInt(T1_TX_PRI_OPERATINGKV);
                         if (t1s1kv.HasValue && t1s1kv > 300)
                         {
                             if (t1s1kv.Value != _s1kV)
@@ -192,7 +192,7 @@ namespace MainPower.IdfEnricher
                         {
                             Warn("T1 s1kv is unset");
                         }
-                        var t1s2kv = asset[T1_TX_SEC_OPERATINGKV] as int?;
+                        var t1s2kv = asset.AsInt(T1_TX_SEC_OPERATINGKV);
                         if (t1s2kv.HasValue && t1s2kv > 300)
                         {
                             if (t1s2kv.Value != _s2kV)
@@ -207,17 +207,17 @@ namespace MainPower.IdfEnricher
                             Warn("T1 s2kv is unset or invalid");
                         }
 
-                        ValidatePhases(asset[T1_TX_PHASES] as int?);
-                        ValidatekVA(asset[T1_TX_KVA] as double?);
+                        ValidatePhases(asset.AsInt(T1_TX_PHASES));
+                        ValidatekVA(asset.AsDouble(T1_TX_KVA));
                         ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.HV, out _s1ConnectionType);
                         ValidateConnectionType(asset[T1_TX_VECTORGROUP] as string, TransformerSide.LV, out _s2ConnectionType);
-                        ValidateRatedVoltage(_s1BaseKv, (asset[T1_TX_PRI_RATEDKV] as int?).ToString(), out _s1RatedKv);
-                        ValidateRatedVoltage(_s2BaseKv, (asset[T1_TX_SEC_RATEDKV] as int?).ToString(), out _s2RatedKv);
-                        CalculateStepSize(asset[T1_TX_MINTAP]as double?, asset[T1_TX_MAXTAP] as double?);
-                        CalculateTransformerImpedances(asset[T1_TX_IMPEDANCE] as double?, asset[T1_TX_LOADLOSS] as int?);
+                        ValidateRatedVoltage(_s1BaseKv, asset[T1_TX_PRI_RATEDKV], out _s1RatedKv);
+                        ValidateRatedVoltage(_s2BaseKv, asset[T1_TX_SEC_RATEDKV], out _s2RatedKv);
+                        CalculateStepSize(asset.AsDouble(T1_TX_MINTAP), asset.AsDouble(T1_TX_MAXTAP));
+                        CalculateTransformerImpedances(asset.AsDouble(T1_TX_IMPEDANCE), asset.AsInt(T1_TX_LOADLOSS));
                         
                     }
-                    asset = Enricher.I.GetAdmsTransformerByAssetNumber(_t1assetno);
+                    asset = DataManager.I.RequestRecordById<AdmsTransformer>(_t1assetno);
                     if (asset != null)//not being in the adms database is not an error
                     {
                         //TODO process data from adms database

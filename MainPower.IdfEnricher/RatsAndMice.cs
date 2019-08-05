@@ -1,8 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using MessagePack;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 
 namespace MainPower.IdfEnricher
 {
@@ -38,6 +44,104 @@ namespace MainPower.IdfEnricher
                 return dataTable;
             }
         }
+
+        /// <summary>
+        /// Export a DataTable to CSV
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <param name="file"></param>
+        public static void ExportDatatable(DataTable dt, string file)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            IEnumerable<string> columnNames = dt.Columns.Cast<DataColumn>().
+                                              Select(column => column.ColumnName);
+            sb.AppendLine(string.Join(",", columnNames));
+
+            foreach (DataRow row in dt.Rows)
+            {
+                IEnumerable<string> fields = row.ItemArray.Select(field =>
+                  string.Concat("\"", field.ToString().Replace("\"", "\"\""), "\""));
+                sb.AppendLine(string.Join(",", fields));
+            }
+            try
+            {
+                File.WriteAllText(file, sb.ToString(), Encoding.ASCII);
+            }
+            catch (Exception ex)
+            {
+                ErrorReporter.StaticFatal(ex.Message, typeof(Util));
+            }
+        }
+
+        public static void SerializeMessagePack(string file, object obj)
+        {
+            using (var f = File.OpenWrite(file))
+            {
+                LZ4MessagePackSerializer.Serialize(f, obj);
+            }
+        }
+
+        public static void SerialzeBinaryFormatter(string file, object obj)
+        {
+            using (var f = File.OpenWrite(file))
+            {
+                BinaryFormatter b = new BinaryFormatter();
+                b.Serialize(f, obj);
+            }
+        }
+
+        public static void SerializeNewtonsoft(string file, object obj, JsonSerializer s = null)
+        {
+
+            using (var f = File.CreateText(file))
+            {
+                if (s == null)
+                {
+                    s = new JsonSerializer
+                    {
+                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                        Formatting = Formatting.None
+                    };
+                }
+                s.Serialize(f, obj);
+            }
+        }
+
+
+
+        public static T DeserializeMessagePack<T>(string file)
+        {
+
+            using (var f = File.OpenRead(file))
+            {
+                T m = LZ4MessagePackSerializer.Deserialize<T>(f);
+                return m;
+            }
+        }
+
+        public static T DeserializeNewtonsoft<T>(string file)
+        {
+            using (var f = File.OpenText(file))
+            {
+                JsonTextReader r = new JsonTextReader(f);
+                JsonSerializer s = new JsonSerializer()
+                {
+                    PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                };
+                return s.Deserialize<T>(r);
+            }
+        }
+
+        public static T DeserializeBinaryFormatter<T>(string file) where T : class
+        {
+
+            using (var f = File.OpenRead(file))
+            {
+                BinaryFormatter b = new BinaryFormatter();
+                return b.Deserialize(f) as T;
+            }
+        }
     }
 
     internal enum LogLevel
@@ -59,14 +163,6 @@ namespace MainPower.IdfEnricher
         Regulator,
     }
 
-    enum ScadaPointType
-    {
-        StatusInput,
-        StatusOutput,
-        AnalogInput,
-        AnalogOutput
-    }
-
     internal class GroupSet
     {
         public List<Idf> GraphicFiles { get; set; } = new List<Idf>();
@@ -86,21 +182,5 @@ namespace MainPower.IdfEnricher
         public bool Node2Mark { get; set; }
         public double Node1Distance { get; set; } = double.NaN;
         public double Node2Distance { get; set; } = double.NaN;
-    }
-
-    class ScadaStatusPointInfo
-    {
-        public string PointName { get; set; } = "";
-        public string Key { get; set; } = "";
-        public string PointType { get; set; } = "";
-        public bool QuadState { get; set; } = false;
-    }
-
-    class ScadaAnalogPointInfo
-    {
-        public string PointName { get; set; } = "";
-        public string Key { get; set; } = "";
-        public string PointType { get; set; } = "";
-        public string Units { get; set; } = "";
     }
 }

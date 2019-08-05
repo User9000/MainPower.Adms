@@ -323,66 +323,31 @@ namespace MainPower.IdfEnricher
 
         public void Serialize(string file)
         {
-            SerializeMessagePack(file);
-        }
-
-        private void SerializeMessagePack(string file)
-        {
             try
-            {                
-                using (var f = File.OpenWrite(file))
-                {
-                    LZ4MessagePackSerializer.Serialize(f, this);
-                }
+            {
+                Util.SerializeMessagePack(file, this);
             }
             catch (Exception ex)
             {
-                Fatal($"Failed to serialize model to file [{file}] using MessagePack. {ex.Message}");
+                Fatal($"Failed to serialize model to file [{file}]. {ex.Message}");
             }
         }
-
-        private void SerialzeBinaryFormatter(string file)
-        {
-            try
-            {
-                using (var f = File.OpenWrite(file))
-                {
-                    BinaryFormatter b = new BinaryFormatter();
-                    b.Serialize(f, this);
-                }
-            }
-            catch (Exception ex)
-            {
-                Fatal($"Failed to serialize model to file [{file}] using Binary Formatter. {ex.Message}");
-            }
-        }
-
-        private void SerializeNewtonsoft(string file)
-        {
-            try
-            {
-                using (var f = File.CreateText(file))
-                {
-                    JsonSerializer s = new JsonSerializer
-                    {
-                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-                        Formatting = Formatting.None
-                    };
-                    s.Serialize(f, this);
-                }
-            }
-            catch (Exception ex)
-            {
-                Fatal($"Failed to serialize model to file [{file}] using Newtonsoft. {ex.Message}");
-            }
-        }
+        
 
         public static NodeModel Deserialize(string file)
         {
-            var model = DeserializeMessagePack(file);
-            if (model != null)
-                model.RebuildNodeReferences();
-            return model;
+            try
+            {
+                var model = Util.DeserializeMessagePack<NodeModel>(file);
+                if (model != null)
+                    model.RebuildNodeReferences();
+                return model;
+            }
+            catch (Exception ex)
+            {
+                StaticFatal($"Failed to deserialize model from file [{file}]. {ex.Message}", typeof(NodeModel));
+                return null;
+            }
         }
 
         private void RebuildNodeReferences()
@@ -394,60 +359,5 @@ namespace MainPower.IdfEnricher
             }
         }
 
-        private static NodeModel DeserializeMessagePack(string file)
-        {
-            try
-            {
-                using (var f = File.OpenRead(file))
-                {
-                    NodeModel m = LZ4MessagePackSerializer.Deserialize<NodeModel>(f);
-                    return m;
-                }
-            }
-            catch (Exception ex)
-            {
-                StaticFatal($"Failed to deserialize model from file [{file}] using MessagePack. {ex.Message}", typeof(NodeModel));
-                return null;
-            }
-        }
-
-        private static NodeModel DeserializeNewtonsoft(string file)
-        {
-            try
-            {
-                using (var f = File.OpenText(file))
-                {
-                    JsonTextReader r = new JsonTextReader(f);
-                    JsonSerializer s = new JsonSerializer()
-                    {
-                        PreserveReferencesHandling = PreserveReferencesHandling.Objects
-                    };
-                    return s.Deserialize<NodeModel>(r);
-                }
-            }
-            catch (Exception ex)
-            {
-                StaticFatal($"Failed to deserialize model from file [{file}] using Newtonsoft. {ex.Message}", typeof(NodeModel));
-                return null;
-            }
-
-        }
-
-        private static NodeModel DeserializeBinaryFormatter(string file)
-        {
-            try
-            {
-                using (var f = File.OpenRead(file))
-                {
-                    BinaryFormatter b = new BinaryFormatter();
-                    return b.Deserialize(f) as NodeModel;
-                }
-            }
-            catch (Exception ex)
-            {
-                StaticFatal($"Failed to deserialize model from file [{file}] using Binary Formatter. {ex.Message}", typeof(NodeModel));
-                return null;
-            }
-        }
     }
 }

@@ -23,7 +23,7 @@ namespace MainPower.IdfEnricher
                 if (Node.Attribute("baseKV").Value == "0.2300")
                 {
                     Node.SetAttributeValue("baseKV", "0.4000");
-                    Info("Overriding base voltage from 230V to 400V");
+                    Debug("Overriding base voltage from 230V to 400V");
                 }
                 Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Line);
             }
