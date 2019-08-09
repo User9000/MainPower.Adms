@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.572
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enricher", "Enricher\Enricher.csproj", "{4DC82929-03E4-4B7F-B195-02D5FFEFC620}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpaFixer", "EpaFixer\EpaFixer.csproj", "{F5058840-D869-48A2-816A-673A3B1EF908}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HistorianExtractor", "HistorianExtractor\HistorianExtractor.csproj", "{A6B80AF4-FAE7-4E6C-97F6-EF9301BEA118}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScadaConverter", "ScadaConverter\ScadaConverter.csproj", "{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4DC82929-03E4-4B7F-B195-02D5FFEFC620}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DC82929-03E4-4B7F-B195-02D5FFEFC620}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DC82929-03E4-4B7F-B195-02D5FFEFC620}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DC82929-03E4-4B7F-B195-02D5FFEFC620}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5058840-D869-48A2-816A-673A3B1EF908}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5058840-D869-48A2-816A-673A3B1EF908}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5058840-D869-48A2-816A-673A3B1EF908}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5058840-D869-48A2-816A-673A3B1EF908}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6B80AF4-FAE7-4E6C-97F6-EF9301BEA118}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6B80AF4-FAE7-4E6C-97F6-EF9301BEA118}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6B80AF4-FAE7-4E6C-97F6-EF9301BEA118}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6B80AF4-FAE7-4E6C-97F6-EF9301BEA118}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {41CABA9F-BE12-4A43-B508-4FF4604C3A9A}
+	EndGlobalSection
+EndGlobal
