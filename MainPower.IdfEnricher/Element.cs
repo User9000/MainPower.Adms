@@ -6,10 +6,10 @@ namespace MainPower.IdfEnricher
     abstract internal class Element : ErrorReporter
     {
 
-        internal XElement Node { get; private set; }
-        internal Group ParentGroup { get; private set; }
-        internal string Id { get; private set; }
-        internal string Name { get; private set; }
+        public XElement Node { get; private set; }
+        public Group ParentGroup { get; private set; }
+        public string Id { get; private set; }
+        public string Name { get; protected set; }
 
         protected const string IDF_ELEMENT_NAME = "name";
         protected const string IDF_ELEMENT_ID = "id";
@@ -38,27 +38,37 @@ namespace MainPower.IdfEnricher
             Name = node.Attribute(IDF_ELEMENT_NAME).Value;
         }
 
+        protected void UpdateId(string id)
+        {
+            Node.SetAttributeValue(IDF_ELEMENT_ID, id);
+            Id = id;
+        }
+
         abstract internal void Process();
 
         protected override void Debug(string message, [CallerMemberName]string caller = "")
         {
-            _log.Debug(FormatLogString(LogLevel.Debug, $"{GetType().Name}\\{caller}", Id, Name, message));
+            Debug(message, Id, Name, caller);
         }
         protected override void Info(string message, [CallerMemberName]string caller = "")
         {
-            _log.Info(FormatLogString(LogLevel.Info, $"{GetType().Name}\\{caller}", Id, Name, message));
+            Info(message, Id, Name, caller);
+            //_log.Info(FormatLogString(LogLevel.Info, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
         protected override void Warn(string message, [CallerMemberName]string caller = "")
         {
-            _log.Warn(FormatLogString(LogLevel.Warn, $"{GetType().Name}\\{caller}", Id, Name, message));
+            Warn(message, Id, Name, caller);
+            //_log.Warn(FormatLogString(LogLevel.Warn, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
         protected override void Error(string message, [CallerMemberName]string caller = "")
         {
-            _log.Error(FormatLogString(LogLevel.Error, $"{GetType().Name}\\{caller}", Id, Name, message));
+            Error(message, Id, Name, caller);
+            //_log.Error(FormatLogString(LogLevel.Error, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
         protected override void Fatal(string message, [CallerMemberName]string caller = "")
         {
-            _log.Fatal(FormatLogString(LogLevel.Fatal, $"{GetType().Name}\\{caller}", Id, Name, message));
+            Fatal(message, Id, Name, caller);
+            //_log.Fatal(FormatLogString(LogLevel.Fatal, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
     }
 

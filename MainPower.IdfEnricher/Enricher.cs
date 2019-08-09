@@ -12,7 +12,6 @@ namespace MainPower.IdfEnricher
         internal static Enricher I { get; } = new Enricher();
 
         public Options Options { get; set; }
-
         
         private const string ICP_ICP = "ICP";
         private const string ICP_Month = "Month";
@@ -31,11 +30,12 @@ namespace MainPower.IdfEnricher
         {
             DateTime start = DateTime.Now;
             Options = o;
+            PrintLogHeader();
             if (o.ProcessTopology)
             {
                 if (!o.BlankModel)
                 {
-                    Console.WriteLine("Loading previous model...");
+                    
                     var model = NodeModel.Deserialize($"{o.DataPath}\\model");
                     if (model != null)
                     {
@@ -43,7 +43,7 @@ namespace MainPower.IdfEnricher
                     }
                     else
                     {
-                        Console.WriteLine("Creating a new model...");
+                        Info("Creating a new model...");
                     }
                 }
             }
@@ -58,45 +58,64 @@ namespace MainPower.IdfEnricher
                 return;
             }
             DataManager.I.Save("Datamanager.json");
-            //LoadSourceData();
             ProcessImportConfiguration();
-            TimeSpan runtime = DateTime.Now - start;
+            
             if (o.ProcessTopology)
             {
-                start = DateTime.Now;
-                Model.DoConnectivity();
-                Model.CheckVoltageConsistency();
-                runtime = DateTime.Now - start;
-                Console.WriteLine($"Connectivity check: {Model.GetDisconnectedCount()} devices disconnected ({runtime.TotalSeconds} seconds)");
-                start = DateTime.Now;
-                Model.DoPowerFlow();
-                runtime = DateTime.Now - start;
-                Console.WriteLine($"Power flow check: {Model.GetDeenergizedCount()} devices deenergized ({runtime.TotalSeconds} seconds)");
+                Model.ValidateConnectivity();
+                Model.ValidateBaseVoltages();
+                Model.ValidatePhasing();
+                Model.PrintPFDetailsByName("P91");
+                Model.PrintPFDetailsByName("P92");
+                Model.PrintPFDetailsByName("P21");
+                Model.PrintPFDetailsByName("P22");
+                Model.PrintPFDetailsByName("P25");
+                Model.PrintPFDetailsByName("P35");
+                Model.PrintPFDetailsByName("P45");
+                Model.PrintPFDetailsByName("P55");
+
                 if (Fatals == 0)
                 {
+                    
                     Model.Serialize($"{o.DataPath}\\model");
-                    if (o.CheckSwitchFlow || o.UpdateSwitchFlow)
+                    if (o.CheckSwitchFlow)
                     {
-
+                        //TODO move this into the nodemodel??
+                        Info("Verifying connected device upstream side consistency...");
+                        foreach (var d in Model.Devices.Values.Where(s => (s.Type == DeviceType.Switch) && s.ConnectivityMark && s.SwitchState))
+                        {
+                            var asset = DataManager.I.RequestRecordById<AdmsSwitch>(d.Name);
+                            if (asset != null)
+                            {
+                                if (asset.AsBool("NotifyUpstreamSide") ?? false)
+                                {
+                                    var upstream = asset.AsInt("NominalUpstreamSide");
+                                    if ((upstream ?? 0) != d.Upstream)
+                                    {
+                                        Warn($"Calculated nominal upstream side for switch [{d.Name}] ({d.Upstream}) is different from adms database ({upstream})");
+                                    }
+                                }
+                            }
+                        }
                     }
                 }    
                 else
                 {
-                    Console.WriteLine("Skipping model serialization and flow checking due to the ocurrence of previous fatal errors");
-                }
-
-                
+                    Info("Skipping model serialization and flow checking due to the ocurrence of previous fatal errors");
+                }               
             }
             if (Fatals > 0)
             {
-                Console.WriteLine("Output was not generated due to one or more fatal errors. Please review the log for more detail.");
+                Info("Output was not generated due to one or more fatal errors. Please review the log for more detail.");
             }
             else
             {
+                Info("Saving the output IDF...");
                 FileManager.I.SaveFiles(o.OutputPath);
             }
-            Console.WriteLine($"Stats: Tx:{TransformerCount} Line:{LineCount} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
-            Console.WriteLine($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
+            TimeSpan runtime = DateTime.Now - start;
+            Info($"Stats: Tx:{TransformerCount} Line:{LineCount} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
+            Info($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
         }
 
         public  void ConvertIcpDatabase()

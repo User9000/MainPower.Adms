@@ -25,6 +25,8 @@ namespace MainPower.IdfEnricher
 
         static int Main(string[] args)
         {
+            Console.BufferWidth = 300;
+            
             int retCode = 3;
 
             var r = Parser.Default.ParseArguments<Options>(args)
@@ -39,13 +41,6 @@ namespace MainPower.IdfEnricher
                            File.Delete(file);
                        }
                        Enricher.I.Go(o);
-                       //Enricher.I.Model.PrintPFDetailsByName("P91");
-                       //Enricher.I.Model.PrintPFDetailsByName("P92");
-                       //Enricher.I.Model.PrintPFDetailsByName("P21");
-                       //Enricher.I.Model.PrintPFDetailsByName("P22");
-                       //Enricher.I.Model.PrintPFDetailsByName("P35");
-                       //Enricher.I.Model.PrintPFDetailsByName("P45");
-                       //Enricher.I.Model.PrintPFDetailsByName("P55");
                        Console.WriteLine("All done....");
                    }
                    catch (Exception ex)

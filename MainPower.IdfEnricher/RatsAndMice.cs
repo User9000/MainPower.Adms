@@ -14,6 +14,14 @@ namespace MainPower.IdfEnricher
 {
     static class Util
     {
+        private static Random random = new Random();
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
         /// <summary>
         /// Reads a CSV file and returns a DataTable
         /// </summary>
@@ -178,9 +186,16 @@ namespace MainPower.IdfEnricher
 
     public class PFDetail
     {
-        public bool Node1Mark { get; set; }
-        public bool Node2Mark { get; set; }
-        public double Node1Distance { get; set; } = double.NaN;
-        public double Node2Distance { get; set; } = double.NaN;
+        public short[] PhaseId1 { get; set; } = new short[3];
+        public short[] PhaseId2 { get; set; } = new short[3];
+        public short[] PhaseAngle1 { get; set; } = new short[3];
+        public short[] PhaseAngle2 { get; set; } = new short[3];
+
+        //public bool Node1Mark { get; set; }
+        //public bool Node2Mark { get; set; }
+        public double N1ExtDistance { get; set; } = double.NaN;
+        public double N1IntDistance { get; set; } = double.NaN;
+        public double N2ExtDistance { get; set; } = double.NaN;
+        public double N2IntDistance { get; set; } = double.NaN;
     }
 }

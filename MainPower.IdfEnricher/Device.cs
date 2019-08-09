@@ -35,6 +35,20 @@ namespace MainPower.IdfEnricher
 
         [JsonIgnore]
         [IgnoreMember]
+        public Node UpstreamNode
+        {
+            get
+            {
+                if (Upstream == 1)
+                    return Node1;
+                else if (Upstream == 2)
+                    return Node2;
+                else return null;
+            }
+        }
+
+        [JsonIgnore]
+        [IgnoreMember]
         public Source ClosestUpstreamSource { get; set; }
 
         [Key(4)]
@@ -56,39 +70,77 @@ namespace MainPower.IdfEnricher
         [Key(9)]
         public double Base2kV { get; set; }
 
+        /// <summary>
+        /// Phase shift of transformer or regulator, in clock units
+        /// </summary>
+        [Key(10)]
+        public int PhaseShift { get; set; }
+
+        /// <summary>
+        /// Phase Identifiers
+        /// </summary>
+        [Key(11)]
+        public short[,] PhaseID { get; set; } = new short[2,3];
+
 
         [JsonIgnore]
         [IgnoreMember]
         public Dictionary<Source, PFDetail> SP2S { get; set; } = new Dictionary<Source, PFDetail>();
 
+        /// <summary>
+        /// Calculates the upstream side of the device, based on the shorted path to source calculations
+        /// </summary>
         public void CalculateUpstreamSide()
         {
             double d = double.MaxValue;
             foreach (var kvp in SP2S)
             {
-                if (kvp.Value.Node1Distance < d)
+                if (kvp.Value.N1ExtDistance < d)
                 {
-                    d = kvp.Value.Node1Distance;
+                    d = kvp.Value.N1ExtDistance;
                     Upstream = 1;
                     ClosestUpstreamSource = kvp.Key;
                 }
-                if (kvp.Value.Node2Distance < d)
+                if (kvp.Value.N2ExtDistance < d)
                 {
-                    d = kvp.Value.Node2Distance;
+                    d = kvp.Value.N2ExtDistance;
                     Upstream = 2;
                     ClosestUpstreamSource = kvp.Key;
                 }
             }
         }
 
+        /// <summary>
+        /// Prints the results of the shortest path to source calculations
+        /// </summary>
         public void PrintPFResults()
         {
             Console.WriteLine($"Power flow results for device [{Name}]:");
             foreach (var kvp in SP2S)
             {
-                Console.WriteLine($"\tSource [{kvp.Key.Name}]: Node1 distance:{kvp.Value.Node1Distance} Node2 distance:{kvp.Value.Node2Distance}");
+                Console.WriteLine($"\tSource [{kvp.Key.Name}]: N1IntDistance:{kvp.Value.N1IntDistance} N1ExtDistance:{kvp.Value.N1ExtDistance} N2IntDistance:{kvp.Value.N2IntDistance} N2ExtDistance:{kvp.Value.N2ExtDistance}");
             }
             Console.WriteLine($"\tClosest upstream source is {ClosestUpstreamSource?.Name} on side {Upstream}");
+        }
+
+        /// <summary>
+        /// Returns all devices that are upstream of this device
+        /// </summary>
+        /// <returns>A List of Devices</returns>
+        public List<Device> GetUpstreamDevices()
+        {
+            List<Device> result = new List<Device>();
+            var devices = UpstreamNode?.Devices;
+            if (devices != null)
+            {
+                foreach (var device in devices)
+                {
+                    //only return devices that are upstream
+                    if (device.UpstreamNode != UpstreamNode && device != this)
+                        result.Add(device);
+                }
+            }
+            return result;
         }
     }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -61,6 +62,7 @@ namespace MainPower.IdfEnricher
         private const string ADMS_SWITCH_REVERSETRIPAMPS = "reverseTripAmps";
         private const string ADMS_SWITCH_RECLOSER_ENABLED = "Recloser";
         private const string ADMS_SWITCH_NOMINALUPSTREAMSIDE = "NominalUpstreamSide";
+        private const string ADMS_SWITCH_NOTIFYUPSTREAMSIDE = "NotofyUpstreamSide";
 
         private const string IDF_SWITCH_SCADA_P1_STATE = "p1State";
         private const string IDF_SWITCH_SCADA_P2_STATE = "p2State";
@@ -111,7 +113,7 @@ namespace MainPower.IdfEnricher
         internal override void Process()
         {
             try
-            {                
+            {
                 if (Node.Attribute(GIS_T1_ASSET)!= null)
                     _t1assetno = Node.Attribute(GIS_T1_ASSET).Value;
                 if (Node.Attribute(GIS_SWITCH_TYPE) != null)
@@ -271,14 +273,13 @@ namespace MainPower.IdfEnricher
 
         private (string,XElement) GenerateScadaLinking()
         {
-            if (_nominalUpstreamSide != "1" && _nominalUpstreamSide != "2")
-                return ("", null);
-            //set the upstream and downstream nodes
-            string us = _nominalUpstreamSide;
-            string ds = us == "1" ? "2" : "1";
+            //if (Name == "P45")
+            //    Debugger.Break();
+            bool hasVolts = false;
 
             var status = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
-            bool hasVolts = false;
+            
+            //if we don't have the switch status, then assume we don't have any other telemtry either
             if (status == null)
                 return ("", null);
             XElement x = new XElement("element");
@@ -288,104 +289,117 @@ namespace MainPower.IdfEnricher
             x.SetAttributeValue("p1State", status.Key);
             x.SetAttributeValue("p2State", status.Key);
             x.SetAttributeValue("p3State", status.Key);
-            
 
-            var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps RØ");
-            if (rAmps != null)
+            //we can't assign any of this telemtry without knowing what the upstream side of the switch is
+            if (_nominalUpstreamSide == "1" || _nominalUpstreamSide == "2")
             {
-                x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
-                x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
-            }
-            var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps YØ");
-            if (yAmps != null)
-            {
-                x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
-                x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
-            }
-            var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps BØ");
-            if (bAmps != null)
-            {
-                x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
-                x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
-            }
-            
-            var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kW");
-            if (kw != null)
-            {
-                x.SetAttributeValue($"s{ds}AggregateKW", kw.Key);
-                x.SetAttributeValue($"s{ds}AggregateKWUCF", "1");
-            }
-            else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MW")) != null)
-            {
-                x.SetAttributeValue($"s{ds}AggregateKW", kw.Key);
-                x.SetAttributeValue($"s{ds}AggregateKWUCF", "1000");
-            }
+                //set the upstream and downstream nodes
+                string us = _nominalUpstreamSide;
+                string ds = us == "1" ? "2" : "1";
 
-            var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kVar");
-            if (kvar != null)
-            {
-                x.SetAttributeValue($"s{ds}AggregateKVAR", kvar.Key);
-                x.SetAttributeValue($"s{ds}AggregateKVARUCF", "1");
-            }
-            else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MVar")) != null)
-            {
-                x.SetAttributeValue($"s{ds}AggregateKVAR", kvar.Key);
-                x.SetAttributeValue($"s{ds}AggregateKVARUCF", "1000");
-            }
-            /*
-            var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} PF");
-            
-            if (bAmps != null)
-            {
-                x.SetAttributeValue("s1p3Amps", bAmps.Key);
-                x.SetAttributeValue("s1p3AmpsUCF", "1");
-            }
-            */
-            var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts RY");
-            if (s1RYVolts != null)
-            {
-                x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
-                x.SetAttributeValue($"s{us}VoltageType", "LL");
-                hasVolts = true;
-            }
-            var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts YB");
-            if (s1YBVolts != null)
-            {
-                x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
-                x.SetAttributeValue($"s{us}VoltageType", "LL");
-                hasVolts = true;
-            }
-            var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts BR");
-            if (s1BRVolts != null)
-            {
-                x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
-                x.SetAttributeValue($"s{us}VoltageType", "LL");
-                hasVolts = true;
-            }
-            var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts RY2");
-            if (s2RYVolts != null)
-            {
-                x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
-                x.SetAttributeValue($"s{ds}VoltageType", "LL");
-                hasVolts = true;
-            }
-            var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts YB2");
-            if (s2YBVolts != null)
-            {
-                x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
-                x.SetAttributeValue($"s{ds}VoltageType", "LL");
-                hasVolts = true;
-            }
-            var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts BR2");
-            if (s2BRVolts != null)
-            {
-                x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
-                x.SetAttributeValue($"s{ds}VoltageType", "LL");
-                hasVolts = true;
-            }
+                var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps RØ");
+                if (rAmps != null)
+                {
+                    x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
+                    x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
+                }
+                var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps YØ");
+                if (yAmps != null)
+                {
+                    x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
+                    x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
+                }
+                var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps BØ");
+                if (bAmps != null)
+                {
+                    x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
+                    x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
+                }
 
+                var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kW");
+                if (kw != null)
+                {
+                    x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
+                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1");
+
+                    x.SetAttributeValue($"s{ds}AggregateKW", "");
+                    x.SetAttributeValue($"s{ds}AggregateKWUCF", "");
+                }
+                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MW")) != null)
+                {
+                    x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
+                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1000");
+                }
+
+                var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kVar");
+                if (kvar != null)
+                {
+                    x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
+                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1");
+
+                    x.SetAttributeValue($"s{ds}AggregateKVAR", "");
+                    x.SetAttributeValue($"s{ds}AggregateKVARUCF", "");
+                }
+                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MVar")) != null)
+                {
+                    x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
+                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
+                }
+                /*
+                var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} PF");
+
+                if (bAmps != null)
+                {
+                    x.SetAttributeValue("s1p3Amps", bAmps.Key);
+                    x.SetAttributeValue("s1p3AmpsUCF", "1");
+                }
+                */
+                var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R");
+                if (s1RYVolts != null)
+                {
+                    x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LG");
+                    hasVolts = true;
+                }
+                var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y");
+                if (s1YBVolts != null)
+                {
+                    x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LG");
+                    hasVolts = true;
+                }
+                var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B");
+                if (s1BRVolts != null)
+                {
+                    x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LG");
+                    hasVolts = true;
+                }
+                var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R2");
+                if (s2RYVolts != null)
+                {
+                    x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
+                    x.SetAttributeValue($"s{ds}VoltageType", "LG");
+                    hasVolts = true;
+                }
+                var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y2");
+                if (s2YBVolts != null)
+                {
+                    x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
+                    x.SetAttributeValue($"s{ds}VoltageType", "LG");
+                    hasVolts = true;
+                }
+                var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B2");
+                if (s2BRVolts != null)
+                {
+                    x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
+                    x.SetAttributeValue($"s{ds}VoltageType", "LG");
+                    hasVolts = true;
+                }
+            }
             if (hasVolts)
             {
+                //TODO what does this do again?
                 x.SetAttributeValue("s1VoltageReference", _baseKv);
             }
 

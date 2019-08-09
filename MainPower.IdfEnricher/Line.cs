@@ -25,7 +25,16 @@ namespace MainPower.IdfEnricher
                     Node.SetAttributeValue("baseKV", "0.4000");
                     Debug("Overriding base voltage from 230V to 400V");
                 }
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Line);
+                if (!Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Line))
+                {
+                    /*
+                    UpdateId(Id + Util.RandomString(4));
+                    Warn("Failed to add line to model, trying again with new id");
+                    Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Line);
+                    */
+                    Warn("Failed to add line to model, imma just gonna delete it and hope for the best 😬");
+                    Node.Remove();
+                }
             }
             catch (Exception ex)
             {

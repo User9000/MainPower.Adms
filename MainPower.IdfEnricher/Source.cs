@@ -18,5 +18,8 @@ namespace MainPower.IdfEnricher
 
         [Key(3)]
         public string GroupId { get; set; }
+
+        [Key(4)]
+        public short[] PhaseAngles { get; set; } = new short[3];
     }
 }

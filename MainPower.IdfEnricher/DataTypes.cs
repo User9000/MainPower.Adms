@@ -30,6 +30,17 @@ namespace MainPower.IdfEnricher
                 return null;
         }
 
+        public bool? AsBool(string s)
+        {
+            if (Data.ContainsKey(s))
+                if (bool.TryParse(Data[s], out bool b))
+                    return b;
+                else
+                    return null;
+            else
+                return null;
+        }
+
         public double? AsDouble(string s)
         {
             if (Data.ContainsKey(s))
@@ -88,7 +99,7 @@ namespace MainPower.IdfEnricher
         {
             get
             {
-                return this[SCADA_KEY];
+                return this[SCADA_KEY].PadLeft(8,'0');
             }
         }
     }

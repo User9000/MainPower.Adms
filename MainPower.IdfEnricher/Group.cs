@@ -66,6 +66,8 @@ namespace MainPower.IdfEnricher
 
                     if (!z.Equals(double.NaN))
                         symbol.SetAttributeValue("z", z.ToString("N1"));
+
+                    symbol.SetAttributeValue("maxSize", "30");
                 }
             }
         }
@@ -167,6 +169,27 @@ namespace MainPower.IdfEnricher
             {
                 Element d = null;
                 var elType = node.Attribute("type").Value;
+                /*
+                if (elType == "Switch" || elType == "Transformer" || elType == "Line" || elType == "Load" || elType == "Regulator")
+                {
+                    if (!(node.Attribute("s1phaseID1").Value == "1"))
+                        Fatal($"Side1 phase 1 isn't 1 {node.Attribute("id").Value}");
+                    if (!(node.Attribute("s1phaseID2").Value == "2"))
+                        Fatal($"Side1 phase 2 isn't 2 {node.Attribute("id").Value}");
+                    if (!(node.Attribute("s1phaseID3").Value == "3"))
+                        Fatal($"Side1 phase 3 isn't 3 {node.Attribute("id").Value}");
+                    if (elType != "Load")
+                    {
+                        if (!(node.Attribute("s2phaseID1")?.Value == "1"))
+                            Fatal($"Side2 phase 1 isn't 1 {node.Attribute("id").Value}");
+                        if (!(node.Attribute("s2phaseID2").Value == "2"))
+                            Fatal($"Side2 phase 2 isn't 2 {node.Attribute("id").Value}");
+                        if (!(node.Attribute("s2phaseID3" +
+                            "").Value == "3"))
+                            Fatal($"Side2 phase 3 isn't 3 {node.Attribute("id").Value}");
+                    }
+                }
+                */
                 switch (elType)
                 {
                     case "Switch":

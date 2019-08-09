@@ -1,4 +1,6 @@
-﻿namespace MainPower.IdfEnricher
+﻿using System.Threading.Tasks;
+
+namespace MainPower.IdfEnricher
 {
     public class Dataset
     {
