@@ -1,5 +1,7 @@
-﻿using System;
+﻿using EGIS.ShapeFileLib;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -9,7 +11,8 @@ namespace MainPower.Osi.Enricher
     internal class Group : Element
     {
         private GroupSet _groupset = null;
-        private XElement _group = null;
+        private XElement _dataGroup = null;
+        private Dictionary<string, XElement> _displayGroups = new Dictionary<string, XElement>();
 
         internal bool NoGroup
         {
@@ -24,7 +27,7 @@ namespace MainPower.Osi.Enricher
         {
             get
             {
-                return _group == null;
+                return _dataGroup == null;
             }
         }
 
@@ -37,7 +40,17 @@ namespace MainPower.Osi.Enricher
             }
             _groupset = FileManager.I.GroupFiles[Id];
             if (_groupset.DataFile != null)
-                _group = _groupset.DataFile.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).First();
+                _dataGroup = _groupset.DataFile.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).First();
+
+            foreach (var idf in _groupset.GraphicFiles)
+            {
+                var name = idf.Content.Descendants("data").First().Attribute("displayName").Value;
+                var group = idf.Content.Descendants("group").Where(x => x.Attribute("id").Value == Id).FirstOrDefault();
+                if (group != null)
+                {
+                    _displayGroups.Add(name, group);
+                }
+            }
         }
 
         /// <summary>
@@ -50,9 +63,9 @@ namespace MainPower.Osi.Enricher
         /// <param name="z"></param>
         internal void SetSymbolNameByDataLink(string id, string symbolName, double scale = double.NaN, double rotation = double.NaN, double z = double.NaN)
         {
-            foreach (var idf in _groupset.GraphicFiles)
+            foreach (var group in _displayGroups.Values)
             {
-                var dataLinks = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
                 foreach (var dataLink in dataLinks)
                 {
                     var symbol = dataLink.Parent;
@@ -78,7 +91,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="value"></param>
         internal void SetSwitchInSubstation(string id, string value)
         {
-            var switches = _group.Descendants("element").Where(n => n.Attribute("id")?.Value == id);
+            var switches = _dataGroup.Descendants("element").Where(n => n.Attribute("id")?.Value == id);
             foreach (var sw in switches)
             {
                 //TODO attribute name constant
@@ -92,9 +105,9 @@ namespace MainPower.Osi.Enricher
         /// <param name="id"></param>
         internal void RemoveDataLinksFromSymbols(string id)
         {
-            foreach (var idf in _groupset.GraphicFiles)
+            foreach (var group in _displayGroups.Values)
             {
-                var dataLinks = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
                 foreach (var dataLink in dataLinks.ToList())
                 {
                     dataLink.Remove();
@@ -108,12 +121,15 @@ namespace MainPower.Osi.Enricher
         /// <param name="width"></param>
         internal void SetLineWidth(int width = 5)
         {
-            foreach (var idf in _groupset.GraphicFiles)
+            foreach (var group in _displayGroups.Values)
             {
-                var lines = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type").Value == "Line");
-                foreach (var line in lines)
+                //lock (idf)
                 {
-                    line.SetAttributeValue("width", width.ToString());
+                    var lines = group.Descendants("element").Where(n => n.Attribute("type").Value == "Line");
+                    foreach (var line in lines)
+                    {
+                        line.SetAttributeValue("width", width.ToString());
+                    }
                 }
             }
         }
@@ -135,24 +151,50 @@ namespace MainPower.Osi.Enricher
         }
         internal void AddDatalink(string id)
         {
-            foreach (var idf in _groupset.GraphicFiles)
+            foreach (var group in _displayGroups.Values)
             {
-                var symbols = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("colorLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var symbol in symbols)
+                //lock (idf)
                 {
-                    var parent = symbol.Parent;
-                    XElement x = new XElement("dataLink",
-                        new XAttribute("id", id),
-                        new XElement("link",
-                            new XAttribute("d", "EMAP"),
-                            new XAttribute("f", "AggregateState"),
-                            new XAttribute("i", "0"),
-                            new XAttribute("identityType", "Key"),
-                            new XAttribute("o", "EMAP_DEVICE")
-                        )
-                    );
-                    parent.Add(x);
+                    var symbols = group.Descendants("element").Descendants("colorLink").Where(n => n.Attribute("id")?.Value == id);
+                    foreach (var symbol in symbols)
+                    {
+                        var parent = symbol.Parent;
+                        if (parent.Descendants("dataLink").Count() == 0)
+                        {
+                            XElement x = new XElement("dataLink",
+                                new XAttribute("id", id),
+                                new XElement("link",
+                                    new XAttribute("d", "EMAP"),
+                                    new XAttribute("f", "AggregateState"),
+                                    new XAttribute("i", "0"),
+                                    new XAttribute("identityType", "Key"),
+                                    new XAttribute("o", "EMAP_DEVICE")
+                                )
+                            );
+                            parent.Add(x);
+                        }
+                    }
                 }
+            }
+        }
+
+        internal void AddMissingPhases(XElement node, bool onesideonly = false)
+        {
+            if (node.Attribute(IDF_DEVICE_S1_PHASEID1) == null)
+                node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "");
+            if (node.Attribute(IDF_DEVICE_S1_PHASEID2) == null)
+                node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "");
+            if (node.Attribute(IDF_DEVICE_S1_PHASEID3) == null)
+                node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "");
+
+            if (!onesideonly)
+            {
+                if (node.Attribute(IDF_DEVICE_S2_PHASEID1) == null)
+                    node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, "");
+                if (node.Attribute(IDF_DEVICE_S2_PHASEID2) == null)
+                    node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, "");
+                if (node.Attribute(IDF_DEVICE_S2_PHASEID3) == null)
+                    node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, "");
             }
         }
 
@@ -161,35 +203,18 @@ namespace MainPower.Osi.Enricher
             //TODO: Backport into GIS Extractor
             SetLineWidth();
             ReplaceSymbolLibraryName();
-            DeleteTextElements();
+            //DeleteTextElements();
+            DeleteInternals();
+            SetTextSize();
+
             var tasks = new List<Task>();
 
-            var nodes = _group.Descendants("element");
+            var nodes = _dataGroup.Descendants("element");
             foreach (var node in nodes.ToList())
             {
                 Element d = null;
                 var elType = node.Attribute("type").Value;
-                /*
-                if (elType == "Switch" || elType == "Transformer" || elType == "Line" || elType == "Load" || elType == "Regulator")
-                {
-                    if (!(node.Attribute("s1phaseID1").Value == "1"))
-                        Fatal($"Side1 phase 1 isn't 1 {node.Attribute("id").Value}");
-                    if (!(node.Attribute("s1phaseID2").Value == "2"))
-                        Fatal($"Side1 phase 2 isn't 2 {node.Attribute("id").Value}");
-                    if (!(node.Attribute("s1phaseID3").Value == "3"))
-                        Fatal($"Side1 phase 3 isn't 3 {node.Attribute("id").Value}");
-                    if (elType != "Load")
-                    {
-                        if (!(node.Attribute("s2phaseID1")?.Value == "1"))
-                            Fatal($"Side2 phase 1 isn't 1 {node.Attribute("id").Value}");
-                        if (!(node.Attribute("s2phaseID2").Value == "2"))
-                            Fatal($"Side2 phase 2 isn't 2 {node.Attribute("id").Value}");
-                        if (!(node.Attribute("s2phaseID3" +
-                            "").Value == "3"))
-                            Fatal($"Side2 phase 3 isn't 3 {node.Attribute("id").Value}");
-                    }
-                }
-                */
+
                 switch (elType)
                 {
                     case "Switch":
@@ -248,26 +273,64 @@ namespace MainPower.Osi.Enricher
 
         private void ReplaceSymbolLibraryName()
         {
-            foreach (var idf in _groupset.GraphicFiles)
+            foreach (var group in _displayGroups.Values)
             {
-                var symbols  = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type")?.Value == "Symbol" && n.Attribute("library")?.Value == "OSI.LIB2");
-                foreach (var symbol in symbols)
+                //lock (idf)
                 {
-                    symbol.SetAttributeValue("library", "MPNZ.LIB2");
+                    var symbols = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Symbol" && n.Attribute("library")?.Value == "OSI.LIB2");
+                    foreach (var symbol in symbols)
+                    {
+                        symbol.SetAttributeValue("library", "MPNZ.LIB2");
+                    }
                 }
             }
         }
 
         private void DeleteTextElements()
         {
-            foreach (var idf in _groupset.GraphicFiles)
+            foreach (var group in _displayGroups.Values)
             {
-
-                var texts = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Where(n => n.Attribute("type").Value == "Text");
-                
-                foreach (var text in texts.ToList())
+                //lock (idf)
                 {
-                    text.Remove();
+                    var texts = group.Descendants("element").Where(n => n.Attribute("type").Value == "Text");
+
+                    foreach (var text in texts.ToList())
+                    {
+                        text.Remove();
+                    }
+                }
+            }
+        }
+
+        private void DeleteInternals()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                //lock (idf)
+                {
+                    var elements = group.Descendants("element").Where(n => n.Attribute("mpwr_internals") != null);
+
+                    foreach (var element in elements.ToList())
+                    {
+                        element.SetAttributeValue("mpwr_internals", null);
+                    }
+                }
+            }
+        }
+
+        private void SetTextSize()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                //lock (idf)
+                {
+                    var texts = group.Descendants("element").Where(n => n.Attribute("type").Value == "Text");
+
+                    foreach (var text in texts.ToList())
+                    {
+                        text.SetAttributeValue("fixedSize", "True");
+                        text.SetAttributeValue("fontSize", "4");
+                    }
                 }
             }
         }
@@ -282,28 +345,110 @@ namespace MainPower.Osi.Enricher
             groupnode.Add(xml);
         }
 
+        /// <summary>
+        /// Returns the point for a symbol with datalink
+        /// </summary>
+        /// <param name="id">The datalink id</param>
+        internal List<PointD> GetSymbolGeometry(string id)
+        {
+            var points = new List<PointD>();
+            try
+            {
+
+                foreach (var group in _displayGroups.Values)
+                {
+                    //lock (idf)
+                    {
+                        var elements = group.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol");
+                        var res = elements.Descendants("dataLink").Where(x => x.Attribute("id")?.Value == id).FirstOrDefault();
+                        if (res != null)
+                        {
+                            PointD p = new PointD();
+                            p.X = double.Parse(res.Parent.Attribute("x").Value);
+                            p.Y = double.Parse(res.Parent.Attribute("y").Value);
+                            p = TranslatePoint(p);
+                            points.Add(p);
+                            return points;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Error($"Uncaught exception in GetSymbolGeometry [{id}]:{ex.Message}");
+            }
+            Warn("Could not locate symbol geometry", id, "");
+            return points;
+        }
+
+        /// <summary>
+        /// Returns the point for a symbol with datalink
+        /// </summary>
+        /// <param name="id">The datalink id</param>
+        internal List<PointD> GetLineGeometry(string id)
+        {
+            var points = new List<PointD>();
+            foreach (var kvp in _displayGroups)
+            {
+                if (kvp.Key != "MainPower")
+                    continue;
+                var group = kvp.Value;
+                //lock (idf)
+                {
+
+                    var res = group.Descendants("element").Where(x => x.Attribute("type").Value == "Line").Descendants("dataLink").Where(x => x.Attribute("id").Value == id).FirstOrDefault();
+                    if (res != null)
+                    {
+                        foreach (var xy in res.Parent.Descendants("xy"))
+                        {
+                            PointD p = new PointD();
+                            p.X = float.Parse(xy.Attribute("x").Value);
+                            p.Y = float.Parse(xy.Attribute("y").Value);
+                            p = TranslatePoint(p);
+                            points.Add(p);
+                        }
+                        return points;
+                    }
+                }
+            }
+            Warn("Could not locate line geometry", id, "");
+            return points;
+        }
+
+        private PointD TranslatePoint(PointD p)
+        {
+            p.X *= 0.7;
+            p.Y *= 0.7;
+            p.X += 19050000;
+            p.Y -= 5410000;
+            return p;
+        }
+
         internal void AddScadaCommand(string id, string key)
         {
             try
             {
-                foreach (var idf in FileManager.I.GroupFiles[Id].GraphicFiles)
+                foreach (var group in _displayGroups.Values)
                 {
-                    var symbols = idf.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).Descendants("element").Descendants("dataLink").Where(n=> n.Attribute("id")?.Value == id);
-                    foreach (var symbol in symbols.ToList())
+                    //lock (idf)
                     {
-                        var parent = symbol.Parent;
-                        symbol.Remove();
-                        XElement x = new XElement("dataLink",
-                            new XAttribute("dsID", key),
-                            new XElement("link",
-                                new XAttribute("d", "SCADA"),
-                                new XAttribute("f", "State"),
-                                new XAttribute("i", "0"),
-                                new XAttribute("identityType", "Key"),
-                                new XAttribute("o", "STATUS")
-                            )
-                        );
-                        parent.Add(x);
+                        var symbols = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                        foreach (var symbol in symbols.ToList())
+                        {
+                            var parent = symbol.Parent;
+                            symbol.Remove();
+                            XElement x = new XElement("dataLink",
+                                new XAttribute("dsID", key),
+                                new XElement("link",
+                                    new XAttribute("d", "SCADA"),
+                                    new XAttribute("f", "State"),
+                                    new XAttribute("i", "0"),
+                                    new XAttribute("identityType", "Key"),
+                                    new XAttribute("o", "STATUS")
+                                )
+                            );
+                            parent.Add(x);
+                        }
                     }
                 }
             }

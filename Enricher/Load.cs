@@ -15,6 +15,9 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
+                ParentGroup.AddMissingPhases(Node, true);
+
+
                 if (Name.StartsWith("Streetlight"))
                 {
                     ParentGroup.SetSymbolNameByDataLink(Id, LOAD_SL_SYMBOL);

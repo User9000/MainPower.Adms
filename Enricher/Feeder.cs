@@ -16,7 +16,7 @@ namespace MainPower.Osi.Enricher
             {
                 Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
                 Node.SetAttributeValue(IDF_FEEDER_SOURCE, "");
-                if (Node.Attribute("substationCircuit") == null)
+                //if (Node.Attribute("substationCircuit") == null)
                     Node.SetAttributeValue("substationCircuit", "");
                 //TODO
                 //ParentGroup.SetSwitchInSubstation(Node.Attribute(IDF_FEEDER_DEVICE).Value, IDF_TRUE);

@@ -25,6 +25,9 @@ namespace MainPower.Osi.Enricher
         [Option('p', "pause", HelpText = "Pause before quitting", Default = true)]
         public bool PauseBeforeQuit { get; set; }
 
+        [Option('s', "exportshp", HelpText = "Export shape files", Default = true)]
+        public bool ExportShapeFiles { get; set; }
+
         [Option('z', "archiveidf", HelpText = "Archive the input idfs to the log directory", Default = true)]
         public bool ArchiveIdf { get; set; }
 

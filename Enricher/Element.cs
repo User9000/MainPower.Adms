@@ -10,6 +10,7 @@ namespace MainPower.Osi.Enricher
         public Group ParentGroup { get; private set; }
         public string Id { get; private set; }
         public string Name { get; protected set; }
+        public string T1Id { get; protected set; }
 
         protected const string IDF_ELEMENT_NAME = "name";
         protected const string IDF_ELEMENT_ID = "id";
@@ -18,6 +19,14 @@ namespace MainPower.Osi.Enricher
         protected const string IDF_DEVICE_NOMSTATE2 = "nominalState2";
         protected const string IDF_DEVICE_NOMSTATE3 = "nominalState3";
         protected const string IDF_DEVICE_INSUBSTATION = "inSubstation";
+        protected const string IDF_DEVICE_BASEKV = "baseKV";
+
+        protected const string IDF_DEVICE_S1_PHASEID1 = "s1phaseID1";
+        protected const string IDF_DEVICE_S1_PHASEID2 = "s1phaseID2";
+        protected const string IDF_DEVICE_S1_PHASEID3 = "s1phaseID3";
+        protected const string IDF_DEVICE_S2_PHASEID1 = "s2phaseID1";
+        protected const string IDF_DEVICE_S2_PHASEID2 = "s2phaseID2";
+        protected const string IDF_DEVICE_S2_PHASEID3 = "s2phaseID3";
 
         protected const string GIS_T1_ASSET = "mpwr_t1_asset_nbr";
         protected const string GIS_SWITCH_TYPE = "mpwr_gis_switch_type";
@@ -48,26 +57,26 @@ namespace MainPower.Osi.Enricher
 
         protected override void Debug(string message, [CallerMemberName]string caller = "")
         {
-            Debug(message, Id, Name, caller);
+            Debug(message, Id, $"{Name}:{T1Id}", caller);
         }
         protected override void Info(string message, [CallerMemberName]string caller = "")
         {
-            Info(message, Id, Name, caller);
+            Info(message, Id, $"{Name}:{T1Id}", caller);
             //_log.Info(FormatLogString(LogLevel.Info, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
         protected override void Warn(string message, [CallerMemberName]string caller = "")
         {
-            Warn(message, Id, Name, caller);
+            Warn(message, Id, $"{Name}:{T1Id}", caller);
             //_log.Warn(FormatLogString(LogLevel.Warn, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
         protected override void Error(string message, [CallerMemberName]string caller = "")
         {
-            Error(message, Id, Name, caller);
+            Error(message, Id, $"{Name}:{T1Id}", caller);
             //_log.Error(FormatLogString(LogLevel.Error, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
         protected override void Fatal(string message, [CallerMemberName]string caller = "")
         {
-            Fatal(message, Id, Name, caller);
+            Fatal(message, Id, $"{Name}:{T1Id}", caller);
             //_log.Fatal(FormatLogString(LogLevel.Fatal, $"{GetType().Name}\\{caller}", Id, Name, message));
         }
     }

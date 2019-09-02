@@ -19,7 +19,11 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
+                ParentGroup.AddMissingPhases(Node);
+
                 ParentGroup.SetSymbolNameByDataLink(Id, IDF_REGULATOR_SYMBOL, double.NaN, double.NaN, 2);
+                var geo = ParentGroup.GetSymbolGeometry(Id);
+
                 Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
 
                 //TOOD: Backport to GIS Extractor
@@ -30,7 +34,7 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue("ratedKV", "12");
                 Node.SetAttributeValue(GIS_T1_ASSET, null);
 
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Regulator);
+                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Regulator, geo);
             }
             catch (Exception ex)
             {

@@ -243,21 +243,5 @@ namespace MainPower.Osi.Enricher
             return true;
         }
     }
-    /*
-    internal enum DataSourceType
-    {
-        Csv,
-        SqlDatabase,
-        RestApi
-    }
-    */
-
-    
-
-    
-
-
-   
-
-    
+  
 }

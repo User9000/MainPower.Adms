@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -58,7 +59,11 @@ namespace MainPower.Osi.Enricher
                 return;
             }
             DataManager.I.Save("Datamanager.json");
-            ProcessImportConfiguration();
+            if (!ProcessImportConfiguration())
+            {
+                Fatal("Failed to process Import configuration, skipping everything else");
+                return;
+            }
             
             if (o.ProcessTopology)
             {
@@ -98,6 +103,7 @@ namespace MainPower.Osi.Enricher
                             }
                         }
                     }
+                    Model.ExportToShapeFile($"{o.DataPath}\\");
                 }    
                 else
                 {
@@ -150,10 +156,13 @@ namespace MainPower.Osi.Enricher
             Util.ExportDatatable(icp2, $"{Options.DataPath}\\ICPs.csv");
         }
 
-        internal void ProcessImportConfiguration()
+        internal bool ProcessImportConfiguration()
         {
             FileManager fm = FileManager.I;
-            fm.Initialize(Options.InputPath);
+            if (!fm.Initialize(Options.InputPath))
+            {
+                return false;
+            }
             var tasks = new List<Task>();
 
             var groups = fm.ImportConfig.Content.Descendants("group");
@@ -166,6 +175,8 @@ namespace MainPower.Osi.Enricher
                         continue;
                     if (Options.ProcessTopology)
                         Model.RemoveGroup(p.Id);
+                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > 10)
+                        Thread.Sleep(100);
                     tasks.Add(Task.Run((Action)p.Process));
                 }
                 catch (Exception ex)
@@ -175,6 +186,8 @@ namespace MainPower.Osi.Enricher
             }
 
             Task.WaitAll(tasks.ToArray());
+
+            return true;
         }
     }
 }

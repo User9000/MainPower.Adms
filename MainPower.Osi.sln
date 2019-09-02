@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.572
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29201.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enricher", "Enricher\Enricher.csproj", "{4DC82929-03E4-4B7F-B195-02D5FFEFC620}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HistorianExtractor", "HistorianExtractor\HistorianExtractor.csproj", "{A6B80AF4-FAE7-4E6C-97F6-EF9301BEA118}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScadaConverter", "ScadaConverter\ScadaConverter.csproj", "{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GmrCalc", "GmrCalc\GmrCalc.csproj", "{45E373E3-EB21-4B44-BAC5-41820C502046}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45E373E3-EB21-4B44-BAC5-41820C502046}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45E373E3-EB21-4B44-BAC5-41820C502046}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45E373E3-EB21-4B44-BAC5-41820C502046}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45E373E3-EB21-4B44-BAC5-41820C502046}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

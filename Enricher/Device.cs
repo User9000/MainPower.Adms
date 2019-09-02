@@ -1,4 +1,5 @@
-﻿using MessagePack;
+﻿using EGIS.ShapeFileLib;
+using MessagePack;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -81,6 +82,13 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         [Key(11)]
         public short[,] PhaseID { get; set; } = new short[2,3];
+
+        /// <summary>
+        /// The Geometry of the device
+        /// </summary>
+        [Key(12)]
+        public List<PointD> Geometry { get; set; } = new List<PointD>();
+
 
 
         [JsonIgnore]

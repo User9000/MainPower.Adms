@@ -7,7 +7,6 @@ namespace MainPower.Osi.Enricher
 {
     public abstract class DataSource : ErrorReporter
     {
-        //public DataSourceType Type { get; set; }
         public string Name { get; set; }
         public bool InitializeFailIsFatal { get; set; }
 
@@ -77,7 +76,7 @@ namespace MainPower.Osi.Enricher
                 //var s = Data.Columns[columnName].DataType == typeof(string) ? "'" : "";
                 //TODO handle non string datatypes
                 //TODO handle exact
-                var result = Data.Select($"[{columnName}] LIKE '*{id}'");
+                var result = Data.Select($"[{columnName}] LIKE '* {id}'");
                 if (result.Length == 0)
                 {
                     Debug($"{table}: Not found with {columnName}:{id}");

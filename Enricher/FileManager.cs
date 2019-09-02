@@ -14,7 +14,7 @@ namespace MainPower.Osi.Enricher
         internal Idf ImportConfig = null;
         internal Dictionary<string, GroupSet> GroupFiles = new Dictionary<string, GroupSet>();
 
-        public void Initialize(string path)
+        public bool Initialize(string path)
         {
             //Read all the xml files in the directory
             var files = Directory.GetFiles(path, "*.xml", SearchOption.TopDirectoryOnly);
@@ -56,6 +56,7 @@ namespace MainPower.Osi.Enricher
                 catch (Exception ex)
                 {
                     Fatal($"Error processing xml file {file}: {ex.Message}");
+                    return false;
                 }
             }
 
@@ -84,6 +85,8 @@ namespace MainPower.Osi.Enricher
                         GroupFiles[id].GraphicFiles.Add(idf);
                 }
             }
+
+            return true;
         }
 
         public void SaveFiles(string path)

@@ -1,7 +1,10 @@
-﻿using MessagePack;
+﻿using EGIS.ShapeFileLib;
+using MessagePack;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -37,7 +40,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(XElement node, string gid, DeviceType type, int phaseshift = 0)
+        public bool AddDevice(XElement node, string gid, DeviceType type, List<PointD> geo, int phaseshift = 0)
         {
             var s1nodeid = node.Attribute("s1node").Value;
             var s2nodeid = node.Attribute("s2node").Value;
@@ -47,20 +50,21 @@ namespace MainPower.Osi.Enricher
                 Id = node.Attribute("id").Value,
                 Name = node.Attribute("name").Value,
                 GroupId = gid,
-                Type = type
+                Type = type,
+                Geometry = geo
             };
 
             string t = node.Attribute("s1phaseID1").Value;
             d.PhaseID[0, 0] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s1phaseID2").Value;
+            t = node.Attribute("s1phaseID2")?.Value ?? "";
             d.PhaseID[0, 1] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s1phaseID3").Value;
+            t = node.Attribute("s1phaseID3")?.Value ?? "";
             d.PhaseID[0, 2] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s2phaseID1").Value;
+            t = node.Attribute("s2phaseID1")?.Value ?? "";
             d.PhaseID[1, 0] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s2phaseID2").Value;
+            t = node.Attribute("s2phaseID2")?.Value ?? "";
             d.PhaseID[1, 1] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s2phaseID3").Value;
+            t = node.Attribute("s2phaseID3")?.Value ?? "";
             d.PhaseID[1, 2] = t == "" ? (short)0 : short.Parse(t);
 
             if (type == DeviceType.Transformer)
@@ -97,7 +101,7 @@ namespace MainPower.Osi.Enricher
         {
             if (Devices.ContainsKey(d.Id))
             {
-                Error($"A device with id [{d.Id}\\{d.Name}] has already been defined.");
+                Error($"Device Id already exists.", d.Id, d.Name);
                 return false;
             }
             //in case someone does another operation at the same time
@@ -229,7 +233,8 @@ namespace MainPower.Osi.Enricher
             Info("Saving the connectivity model...");
             try
             {
-                Util.SerializeMessagePack(file, this);
+                //TODO: skip this until we have sorted out the PointD thing
+                //Util.SerializeMessagePack(file, this);
             }
             catch (Exception ex)
             {
@@ -361,12 +366,13 @@ namespace MainPower.Osi.Enricher
             {
                 foreach (var device in node.Devices)
                 {
-                    Warn($"Device [{device.Id}\\{device.Name} is connected to a dirty node [{node.Id}] with inconsistent voltages");
+                    Error($"Device is connected to a dirty node [{node.Id}]", device.Id, device.Name);
                 }
             }
             TimeSpan runtime = DateTime.Now - start;
             Info($"There were {count} nodes with inconsistent base voltages ({runtime.Seconds}s)");
         }
+
 
         /// <summary>
         /// Traces outwards from each source
@@ -569,7 +575,173 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        /// <summary>
+        /// Exports the model to two shape files (Devices.shp and Lines.shp)
+        /// </summary>
+        /// <param name="dir">The directory to export to</param>
+        public void ExportToShapeFile(string dir)
+        {
+            DbfFieldDesc[] deviceFields = new DbfFieldDesc[14];
+            deviceFields[0] = new DbfFieldDesc
+            {
+                FieldName = "Node1Id",
+                FieldLength = 40,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[1] = new DbfFieldDesc
+            {
+                FieldName = "Node2Id",
+                FieldLength = 40,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[2] = new DbfFieldDesc
+            {
+                FieldName = "Id",
+                FieldLength = 40,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[3] = new DbfFieldDesc
+            {
+                FieldName = "Name",
+                FieldLength = 40,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[4] = new DbfFieldDesc
+            {
+                FieldName = "GroupId",
+                FieldLength = 40,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[5] = new DbfFieldDesc
+            {
+                FieldName = "Connected",
+                FieldLength = 1,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[6] = new DbfFieldDesc
+            {
+                FieldName = "Energized",
+                FieldLength = 1,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[7] = new DbfFieldDesc
+            {
+                FieldName = "Upstream",
+                FieldLength = 1,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[8] = new DbfFieldDesc
+            {
+                FieldName = "Type",
+                FieldLength = 15,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[9] = new DbfFieldDesc
+            {
+                FieldName = "Base1kV",
+                FieldLength = 8,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[10] = new DbfFieldDesc
+            {
+                FieldName = "Base2kV",
+                FieldLength = 8,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[11] = new DbfFieldDesc
+            {
+                FieldName = "Side1Phase",
+                FieldLength = 3,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[12] = new DbfFieldDesc
+            {
+                FieldName = "Side2Phase",
+                FieldLength = 3,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[13] = new DbfFieldDesc
+            {
+                FieldName = "PhaseShift",
+                FieldLength = 2,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
 
-        
+            ShapeFileWriter sfwDevices = ShapeFileWriter.CreateWriter(dir, "Devices", ShapeType.Point, deviceFields);
+            ExportWebMercatorProjectionFile(Path.Combine(dir, "Devices.prj"));
+            ShapeFileWriter sfwLines = ShapeFileWriter.CreateWriter(dir, "Lines", ShapeType.PolyLine, deviceFields);
+            ExportWebMercatorProjectionFile(Path.Combine(dir, "Lines.prj"));
+            try
+            {
+                foreach (Device d in Devices.Values)
+                {
+                    string[] fieldData = new string[14];
+                    fieldData[0] = d.Node1.Id;
+                    fieldData[1] = d.Node2.Id;
+                    fieldData[2] = d.Id;
+                    fieldData[3] = d.Name;
+                    fieldData[4] = d.GroupId;
+                    fieldData[5] = d.ConnectivityMark ? "1" : "0";
+                    fieldData[6] = d.SP2SMark ? "1" : "0";
+                    fieldData[7] = d.Upstream.ToString();
+                    fieldData[8] = d.Type.ToString();
+                    fieldData[9] = d.Base1kV.ToString("N3");
+                    fieldData[10] = d.Base2kV.ToString("N3");
+                    fieldData[11] = $"{d.PhaseID[0, 0]}{d.PhaseID[0, 1]}{d.PhaseID[0, 2]}";
+                    fieldData[12] = $"{d.PhaseID[1, 0]}{d.PhaseID[1, 1]}{d.PhaseID[1, 2]}";
+                    fieldData[13] = d.PhaseShift.ToString("N2");
+
+                    if (d.Geometry.Count == 0)
+                    {
+                        Warn("Not exporting device to shape file due to missing geometry", d.Id, d.Name);
+                        continue;
+                    }
+
+                    if (d.Type == DeviceType.Line)
+                    {
+                        sfwLines.AddRecord(d.Geometry.ToArray(), d.Geometry.Count, fieldData);
+                    }
+                    else
+                    {
+                        sfwDevices.AddRecord(new PointD[] { d.Geometry[0] }, 1, fieldData);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Fatal($"Uncaught exception: {ex.Message}");
+            }
+            finally
+            {
+                sfwDevices.Close();
+                sfwLines.Close();
+            }
+        }
+
+        /// <summary>
+        /// Writes a .prj file to disk with the projection string for Web Mercator
+        /// </summary>
+        /// <param name="file">The file to write to</param>
+        private void ExportWebMercatorProjectionFile(string file)
+        {
+            File.WriteAllText(file, "PROJCS[\"WGS_1984_Web_Mercator_Auxiliary_Sphere\",GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.017453292519943295]],PROJECTION[\"Mercator_Auxiliary_Sphere\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"Standard_Parallel_1\",0.0],PARAMETER[\"Auxiliary_Sphere_Type\",0.0],UNIT[\"Meter\",1.0]]");
+        }
+
+
+
     }
 }

@@ -40,6 +40,18 @@ namespace MainPower.Osi.Enricher
         private const string T1_SWITCH_SW3 = "SW 3";
         private const string T1_SWITCH_SW4 = "SW4";
 
+        private const string T1_SWITCH_FUSE_RATED_VOLTAGE = "Rat#Volt-Do Fuse";
+        private const string T1_SWITCH_FUSE_OP_VOLTAGE = "Op#Volt-Do Fuse";
+
+        private const string T1_SWITCH_HVCB_RATED_VOLTAGE = "Op#Volt-HV CircuitBr";
+        private const string T1_SWITCH_HVCB_OP_VOLTAGE = "Rat#Volt-HV Circuit";
+
+        private const string T1_SWITCH_RMU_RATED_VOLTAGE = "Op#Volt-RMU";
+        private const string T1_SWITCH_RMU_OP_VOLTAGE = "Rate#Volt-RMU";
+
+        private const string T1_SWITCH_DISCO_RATED_VOLTAGE = "Op#Volt-Disconnector";
+        private const string T1_SWITCH_DISCO_OP_VOLTAGE = "Rat#Volt-Disconnecto";
+
         private const string IDF_SWITCH_BIDIRECTIONAL = "bidirectional";
         private const string IDF_SWITCH_FORWARDTRIPAMPS = "forwardTripAmps";
         private const string IDF_SWITCH_REVERSETRIPAMPS = "reverseTripAmps";
@@ -91,7 +103,7 @@ namespace MainPower.Osi.Enricher
         #endregion
      
         //temporary fields from GIS
-        private string _t1assetno = "";
+        //private string T1Id = "";
         private string _gisswitchtype = "";
         private string _fuserating = "";
         
@@ -114,8 +126,12 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
+                ParentGroup.AddMissingPhases(Node);
+
+                var geo = ParentGroup.GetSymbolGeometry(Id);
+
                 if (Node.Attribute(GIS_T1_ASSET)!= null)
-                    _t1assetno = Node.Attribute(GIS_T1_ASSET).Value;
+                    T1Id = Node.Attribute(GIS_T1_ASSET).Value;
                 if (Node.Attribute(GIS_SWITCH_TYPE) != null)
                     _gisswitchtype = Node.Attribute(GIS_SWITCH_TYPE).Value;
                 if (Node.Attribute(GIS_FUSE_RATING)!= null)
@@ -172,7 +188,7 @@ namespace MainPower.Osi.Enricher
                         ProcessDisconnector(true);
                         break;
                     case @"MV Isolator\MV Switch":
-                        ProcessSwitch();
+                        Warn("Not sure what to do with switch type [MV Isolator\\MV Switch]");
                         break;
                     case @"MV Isolator\Earth Switch":
 
@@ -256,7 +272,7 @@ namespace MainPower.Osi.Enricher
                 }
                 RemoveExtraAttributes();
 
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Switch);
+                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Switch, geo);
             }
             catch (Exception ex)
             {
@@ -408,40 +424,23 @@ namespace MainPower.Osi.Enricher
         }
 
         #region Switch Type Processing
-
-        private void ProcessSwitch()
-        {
-            /*
-            _baseKv = "";
-            _bidirectional = "";
-            _forwardTripAmps = "";
-            _ganged = "";
-            _loadBreakCapable = "";
-            _maxInterruptAmps = "";
-            _ratedAmps = "";
-            _ratedKv = "";
-            _reverseTripAmps = "";
-            _switchType = "";
-            */
-            Warn("Wasn't expecting this function to be used");
-        }
-
+        
         private void ProcessCircuitBreaker2(bool internals)
         {
-            if (!string.IsNullOrEmpty(_t1assetno)) {
-                DataType asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(_t1assetno);
+            if (!string.IsNullOrEmpty(T1Id)) {
+                DataType asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
                 if (asset != null)
                 {
                     ProcessCircuitBreaker(internals);
                     return;
                 }
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
                 if (asset != null)
                 {
                     ProcessRingMainCb();
                     return;
                 }
-                Error($"T1 asset number [{_t1assetno}] did not match HV Breaker or RMU asset");
+                Error($"T1 asset number [{T1Id}] did not match HV Breaker or RMU asset");
             }
             else
             {
@@ -478,24 +477,25 @@ namespace MainPower.Osi.Enricher
             _switchType = IDF_SWITCH_TYPE_SWITCH; //TODO
 
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
 
                 if (asset != null)
                 {
+                    //TODO: validate  operating voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SW1] as string, asset[T1_SWITCH_SW2] as string, asset[T1_SWITCH_SW3] as string, asset[T1_SWITCH_SW4] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -522,24 +522,25 @@ namespace MainPower.Osi.Enricher
             _switchType = IDF_SWITCH_TYPE_SWITCH;
             
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
 
                 if (asset != null)
                 {
+                    //TODO: validate operating voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     //_maxInterruptAmps = "";
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SW1] as string, asset[T1_SWITCH_SW2] as string, asset[T1_SWITCH_SW3] as string, asset[T1_SWITCH_SW4] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -568,24 +569,25 @@ namespace MainPower.Osi.Enricher
             ProcessCircuitBreakerAdms();
 
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
 
                 if (asset != null)
                 {
+                    //TODO: validate operating voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string, true);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SW1] as string, asset[T1_SWITCH_SW2] as string, asset[T1_SWITCH_SW3] as string, asset[T1_SWITCH_SW4] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -605,8 +607,8 @@ namespace MainPower.Osi.Enricher
 
         private void ProcessLVSwitch()
         {
-            if (!string.IsNullOrEmpty(_t1assetno))
-                Warn($"T1 asset number [{_t1assetno}] is not unset");
+            if (!string.IsNullOrEmpty(T1Id))
+                Warn($"T1 asset number [{T1Id}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
             _ganged = IDF_FALSE; //TODO check
@@ -621,8 +623,8 @@ namespace MainPower.Osi.Enricher
 
         private void ProcessLVFuse()
         {
-            if (!string.IsNullOrEmpty(_t1assetno))
-                Warn($"T1 asset number [{_t1assetno}] is not unset");
+            if (!string.IsNullOrEmpty(T1Id))
+                Warn($"T1 asset number [{T1Id}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
             _ganged = IDF_FALSE; //TODO check
@@ -653,24 +655,25 @@ namespace MainPower.Osi.Enricher
 
             _switchType = IDF_SWITCH_TYPE_RECLOSER;
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
 
                 if (asset != null)
                 {
+                    //TODO: validate rated voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_HVCB_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -685,25 +688,26 @@ namespace MainPower.Osi.Enricher
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Disconnector>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Disconnector>(T1Id);
 
                 if (asset != null)
                 {
+                    //TODO: validate op voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
                     _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_DISCO_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -729,22 +733,24 @@ namespace MainPower.Osi.Enricher
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Fuse>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Fuse>(T1Id);
 
                 if (asset == null)
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
                 else
                 {
+                    //TODO: validate op voltage
+                    //TODO: rated voltage always null here
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
-                    ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_FUSE_RATED_VOLTAGE] as string);
                 }
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
@@ -757,25 +763,26 @@ namespace MainPower.Osi.Enricher
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Disconnector>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Disconnector>(T1Id);
 
                 if (asset != null)
                 {
+                    //TODO: validate rated voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
                     _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_DISCO_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -803,24 +810,25 @@ namespace MainPower.Osi.Enricher
             ProcessCircuitBreakerAdms();
 
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
 
                 if (asset != null)
                 {
+                    //TODO: validate op voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_HVCB_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -856,7 +864,7 @@ namespace MainPower.Osi.Enricher
             }
             else
             {
-                Warn(IDF_SWITCH_TYPE_BREAKER,  "Breaker not in Adms database");
+                Warn("Breaker not in Adms database");
                 _switchType = IDF_SWITCH_TYPE_BREAKER;
             }
         }
@@ -872,13 +880,13 @@ namespace MainPower.Osi.Enricher
             _switchType = IDF_SWITCH_TYPE_FUSE;
 
             DataType asset = null;
-            if (_t1assetno == "")
+            if (T1Id == "")
             {
                 Error($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Fuse>(_t1assetno);
+                asset = DataManager.I.RequestRecordById<T1Fuse>(T1Id);
 
                 if (asset != null)
                 {
@@ -886,12 +894,14 @@ namespace MainPower.Osi.Enricher
                     {
                         _ganged = IDF_TRUE;
                     }
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RATED_VOLTAGE] as string);
+                    //TODO: fuse not have rated voltage?
+                    //TODO: validate op voltage
+                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_FUSE_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
                 else
                 {
-                    Error($"T1 asset number [{_t1assetno}] wasn't in T1");
+                    Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
             }
             double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
@@ -907,7 +917,7 @@ namespace MainPower.Osi.Enricher
             _maxInterruptAmps = "";//TODO check with sjw
             _ratedAmps = "";//TODO?
             _switchType = "Fuse";
-            _ratedKv = ValidateRatedVoltage(_baseKv, _ratedKv as string);
+            _ratedKv = ValidateRatedVoltage(_baseKv, _baseKv, 1);
             ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SERVICE_FUSE, double.NaN, IDF_SWITCH_Z);
         }
         #endregion
@@ -919,7 +929,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="opVoltage"></param>
         /// <param name="ratedVoltage"></param>
         /// <returns></returns>
-        private string ValidateRatedVoltage(string opVoltage, string ratedVoltage)
+        private string ValidateRatedVoltage(string opVoltage, string ratedVoltage, float ratedScale = 1000)
         {
             //TODO voltages should be line to line, but what about single phase?
             try
@@ -931,7 +941,7 @@ namespace MainPower.Osi.Enricher
 
                 if (float.TryParse(ratedVoltage, out var iNewValue))
                 {
-                    iNewValue /= 1000;
+                    iNewValue /= ratedScale;
 
                     if (iNewValue > iOpVoltage)
                     {
@@ -1010,11 +1020,11 @@ namespace MainPower.Osi.Enricher
                         if (sw == Name)
                             return;
                     }
-                    Error( $"T1 switch number [{swno}:{string.Join(":", swnos)}] doesn't match GIS switch number [{Name}]");
+                    Warn( $"T1 switch number [{swno}:{string.Join(":", swnos)}] doesn't match GIS switch number [{Name}]");
                     return;
                 }
             }
-            Error($"T1 switch number [{swno}] doesn't match GIS switch number [{Name}]");
+            Warn($"T1 switch number [{swno}] doesn't match GIS switch number [{Name}]");
 
         }
 
