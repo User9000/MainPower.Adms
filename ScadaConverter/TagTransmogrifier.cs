@@ -225,7 +225,11 @@ namespace MainPower.Osi.ScadaConverter
                             Units = csv["Units"],
                             ScaleOverrides = new Dictionary<string, double>(),
                             ForceNormalState = csv["ForceNormalState"],
-                            DeviceOverride = csv["DeviceOverride"].Trim()
+                            DeviceOverride = csv["DeviceOverride"].Trim(),
+                            AlarmGroup = csv["AlarmGroup"],
+                            Archive = csv["Archive"],
+                            ReasonabilityHigh = csv["ReasonabilityHigh"],
+                            ReasonabilityLow = csv["ReasonabilityLow"]
                         };
                         if (csv["ToDelete"] == "TRUE")
                         {
@@ -283,7 +287,21 @@ namespace MainPower.Osi.ScadaConverter
                         continue;
                     if (!_tagOverrides.ContainsKey(csv["OldTag"]))
                     {
-                        _tagOverrides.Add(csv["OldTag"], new TagOverrideInfo { NewTagName = csv["NewTag"], Device = csv["Device"], Location = csv["Location"], Property = csv["Property"], PointType = csv["Type"], OnLabel = csv["OnLabel"], OffLabel = csv["OffLabel"], NormalState = csv["NormalState"], Units = csv["Units"] });
+                        var toi = new TagOverrideInfo()
+                        {
+                            NewTagName = csv["NewTag"],
+                            Device = csv["Device"],
+                            Location = csv["Location"],
+                            Property = csv["Property"],
+                            PointType = csv["Type"],
+                            OnLabel = csv["OnLabel"],
+                            OffLabel = csv["OffLabel"],
+                            NormalState = csv["NormalState"],
+                            Units = csv["Units"],
+                            Archive = csv["Archive"],
+                            AlarmGroup = csv["AlarmGroup"]
+                        };
+                        _tagOverrides.Add(csv["OldTag"], toi);
                     }
                     else
                     {
@@ -714,6 +732,16 @@ namespace MainPower.Osi.ScadaConverter
             opoint.Offset = ipoint.Offset;
             opoint.OnLabel = ipoint.OnLabel;
             opoint.OffLabel = ipoint.OffLabel;
+
+            //copy limits
+            opoint.ELimits = ipoint.ELimits;
+            opoint.HighLimits = ipoint.HighLimits;
+            opoint.LowLimits = ipoint.LowLimits;
+
+            //set default reasonability limits
+            opoint.ELimits[PointDetail.REASON] = true;
+            opoint.HighLimits[PointDetail.REASON] = "999999";
+            opoint.LowLimits[PointDetail.REASON] = "-999999";
             #endregion
 
             #region Step 2: Remove points not required in OSI, and rename points which are misspelled etc using information from the TOI
@@ -809,6 +837,14 @@ namespace MainPower.Osi.ScadaConverter
                     opoint.PointType = tmi.OsiType;
                 //Assign the default point group for the property
                 opoint.PointGroup = tmi.PointGroup;
+                //Assign the archive, alarm,  attributes
+                opoint.AlarmGroup = tmi.AlarmGroup;
+                opoint.Archive = tmi.Archive;
+                if (!string.IsNullOrWhiteSpace(tmi.ReasonabilityHigh))
+                    opoint.HighLimits[PointDetail.REASON] = tmi.ReasonabilityHigh;
+                if (!string.IsNullOrWhiteSpace(tmi.ReasonabilityLow))
+                    opoint.LowLimits[PointDetail.REASON] = tmi.ReasonabilityLow;
+
                 //Assign device override
                 if (!string.IsNullOrEmpty(tmi.DeviceOverride))
                 {
@@ -850,7 +886,7 @@ namespace MainPower.Osi.ScadaConverter
                 //for analog points, apply units, scale factor override
                 if (!discrete)
                 {
-                    
+
                     if (tmi.Units != "" && opoint.Units != tmi.Units)
                     {
                         opoint.Units = tmi.Units == "!" ? "" : tmi.Units;
@@ -870,7 +906,7 @@ namespace MainPower.Osi.ScadaConverter
                 if (!string.IsNullOrWhiteSpace(toi.Location))
                     opoint.Location = toi.Location;
                 if (!string.IsNullOrWhiteSpace(toi.Device))
-                    opoint.Device = toi.Device == "!" ? "" : toi.Device; 
+                    opoint.Device = toi.Device == "!" ? "" : toi.Device;
                 if (!string.IsNullOrWhiteSpace(toi.Property))
                 {
                     opoint.Property = toi.Property;
@@ -885,7 +921,14 @@ namespace MainPower.Osi.ScadaConverter
                     opoint.OffLabel = toi.OffLabel;
                 if (!string.IsNullOrWhiteSpace(toi.Units))
                     opoint.Units = toi.Units == "!" ? "" : toi.Units;
-                
+                if (!string.IsNullOrWhiteSpace(toi.AlarmGroup))
+                    opoint.AlarmGroup = toi.AlarmGroup;
+                if (!string.IsNullOrWhiteSpace(toi.Archive))
+                    opoint.Archive = toi.Archive;
+                if (!string.IsNullOrWhiteSpace(toi.ReasonabilityHigh))
+                    opoint.HighLimits[PointDetail.REASON] = toi.ReasonabilityHigh;
+                if (!string.IsNullOrWhiteSpace(toi.ReasonabilityLow))
+                    opoint.LowLimits[PointDetail.REASON] = toi.ReasonabilityLow;
             }
             #endregion
 
@@ -1021,12 +1064,63 @@ namespace MainPower.Osi.ScadaConverter
             }
             #endregion
 
-            //Step 13: Process protocol specific data
+            #region Step 13: Process protocol specific data
             if (io)
             {
                 AssignDnpControlCodes(opoint);
                 ProcessModbusRegister(opoint, rtui);
             }
+            #endregion
+
+            #region Step 14: Validate alarm parameters
+            if (IsAnalog(opoint.PointType))
+            {
+                //we must have reasonability limits set for all analogs
+                if (string.IsNullOrWhiteSpace(opoint.LowLimits[PointDetail.REASON]))
+                {
+                    _log.Warn($"Reasonability Low not set for [{ipoint.PointName}]");
+                }
+                if (string.IsNullOrWhiteSpace(opoint.HighLimits[PointDetail.REASON]))
+                {
+                    _log.Warn($"Reasonability High not set for [{ipoint.PointName}]");
+                }
+                //for each limit, fill out the values if they are blank
+                //if the limit is disabled, set the blank value to 0
+                //if the limit is enabled, set the blank value to the reasonability limit
+                for (int i = 0; i < 4; i++)
+                {
+                    if (opoint.ELimits[i])
+                    {
+                        if (string.IsNullOrWhiteSpace(opoint.LowLimits[i]))
+                        {
+                            opoint.LowLimits[i] = opoint.LowLimits[PointDetail.REASON];
+                        }
+                        if (string.IsNullOrWhiteSpace(opoint.HighLimits[i]))
+                        {
+                            opoint.HighLimits[i] = opoint.HighLimits[PointDetail.REASON];
+                        }
+                    }
+                    else
+                    {
+                        if (string.IsNullOrWhiteSpace(opoint.LowLimits[i]))
+                        {
+                            opoint.LowLimits[i] = "0";
+                        }
+                        if (string.IsNullOrWhiteSpace(opoint.HighLimits[i]))
+                        {
+                            opoint.HighLimits[i] = "0";
+                        }
+                    }
+                }
+            }
+            #endregion
+
+            #region Step 15: Validate Alarm Groups and Archive flags
+            if (string.IsNullOrWhiteSpace(opoint.Archive))
+                _log.Warn($"Archive flag is not set for [{ipoint.PointName}]");
+            if (string.IsNullOrWhiteSpace(opoint.AlarmGroup))
+                _log.Warn($"Alarm group is not set for [{ipoint.PointName}]");
+            #endregion
 
             return opoint;
         }
@@ -1058,6 +1152,13 @@ namespace MainPower.Osi.ScadaConverter
                     }
                 }
             }
+        }
+
+        private bool IsAnalog(string ptype)
+        {
+            if (ptype == "T_ANLG" || ptype == "C_ANLG" || ptype == "M_ANLG" || ptype == "T_STPNT" || ptype == "M_STPNT" || ptype == "C_STPNT" || ptype == "T_ACCUM" || ptype == "C_ACCUM" || ptype == "M_ACCUM")
+                return true;
+            return false;
         }
     }
 }

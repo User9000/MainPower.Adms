@@ -15,6 +15,12 @@ namespace MainPower.Osi.ScadaConverter
     /// </summary>
     public class PointDetail
     {
+        public const int LIMIT1 = 0;
+        public const int LIMIT2 = 1;
+        public const int LIMIT3 = 2;
+        public const int LIMIT4 = 3;
+        public const int REASON = 4;
+
         public string PointName;
         public string Location;
         public string StationName;
@@ -35,9 +41,18 @@ namespace MainPower.Osi.ScadaConverter
         public RtuTagInfo RTUTag;
         public string DnpControlOnCode;
         public string DnpControlOffCode;
-        public string ReasonabilityLow;
-        public string ReasonabilityHigh;
+        //public string ReasonabilityLow;
+        //public string ReasonabilityHigh;
         public string ModbusFunctionCode;
+        public string AlarmGroup;
+        public string Archive;
+        //LoLo, Lo, Hi, HiHi
+        public bool[] WwLimits = new bool[4];
+
+        //limits are 1,2,3,4,reasonability-
+        public bool[] ELimits = new bool[5];
+        public string[] LowLimits = new string[5];
+        public string[] HighLimits = new string[5];
     }
 
     /// <summary>
@@ -62,6 +77,10 @@ namespace MainPower.Osi.ScadaConverter
         public string OffLabel;
         public string Units;
         public string NormalState;
+        public string ReasonabilityLow;
+        public string ReasonabilityHigh;
+        public string Archive;
+        public string AlarmGroup;
     }
 
     /// <summary>
@@ -105,6 +124,10 @@ namespace MainPower.Osi.ScadaConverter
         public bool ToDelete;
         public string ForceNormalState;
         public string DeviceOverride;
+        public string AlarmGroup;
+        public string Archive;
+        public string ReasonabilityLow;
+        public string ReasonabilityHigh;
     }
 
     /// <summary>

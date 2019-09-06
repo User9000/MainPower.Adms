@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MainPower.Osi.ScadaConverter;
+using System.IO;
+using System.IO.Compression;
 
 namespace MainPower.Osi.ScadaConverter
 {
@@ -13,13 +15,16 @@ namespace MainPower.Osi.ScadaConverter
         [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
         public bool Verbose { get; set; }
 
-        [Option('i', "input", HelpText = "input location.", Default = @"..\..\..\data\input\")]
+        [Option('i', "input", HelpText = "input location.", Required = true)]
         public string Input { get; set; }
 
-        [Option('o', "output", HelpText = "output location.", Default = @"..\..\..\data\output\")]
+        [Option('a', "archive", HelpText = "archive location.", Required = false)]
+        public string Archive { get; set; }
+
+        [Option('o', "output", HelpText = "output location.", Required = true)]
         public string Output { get; set; }
 
-        [Option('t', "temp", HelpText = "temporary files location.", Default = @"..\..\..\data\temp\")]
+        [Option('t', "temp", HelpText = "temporary files location.", Required = true)]
         public string Temp { get; set; }
 
         [Option('r', "rtu", HelpText = "Generate RTU data", Default = true)]
@@ -53,9 +58,31 @@ namespace MainPower.Osi.ScadaConverter
                    itr.CheckCombinationPointsAreCombined();
                    itr.ValidateFeebackPoints();
                    itr.CopyRtus();
+
+                   if (o.Archive != "")
+                   {
+                       CreateArchive(o);
+                   }
+
                    Console.WriteLine("All done....");
                    Console.ReadKey();
                });
         }
+
+        static void CreateArchive(Options o)
+        {
+            var adir = Directory.CreateDirectory(Path.Combine(o.Archive, DateTime.Now.ToString("yyyy.MM.dd HH.mm.ss")));
+            var files = Directory.GetFiles(o.Output);
+
+
+            foreach (var file in files)
+            {
+                File.Copy(file, Path.Combine(adir.FullName, Path.GetFileName(file)));
+            }
+
+            ZipFile.CreateFromDirectory(adir.FullName, Path.Combine(o.Archive, "SCADA Export " + adir.Name + ".zip"));
+
+        }
+
     }
 }

@@ -47,39 +47,41 @@ namespace MainPower.Osi.ScadaConverter
         //real io points that are to be translated to calculated points
         private DataTable realcalcs = null;
 
-        internal void CopyRtus()
-        {
-            var dt = Util.GetDataTableFromCsv($"{_options.Input}\\_rtus.csv",true);
-            for (int i = 0; i < dt.Rows.Count; i++)
-            {
-                var name = dt.Rows[i]["OSIName"] as string;
-                if (name == "Calculation" || name.StartsWith("CVT_")|| name.StartsWith("THW_") || name == "MQTT")
-                {
-                    dt.Rows[i].Delete();
-                }
-            }
-            dt.AcceptChanges();
-            Util.ExportDatatable(dt, $"{_options.Output}\\export_rtus.csv");
-            File.Copy("log.log", $"{_options.Output}\\log.txt",true);
-        }
-
-        internal void GenerateExportPackage()
-        {
-
-        }
-
         //summary table of all converted points
         private DataTable _allPoints = new DataTable();
         //generic tags
         private DataTable _genericTags;
         private Options _options;
 
+        /// <summary>
+        /// Copy the RTUs file to the output directory
+        /// Removes RTUs that are not required to be imported at this stage
+        /// </summary>
+        internal void CopyRtus()
+        {
+            var dt = Util.GetDataTableFromCsv($"{_options.Input}\\_rtus.csv", true);
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                var name = dt.Rows[i]["OSIName"] as string;
+                if (name == "Calculation" || name.StartsWith("CVT_") || name.StartsWith("THW_") || name == "MQTT")
+                {
+                    dt.Rows[i].Delete();
+                }
+            }
+            dt.AcceptChanges();
+            Util.ExportDatatable(dt, $"{_options.Output}\\export_rtus.csv");
+            File.Copy("log.log", $"{_options.Output}\\log.txt", true);
+        }
+
         #region Validation Routines
 
+        /// <summary>
+        /// Checks that the io address isn't used more than once per RTU
+        /// </summary>
         internal void CheckForDuplicateIO()
         {
             Dictionary<(string, string), string> io = new Dictionary<(string, string), string>();
-            for(int i = 0; i < _allPoints.Rows.Count; i++)
+            for (int i = 0; i < _allPoints.Rows.Count; i++)
             {
                 var rtu = _allPoints.Rows[i]["RTU"] as string;
                 var item = _allPoints.Rows[i]["ItemName"] as string;
@@ -105,6 +107,47 @@ namespace MainPower.Osi.ScadaConverter
             }
         }
 
+        /// <summary>
+        /// Checks that Archive and AlarmGroups are consistent for combined points
+        /// </summary>
+        internal void CheckArchiveAndAlarmGroups(DataTable dt)
+        {
+            Dictionary<string, (string, string)> points = new Dictionary<string, (string, string)>();
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                var point = dt.Rows[i]["PointName"] as string;
+                var alarmgroup = dt.Rows[i]["AlarmGroup"] as string;
+                var archive = dt.Rows[i]["Archive"] as string;
+
+                if (!string.IsNullOrEmpty(point))
+                {
+                    if (points.ContainsKey(point))
+                    {
+                        if (alarmgroup != points[point].Item1)
+                        {
+                            _log.Warn($"Alarm groups on point {point} are not consistent [{points[point].Item1}/{alarmgroup}], choosing {points[point].Item1}");
+                            dt.Rows[i]["AlarmGroup"] = points[point].Item1;
+                        }
+                        if (archive != points[point].Item2)
+                        {
+                            _log.Warn($"Archive flags on point {point} are not consistent [{points[point].Item2}/{archive}], choosing {points[point].Item2}");
+                            dt.Rows[i]["Archive"] = points[point].Item2;
+                        }
+                    }
+                    else
+                    {
+                        points.Add(point, (alarmgroup, archive));
+                    }
+                }
+            }
+        }
+
+    
+
+        /// <summary>
+        /// Checks that the normal states labels are consistent, and for quads that the on/off states labels are complementary
+        /// </summary>
+        /// <param name="dt"></param>
         internal void CheckStatesConsistency(DataTable dt)
         {
             Dictionary<string, (string, string, string)> io = new Dictionary<string, (string,string, string)>();
@@ -146,6 +189,10 @@ namespace MainPower.Osi.ScadaConverter
             }
         }
 
+        /// <summary>
+        /// Checks that the same point name isn't used multiple times
+        /// Note that it is not possible to make a foolproof algorithm for this
+        /// </summary>
         internal void CheckForDuplicateNames()
         {
             Dictionary<string, string> io = new Dictionary<string, string>();
@@ -221,6 +268,9 @@ namespace MainPower.Osi.ScadaConverter
             }
         }
 
+        /// <summary>
+        /// Checks that there are no points with the same name that are T_CTRL and T_IND
+        /// </summary>
         internal void CheckCombinationPointsAreCombined()
         {
             Dictionary<string, bool> io = new Dictionary<string, bool>();
@@ -249,6 +299,9 @@ namespace MainPower.Osi.ScadaConverter
             }
         }
 
+        /// <summary>
+        /// Checks that feedback points actually exist in the database
+        /// </summary>
         internal void ValidateFeebackPoints()
         {
 
@@ -297,11 +350,26 @@ namespace MainPower.Osi.ScadaConverter
             _allPoints.Columns.Add("Units");
             _allPoints.Columns.Add("RLFeedbackPoint");
             _allPoints.Columns.Add("RemoteLocalPoint");
+            _allPoints.Columns.Add("Limit1Enabled");
+            _allPoints.Columns.Add("Limit1Low");
+            _allPoints.Columns.Add("Limit1High");
+            _allPoints.Columns.Add("Limit2Enabled");
+            _allPoints.Columns.Add("Limit2Low");
+            _allPoints.Columns.Add("Limit2High");
+            _allPoints.Columns.Add("Limit3Enabled");
+            _allPoints.Columns.Add("Limit3Low");
+            _allPoints.Columns.Add("Limit3High");
+            _allPoints.Columns.Add("Limit4Enabled");
+            _allPoints.Columns.Add("Limit4Low");
+            _allPoints.Columns.Add("Limit4High");
+            _allPoints.Columns.Add("ReasonabilityEnabled");
             _allPoints.Columns.Add("ReasonabilityHigh");
             _allPoints.Columns.Add("ReasonabilityLow");
             _allPoints.Columns.Add("DnpControlOnCode");
             _allPoints.Columns.Add("DnpControlOffCode");
             _allPoints.Columns.Add("ModbusRegisterType");
+            _allPoints.Columns.Add("Archive");
+            _allPoints.Columns.Add("AlarmGroup");
             _allPoints.DefaultView.Sort = "PointName, ItemName";
         }
 
@@ -440,6 +508,8 @@ namespace MainPower.Osi.ScadaConverter
             dt.Columns.Add("PointName2");
             dt.Columns.Add("PointType");
             dt.Columns.Add("StationName");
+            dt.Columns.Add("AlarmGroup");
+            dt.Columns.Add("Archive");
             if (discrete)
             {
                 dt.Columns.Add("NormalState");
@@ -487,6 +557,19 @@ namespace MainPower.Osi.ScadaConverter
             {
                 dt.Columns.Add("Offset");
                 dt.Columns.Add("Scale");
+                dt.Columns.Add("Limit1Enabled");
+                dt.Columns.Add("Limit1Low");
+                dt.Columns.Add("Limit1High");
+                dt.Columns.Add("Limit2Enabled");
+                dt.Columns.Add("Limit2Low");
+                dt.Columns.Add("Limit2High");
+                dt.Columns.Add("Limit3Enabled");
+                dt.Columns.Add("Limit3Low");
+                dt.Columns.Add("Limit3High");
+                dt.Columns.Add("Limit4Enabled");
+                dt.Columns.Add("Limit4Low");
+                dt.Columns.Add("Limit4High");
+                dt.Columns.Add("ReasonabilityEnabled");
                 dt.Columns.Add("ReasonabilityHigh");
                 dt.Columns.Add("ReasonabilityLow");
                 dt.Columns["Offset"].SetOrdinal(colIndex++);
@@ -536,6 +619,36 @@ namespace MainPower.Osi.ScadaConverter
                         p.ScaleFactor = (e2 - e1)/ (r2 - r1);
                         p.Offset = e1 - p.ScaleFactor * r1;
                     }
+                    //alarms
+                    p.WwLimits[0] = dt.Rows[i]["LoLoAlarmState"].ToString() == "On";
+                    p.WwLimits[1] = dt.Rows[i]["LoAlarmState"].ToString() == "On";
+                    p.WwLimits[2] = dt.Rows[i]["HiAlarmState"].ToString() == "On";
+                    p.WwLimits[3] = dt.Rows[i]["HiHiAlarmState"].ToString() == "On";
+
+                    if (p.WwLimits[0])
+                    {
+                        //LoLo maps to Limit3.Low
+                        p.LowLimits[PointDetail.LIMIT3] = dt.Rows[i]["LoLoAlarmValue"].ToString();
+                        p.ELimits[PointDetail.LIMIT3] = true;
+                    }
+                    if (p.WwLimits[1])
+                    {
+                        //Lo maps to Limit2.Low
+                        p.LowLimits[PointDetail.LIMIT2] = dt.Rows[i]["LoAlarmValue"].ToString();
+                        p.ELimits[PointDetail.LIMIT2] = true;
+                    }
+                    if (p.WwLimits[2])
+                    {
+                        //Hi maps to Limit2.High
+                        p.HighLimits[PointDetail.LIMIT2] = dt.Rows[i]["HiAlarmValue"].ToString();
+                        p.ELimits[PointDetail.LIMIT2] = true;
+                    }
+                    if (p.WwLimits[3])
+                    {
+                        //HiHi maps to Limit3.High
+                        p.HighLimits[PointDetail.LIMIT3] = dt.Rows[i]["HiHiAlarmValue"].ToString();
+                        p.ELimits[PointDetail.LIMIT3] = true;
+                    }
                 }
                  
 
@@ -568,6 +681,8 @@ namespace MainPower.Osi.ScadaConverter
                 dt.Rows[i]["PointName2"] = result.PointGroup;
                 dt.Rows[i]["PointType"] = result.PointType;
                 dt.Rows[i]["StationName"] = result.StationName;
+                dt.Rows[i]["AlarmGroup"] = result.AlarmGroup;
+                dt.Rows[i]["Archive"] = result.Archive;
                 if (discrete)
                 {
                     dt.Rows[i]["NormalState"] = result.NormalState;
@@ -585,7 +700,24 @@ namespace MainPower.Osi.ScadaConverter
                 {
                     dt.Rows[i]["EngUnits"] = result.Units;
                     dt.Rows[i]["Scale"] = result.ScaleFactor.ToString("N5");
-                    dt.Rows[i]["Offset"] = result.Offset.ToString("N5"); ;
+                    dt.Rows[i]["Offset"] = result.Offset.ToString("N5");
+
+                    dt.Rows[i]["Limit1Enabled"] = result.ELimits[PointDetail.LIMIT1].ToString();
+                    dt.Rows[i]["Limit1Low"] = result.LowLimits[PointDetail.LIMIT1];
+                    dt.Rows[i]["Limit1High"] = result.HighLimits[PointDetail.LIMIT1];
+                    dt.Rows[i]["Limit2Enabled"] = result.ELimits[PointDetail.LIMIT2].ToString();
+                    dt.Rows[i]["Limit2Low"] = result.LowLimits[PointDetail.LIMIT2];
+                    dt.Rows[i]["Limit2High"] = result.HighLimits[PointDetail.LIMIT2];
+                    dt.Rows[i]["Limit3Enabled"] = result.ELimits[PointDetail.LIMIT3].ToString();
+                    dt.Rows[i]["Limit3Low"] = result.LowLimits[PointDetail.LIMIT3];
+                    dt.Rows[i]["Limit3High"] = result.HighLimits[PointDetail.LIMIT3];
+                    dt.Rows[i]["Limit4Enabled"] = result.ELimits[PointDetail.LIMIT4].ToString();
+                    dt.Rows[i]["Limit4Low"] = result.LowLimits[PointDetail.LIMIT4];
+                    dt.Rows[i]["Limit4High"] = result.HighLimits[PointDetail.LIMIT4];
+                    dt.Rows[i]["ReasonabilityEnabled"] = result.ELimits[PointDetail.REASON].ToString();
+                    dt.Rows[i]["ReasonabilityHigh"] = result.HighLimits[PointDetail.REASON];
+                    dt.Rows[i]["ReasonabilityLow"] = result.LowLimits[PointDetail.REASON];
+
                 }
 
                 if (!memoryTagFile)
@@ -618,7 +750,8 @@ namespace MainPower.Osi.ScadaConverter
                 CombineDuplicateDnpControls(dt);
                 OsieriseDnpControls(dt);
                 CheckStatesConsistency(dt);
-           }
+                CheckArchiveAndAlarmGroups(dt);
+            }
 
             //do another loop to copy the data to the summary table
             for (int i = 0; i < dt.Rows.Count; i++)
@@ -628,6 +761,8 @@ namespace MainPower.Osi.ScadaConverter
                 row["OldTag"] = dt.Rows[i]["OldTag"];
                 row["PointName"] = dt.Rows[i]["PointName"];
                 row["PointType"] = dt.Rows[i]["PointType"];
+                row["AlarmGroup"] = dt.Rows[i]["AlarmGroup"];
+                row["Archive"] = dt.Rows[i]["Archive"];
                 if (!memoryTagFile)
                 {
                     row["RTU"] = dt.Rows[i]["RtuName"];
@@ -655,6 +790,20 @@ namespace MainPower.Osi.ScadaConverter
                     row["Units"] = dt.Rows[i]["EngUnits"];
                     row["Scale"] = dt.Rows[i]["Scale"];
                     row["Offset"] = dt.Rows[i]["Offset"];
+
+                    row["Limit1Enabled"] = dt.Rows[i]["Limit1Enabled"];
+                    row["Limit1Low"] = dt.Rows[i]["Limit1Low"];
+                    row["Limit1High"] = dt.Rows[i]["Limit1High"];
+                    row["Limit2Enabled"] = dt.Rows[i]["Limit2Enabled"];
+                    row["Limit2Low"] = dt.Rows[i]["Limit2Low"];
+                    row["Limit2High"] = dt.Rows[i]["Limit2High"];
+                    row["Limit3Enabled"] = dt.Rows[i]["Limit3Enabled"];
+                    row["Limit3Low"] = dt.Rows[i]["Limit3Low"];
+                    row["Limit3High"] = dt.Rows[i]["Limit3High"];
+                    row["Limit4Enabled"] = dt.Rows[i]["Limit4Enabled"];
+                    row["Limit4Low"] = dt.Rows[i]["Limit4Low"];
+                    row["Limit4High"] = dt.Rows[i]["Limit4High"];
+                    row["ReasonabilityEnabled"] = dt.Rows[i]["ReasonabilityEnabled"];
                     row["ReasonabilityHigh"] = dt.Rows[i]["ReasonabilityHigh"];
                     row["ReasonabilityLow"] = dt.Rows[i]["ReasonabilityLow"];
                 }
