@@ -50,7 +50,7 @@ namespace MainPower.Osi.Enricher
         private const string T1_SWITCH_RMU_OP_VOLTAGE = "Rate#Volt-RMU";
 
         private const string T1_SWITCH_DISCO_RATED_VOLTAGE = "Op#Volt-Disconnector";
-        private const string T1_SWITCH_DISCO_OP_VOLTAGE = "Rat#Volt-Disconnecto";
+        private const string T1_SWITCH_DISCO_OP_VOLTAGE = "Rat#Volt-Disconnector";
 
         private const string IDF_SWITCH_BIDIRECTIONAL = "bidirectional";
         private const string IDF_SWITCH_FORWARDTRIPAMPS = "forwardTripAmps";
@@ -152,7 +152,7 @@ namespace MainPower.Osi.Enricher
                     _ratedAmps = Node.Attribute(IDF_SWITCH_RATEDAMPS).Value;
                 if (Node.Attribute(IDF_SWITCH_RATEDKV) != null)
                     _ratedKv = Node.Attribute(IDF_SWITCH_RATEDKV).Value;
-
+                
                 //TODO: backport into GIS
                 //TODO: IDF bug?
                 Node.SetAttributeValue("inSubstation", null);

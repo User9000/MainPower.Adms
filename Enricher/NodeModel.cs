@@ -292,41 +292,52 @@ namespace MainPower.Osi.Enricher
                 i++;
             }
             if (i < sources.Count)
-                TraceNodeConnectivity(Devices[sources[i].DeviceId], Devices[sources[i].DeviceId].Node1);
+                TraceNodeConnectivity(Devices[sources[i].DeviceId], sources[i]);
 
             TimeSpan runtime = DateTime.Now - start;
             Info($"Connectivity check: {GetDisconnectedCount()} of {Devices.Count} devices disconnected ({runtime.TotalSeconds} seconds)");
         }
 
         /// <summary>
-        /// Marks the node as being connected, and calls itself recursively to adjacent nodes
+        /// Marks the node as being connected
         /// </summary>
         /// <param name="d">The device we are tracing into</param>
-        /// <param name="n">The node we are tracing in from</param>
-        private void TraceNodeConnectivity(Device d, Node n)
+        /// <param name="s">The source of the trace</param>
+        private void TraceNodeConnectivity(Device d, Source s)
         {
-            //TODO: turn this into a non recursive function
-            Node traceNode;
-            if (d.ConnectivityMark)
-                return;
-            else
-                d.ConnectivityMark = true;
+            long loop = 0;
+            Stack<(Device d, Node n)> stack = new Stack<(Device, Node)>();
+            stack.Push((d, d.Node1));
 
-            if (d.Node1 == n)
+            do
             {
-                traceNode = d.Node2;
-            }
-            else
-            {
-                traceNode = d.Node1;
-            }
-            foreach (Device dd in traceNode.Devices)
-            {
-                if (dd != d)
+                loop++;
+                var set = stack.Pop();
+
+                Node traceNode;
+                if (set.d.ConnectivityMark)
+                    return;
+                else
+                    set.d.ConnectivityMark = true;
+
+                if (set.d.Node1 == set.n)
                 {
-                    TraceNodeConnectivity(dd, traceNode);
+                    traceNode = set.d.Node2;
+                }
+                else
+                {
+                    traceNode = set.d.Node1;
+                }
+                foreach (Device dd in traceNode.Devices)
+                {
+                    if (dd != set.d)
+                    {
+                        stack.Push((dd, traceNode));
+                    }
                 }
             }
+            while (stack.Count > 0);
+            Info($"Connectivity took {loop} loops for source {s.Name}");
         }
 
         /// <summary>
@@ -466,7 +477,7 @@ namespace MainPower.Osi.Enricher
                 }
             }
             while (stack.Count > 0);
-            Debug($"Power flow took {loop} loops for source {s.Name}");
+            Info($"Power flow took {loop} loops for source {s.Name}");
         }
 
         /// <summary>

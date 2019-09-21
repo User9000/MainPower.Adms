@@ -6,12 +6,24 @@ using System.Threading.Tasks;
 
 namespace MainPower.Osi.Enricher
 {
+    /// <summary>
+    /// Marshals external data requests to the appropriate DataSource
+    /// </summary>
     public class DataManager : ErrorReporter
     {
+        /// <summary>
+        /// Singleton for global access to the DataManager
+        /// </summary>
         public static DataManager I { get; } = new DataManager();
 
-        public Dictionary<string, Dataset> Datasets { get; set; } = new Dictionary<string, Dataset>();        
+        private Dictionary<string, Dataset> Datasets { get; set; } = new Dictionary<string, Dataset>();        
 
+        /// <summary>
+        /// Request a data record using the default index column
+        /// </summary>
+        /// <typeparam name="T">The datatype of the record being requested</typeparam>
+        /// <param name="id">The id of the record</param>
+        /// <returns>A record of type T if the record was found, or null</returns>
         public T RequestRecordById<T>(string id) where T: DataType, new()
         {
             
@@ -22,6 +34,14 @@ namespace MainPower.Osi.Enricher
 
         }
 
+        /// <summary>
+        /// Request a data record using a named column
+        /// </summary>
+        /// <typeparam name="T">The datatype of the record being requested</typeparam>
+        /// <param name="column">The name of the column used to lookup the data</param>
+        /// <param name="id">The id of the record</param>
+        /// <param name="exact">Match the id exactly, or use 'like'</param>
+        /// <returns>A record of type T if the record was found, or null</returns>
         public T RequestRecordByColumn<T>(string column, string id, bool exact = false) where T : DataType, new()
         {
             if (Datasets.ContainsKey(typeof(T).Name))
@@ -31,6 +51,10 @@ namespace MainPower.Osi.Enricher
 
         }
 
+        /// <summary>
+        /// Saves the DataManager configuration
+        /// </summary>
+        /// <param name="file">The file to save to</param>
         public void Save(string file)
         {
             try
@@ -50,6 +74,13 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        /// <summary>
+        /// Loads the DataManager configuration
+        /// TODO: The parameters of this function are weird.  Fix it.
+        /// </summary>
+        /// <param name="file">The file to load from</param>
+        /// <param name="loadDefaults">Load the default parameters rather than loading from file</param>
+        /// <returns></returns>
         public bool Load(string file, bool loadDefaults = false)
         {
             Info("Loading DataManager configuration...");

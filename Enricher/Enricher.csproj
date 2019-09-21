@@ -80,6 +80,7 @@
     <Compile Include="Circuit.cs" />
     <Compile Include="DataSet.cs" />
     <Compile Include="DataSources.cs" />
+    <Compile Include="DataType.cs" />
     <Compile Include="DataTypes.cs" />
     <Compile Include="Device.cs" />
     <Compile Include="ErrorReporter.cs" />

@@ -61,7 +61,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="scale"></param>
         /// <param name="rotation"></param>
         /// <param name="z"></param>
-        internal void SetSymbolNameByDataLink(string id, string symbolName, double scale = double.NaN, double rotation = double.NaN, double z = double.NaN)
+        internal void SetSymbolNameByDataLink(string id, string symbolName, double scale = double.NaN, double iScale = double.NaN, double rotation = double.NaN, double z = double.NaN)
         {
             foreach (var group in _displayGroups.Values)
             {
@@ -71,9 +71,19 @@ namespace MainPower.Osi.Enricher
                     var symbol = dataLink.Parent;
                     symbol.SetAttributeValue("name", symbolName);
                     symbol.SetAttributeValue("library", "MPNZ.LIB2");
+
                     if (!scale.Equals(double.NaN))
                         symbol.SetAttributeValue("scale", scale.ToString("N3"));
 
+                    bool internals = symbol.Attribute("mpwr_internals")?.Value == "True";
+                    if (internals)
+                    {
+                        if (!iScale.Equals(double.NaN))
+                        {
+                            symbol.SetAttributeValue("scale", iScale.ToString("N3"));
+                        }
+                    }
+                    
                     if (!rotation.Equals(double.NaN))
                         symbol.SetAttributeValue("rotation", rotation.ToString("N0"));
 
@@ -108,6 +118,22 @@ namespace MainPower.Osi.Enricher
             foreach (var group in _displayGroups.Values)
             {
                 var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var dataLink in dataLinks.ToList())
+                {
+                    dataLink.Remove();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Finds all symbols with datalinks referring to capacitors and deletes them
+        /// </summary>
+        /// <param name="id"></param>
+        internal void RemoveCapacitorDataLinksFromSymbols()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value.StartsWith("mpwr_capac") ?? false);
                 foreach (var dataLink in dataLinks.ToList())
                 {
                     dataLink.Remove();
@@ -204,8 +230,9 @@ namespace MainPower.Osi.Enricher
             SetLineWidth();
             ReplaceSymbolLibraryName();
             //DeleteTextElements();
-            DeleteInternals();
+            
             SetTextSize();
+            RemoveCapacitorDataLinksFromSymbols();
 
             var tasks = new List<Task>();
 
@@ -269,6 +296,8 @@ namespace MainPower.Osi.Enricher
                     d.Process();
                 }
             }
+
+            DeleteInternals();
         }
 
         private void ReplaceSymbolLibraryName()
@@ -281,6 +310,38 @@ namespace MainPower.Osi.Enricher
                     foreach (var symbol in symbols)
                     {
                         symbol.SetAttributeValue("library", "MPNZ.LIB2");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets the layer of an element with the given DataLink id
+        /// </summary>
+        /// <param name="id">DataLink id</param>
+        /// <param name="layer">layer id to set</param>
+        /// <param name="internalsLayer">layer id to set (internals)</param>
+        /// <param name="overlay">overlay id to set</param>
+        /// <param name="internalsOverlay">overlay id to set (internals)</param>
+        public void SetLayerFromDatalinkId(string id, string layer, string internalsLayer, string overlay, string internalsOverlay)
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                string display = group.Document.Root.Attribute("displayName").Value;
+                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var dataLink in dataLinks)
+                {
+                    var parent = dataLink.Parent;
+                    var internals = parent.Attribute("mpwr_internals")?.Value == "True";
+                    if (internals)
+                    {
+                        parent.SetAttributeValue("layer", $"Layer_{display}_{internalsLayer}");
+                        parent.SetAttributeValue("overlay", $"Layer_{display}_{internalsOverlay}");
+                    }
+                    else
+                    {
+                        parent.SetAttributeValue("layer", $"Layer_{display}_{layer}");
+                        parent.SetAttributeValue("overlay", $"Layer_{display}_{overlay}");
                     }
                 }
             }
