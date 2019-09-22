@@ -31,6 +31,7 @@ namespace MainPower.Osi.Enricher
 
                 if (Name.StartsWith("Streetlight"))
                 {
+                    ParentGroup.SetLayerFromVoltage(Id, "0.4");
                     ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_SL);
                     ParentGroup.RemoveDataLinksFromSymbols(Id);
                     Node.Remove();
@@ -127,6 +128,7 @@ namespace MainPower.Osi.Enricher
                             break;
                     }
                     //ParentGroup.SetSymbolNameByDataLink(Id, "Symbol 13", 2.0);
+                    ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
                 }
             }
             catch (Exception ex)

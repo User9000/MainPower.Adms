@@ -35,6 +35,8 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue(GIS_T1_ASSET, null);
 
                 Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Regulator, geo);
+
+                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
             }
             catch (Exception ex)
             {

@@ -145,7 +145,7 @@ namespace MainPower.Osi.Enricher
         /// Sets the width of all lines in the group
         /// </summary>
         /// <param name="width"></param>
-        internal void SetLineWidth(int width = 5)
+        internal void SetLineWidth(int width = 4)
         {
             foreach (var group in _displayGroups.Values)
             {
@@ -230,8 +230,11 @@ namespace MainPower.Osi.Enricher
             SetLineWidth();
             ReplaceSymbolLibraryName();
             //DeleteTextElements();
-            
+            SetTextLayer();
+            SetPoleLayer();
             SetTextSize();
+            SetStationOutlineLayer();
+            SetInternalsOutlineLayer();
             RemoveCapacitorDataLinksFromSymbols();
 
             var tasks = new List<Task>();
@@ -316,6 +319,37 @@ namespace MainPower.Osi.Enricher
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="basekV"></param>
+        public void SetLayerFromVoltage(string id, string basekV)
+        {
+            SetLayerFromVoltage(id, double.Parse(basekV));
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="basekV"></param>
+        public void SetLayerFromVoltage(string id, double basekV)
+        {
+            if (basekV < 1)
+            {
+                SetLayerFromDatalinkId(id, "LV", "Internals", "Default", "Default");
+            }
+            else if (basekV < 30)
+            {
+                SetLayerFromDatalinkId(id, "HVDistribution", "Internals", "Default", "Default");
+            }
+            else  if (basekV < 100)
+            {
+                SetLayerFromDatalinkId(id, "HVSubtransmission", "Internals", "Default", "Default");
+            }
+        }
+
+        /// <summary>
         /// Sets the layer of an element with the given DataLink id
         /// </summary>
         /// <param name="id">DataLink id</param>
@@ -336,12 +370,12 @@ namespace MainPower.Osi.Enricher
                     if (internals)
                     {
                         parent.SetAttributeValue("layer", $"Layer_{display}_{internalsLayer}");
-                        parent.SetAttributeValue("overlay", $"Layer_{display}_{internalsOverlay}");
+                        parent.SetAttributeValue("overlay", $"Overlay_{display}_{internalsOverlay}");
                     }
                     else
                     {
                         parent.SetAttributeValue("layer", $"Layer_{display}_{layer}");
-                        parent.SetAttributeValue("overlay", $"Layer_{display}_{overlay}");
+                        parent.SetAttributeValue("overlay", $"Overlay_{display}_{overlay}");
                     }
                 }
             }
@@ -362,6 +396,63 @@ namespace MainPower.Osi.Enricher
                 }
             }
         }
+
+        private void SetPoleLayer()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                string display = group.Document.Root.Attribute("displayName").Value;
+                var poles = group.Descendants("element").Where(n => n.Attribute("type").Value == "Symbol" && n.Attribute("name")?.Value == "Symbol 23");
+                foreach (var pole in poles)
+                {
+                    pole.SetAttributeValue("layer", $"Layer_{display}_Poles");
+                    pole.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                }
+            }
+        }
+
+        private void SetTextLayer()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                string display = group.Document.Root.Attribute("displayName").Value;
+                var texts = group.Descendants("element").Where(n => n.Attribute("type").Value == "Text");
+                foreach (var text in texts)
+                {
+                    text.SetAttributeValue("layer", $"Layer_{display}_Text");
+                    text.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                }
+            }
+        }
+
+        private void SetInternalsOutlineLayer()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                string display = group.Document.Root.Attribute("displayName").Value;
+                var internals = group.Descendants("color").Where(n => n.Attribute("red").Value == "255" && n.Attribute("green").Value == "0" && n.Attribute("blue").Value == "128");
+                foreach (var intern in internals)
+                {
+                    intern.Parent.SetAttributeValue("layer", $"Layer_{display}_Internals");
+                    intern.Parent.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                }
+            }
+        }
+
+        private void SetStationOutlineLayer()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                string display = group.Document.Root.Attribute("displayName").Value;
+                var internals = group.Descendants("color").Where(n => n.Attribute("red").Value == "128" && n.Attribute("green").Value == "128" && n.Attribute("blue").Value == "0");
+                foreach (var intern in internals)
+                {
+                    intern.Parent.SetAttributeValue("layer", $"Layer_{display}_Stations");
+                    intern.Parent.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                }
+            }
+        }
+
 
         private void DeleteInternals()
         {

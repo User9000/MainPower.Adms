@@ -45,7 +45,7 @@ namespace MainPower.Osi.Enricher
             using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
             {
                 DataTable dataTable = new DataTable
-                {
+                {   
                     Locale = CultureInfo.CurrentCulture
                 };
                 adapter.Fill(dataTable);
@@ -169,6 +169,7 @@ namespace MainPower.Osi.Enricher
         Transformer,
         Load,
         Regulator,
+        ShuntCapacitor,
     }
 
     internal class GroupSet

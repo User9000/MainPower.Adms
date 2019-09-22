@@ -298,6 +298,8 @@ namespace MainPower.Osi.Enricher
                 RemoveExtraAttributes();
 
                 Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Transformer, geo, short.Parse(_phaseshift));
+
+                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_TX_S1BASEKV).Value);
             }
             catch (Exception ex)
             {

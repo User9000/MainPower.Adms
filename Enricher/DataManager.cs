@@ -102,6 +102,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "T1Disconnectors",
                     FileName = "T1Disconnectors.csv",
+                    IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
                 var dataset = new Dataset()
@@ -117,6 +118,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "T1Fuses",
                     FileName = "T1Fuses.csv",
+                    IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()
@@ -131,6 +133,7 @@ namespace MainPower.Osi.Enricher
                 source = new CsvSource()
                 {
                     Name = "T1HvCircuitBreakers",
+                    IndexColumn = "Asset Number",
                     FileName = "T1HvCircuitBreakers.csv",
                     InitializeFailIsFatal = true
                 };
@@ -147,6 +150,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "T1RingMainUnits",
                     FileName = "T1RingMainUnits.csv",
+                    IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()
@@ -162,6 +166,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "T1Transformers",
                     FileName = "T1Transformers.csv",
+                    IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()
@@ -177,6 +182,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "ScadaStatus",
                     FileName = "ScadaStatus.csv",
+                    IndexColumn = "Key",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()
@@ -192,6 +198,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "ScadaAnalog",
                     FileName = "ScadaAnalog.csv",
+                    IndexColumn = "Key",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()
@@ -206,6 +213,7 @@ namespace MainPower.Osi.Enricher
                 source = new CsvSource()
                 {
                     Name = "ScadaAccumulator",
+                    IndexColumn = "Key",
                     FileName = "ScadaAccumulator.csv",
                     InitializeFailIsFatal = true
                 };
@@ -222,6 +230,8 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "AdmsSwitch",
                     FileName = "AdmsSwitch.csv",
+                    //TODO: figure this out
+                    IndexColumn = "Switch Number",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()
@@ -237,6 +247,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "AdmsTransformer",
                     FileName = "AdmsTransformer.csv",
+                    IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()
@@ -252,6 +263,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "ICPs",
                     FileName = "ICPs.csv",
+                    IndexColumn = "ICP",
                     InitializeFailIsFatal = true
                 };
                 dataset = new Dataset()

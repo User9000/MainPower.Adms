@@ -28,11 +28,22 @@ namespace MainPower.Osi.Enricher
 
         public string FileName { get; set; }
 
+        public string IndexColumn { get; set; }
+
         protected override bool OnInitialize() 
         {
             try
             {
                 Data = Util.GetDataTableFromCsv(Path.Combine(Enricher.I.Options.DataPath, FileName), true);
+                //speed 'select'
+                if (!string.IsNullOrWhiteSpace(IndexColumn))
+                {
+                    Data.PrimaryKey = new DataColumn[1] { Data.Columns[IndexColumn] };
+                    DataView dv = new DataView(Data)
+                    {
+                        Sort = IndexColumn
+                    };
+                }
                 return true;
             }
             catch (Exception ex)

@@ -273,6 +273,8 @@ namespace MainPower.Osi.Enricher
                 RemoveExtraAttributes();
 
                 Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Switch, geo);
+
+                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
             }
             catch (Exception ex)
             {

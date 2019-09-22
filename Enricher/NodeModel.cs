@@ -715,7 +715,11 @@ namespace MainPower.Osi.Enricher
                     fieldData[11] = $"{d.PhaseID[0, 0]}{d.PhaseID[0, 1]}{d.PhaseID[0, 2]}";
                     fieldData[12] = $"{d.PhaseID[1, 0]}{d.PhaseID[1, 1]}{d.PhaseID[1, 2]}";
                     fieldData[13] = d.PhaseShift.ToString("N2");
-
+                    if (d.Geometry == null)
+                    {
+                        Warn("Not exporting device to shape file due to null geometry", d.Id, d.Name);
+                        continue; 
+                    }
                     if (d.Geometry.Count == 0)
                     {
                         Warn("Not exporting device to shape file due to missing geometry", d.Id, d.Name);

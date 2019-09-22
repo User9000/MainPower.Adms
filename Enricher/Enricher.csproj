@@ -78,6 +78,7 @@
   <ItemGroup>
     <Compile Include="Area.cs" />
     <Compile Include="Circuit.cs" />
+    <Compile Include="Capacitor.cs" />
     <Compile Include="DataSet.cs" />
     <Compile Include="DataSources.cs" />
     <Compile Include="DataType.cs" />

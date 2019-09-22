@@ -103,7 +103,10 @@ namespace MainPower.Osi.Enricher
                             }
                         }
                     }
-                    Model.ExportToShapeFile($"{o.DataPath}\\");
+                    if (o.ExportShapeFiles)
+                    {
+                        Model.ExportToShapeFile($"{o.DataPath}\\");
+                    }
                 }    
                 else
                 {
