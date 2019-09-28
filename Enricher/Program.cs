@@ -25,7 +25,7 @@ namespace MainPower.Osi.Enricher
 
         static int Main(string[] args)
         {
-            Console.BufferWidth = 300;
+            Console.BufferWidth = 320;
             
             int retCode = 3;
 
@@ -53,9 +53,11 @@ namespace MainPower.Osi.Enricher
                            //copy the input idfs to the log location
                            string logpath = GetLogFileName("file");
                            string logfile = Path.GetFileName(logpath);
-                           string zipfile = logfile.Replace("enricher", "idf").Replace(".csv", ".zip");
+                           string zipfile1 = logfile.Replace("enricher", "idf-input").Replace(".csv", ".zip");
+                           string zipfile2 = logfile.Replace("enricher", "idf-output").Replace(".csv", ".zip");
                            string logdir = Path.GetDirectoryName(logpath);
-                           ZipFile.CreateFromDirectory(o.InputPath, Path.Combine(logdir, zipfile));
+                           ZipFile.CreateFromDirectory(o.InputPath, Path.Combine(logdir, zipfile1));
+                           ZipFile.CreateFromDirectory(o.OutputPath, Path.Combine(logdir, zipfile2));
                        }
                    }
                    catch (Exception ex)

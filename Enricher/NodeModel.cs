@@ -316,7 +316,7 @@ namespace MainPower.Osi.Enricher
 
                 Node traceNode;
                 if (set.d.ConnectivityMark)
-                    return;
+                    continue;
                 else
                     set.d.ConnectivityMark = true;
 

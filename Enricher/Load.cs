@@ -31,8 +31,8 @@ namespace MainPower.Osi.Enricher
 
                 if (Name.StartsWith("Streetlight"))
                 {
-                    ParentGroup.SetLayerFromVoltage(Id, "0.4");
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_SL);
+                    ParentGroup.SetLayerFromDatalinkId(Id, "Loads", "Loads", "Default", "Default");
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_SL, 1.0, 1.0);
                     ParentGroup.RemoveDataLinksFromSymbols(Id);
                     Node.Remove();
                 }
@@ -118,7 +118,7 @@ namespace MainPower.Osi.Enricher
                             ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_DG, 2.0);
                             break;
                         case "Streetlight":
-                            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_SL, 2.0);
+                            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_SL, 1.0);
                             break;
                         case "Large User":
                             ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_LARGEUSER, 2.0);
@@ -128,7 +128,7 @@ namespace MainPower.Osi.Enricher
                             break;
                     }
                     //ParentGroup.SetSymbolNameByDataLink(Id, "Symbol 13", 2.0);
-                    ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
+                    ParentGroup.SetLayerFromDatalinkId(Id, "Loads", "Loads", "Default", "Default");
                 }
             }
             catch (Exception ex)

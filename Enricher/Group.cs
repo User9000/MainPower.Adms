@@ -95,6 +95,31 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        internal void SetStreetlightLayers()
+        {
+            //this shouold be called after everything else has been processed
+            foreach (var group in _displayGroups.Values)
+            {
+                string display = group.Document.Root.Attribute("displayName").Value;
+                var streetlights = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Symbol" && n.Attribute("name")?.Value == "DEFAULT");
+                foreach (var streetlight in streetlights)
+                {
+                    streetlight.SetAttributeValue("name", $"Symbol 24");
+                    streetlight.SetAttributeValue("library", $"MPNZ.LIB2");
+                    streetlight.SetAttributeValue("scale", $"1.0");
+                    streetlight.SetAttributeValue("layer", $"Layer_{display}_SL");
+                    streetlight.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                }
+
+                streetlights = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Line" && n.Attribute("layer")?.Value == "Layer_MPWR_ALWAYS_ON");
+                foreach (var streetlight in streetlights)
+                {
+                    streetlight.SetAttributeValue("layer", $"Layer_{display}_SL");
+                    streetlight.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                }
+            }
+        }
+
         /// <summary>
         /// Set the InSubstation of a Switch with the given id
         /// </summary>
@@ -232,10 +257,11 @@ namespace MainPower.Osi.Enricher
             //DeleteTextElements();
             SetTextLayer();
             SetPoleLayer();
-            SetTextSize();
+
+            SetText();
             SetStationOutlineLayer();
             SetInternalsOutlineLayer();
-            RemoveCapacitorDataLinksFromSymbols();
+            //RemoveCapacitorDataLinksFromSymbols();
 
             var tasks = new List<Task>();
 
@@ -280,6 +306,10 @@ namespace MainPower.Osi.Enricher
                         Enricher.I.LoadCount++;
                         d = new Substation(node, this);
                         break;
+                    case "Capacitor":
+                        Enricher.I.CapCount++;
+                        d = new Capacitor(node, this);
+                        break;
                     case "Area":
                         Enricher.I.LoadCount++;
                         d = new Area(node, this);
@@ -299,7 +329,7 @@ namespace MainPower.Osi.Enricher
                     d.Process();
                 }
             }
-
+            SetStreetlightLayers();
             DeleteInternals();
         }
 
@@ -407,6 +437,7 @@ namespace MainPower.Osi.Enricher
                 {
                     pole.SetAttributeValue("layer", $"Layer_{display}_Poles");
                     pole.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                    pole.SetAttributeValue("scale", "1.0");
                 }
             }
         }
@@ -420,7 +451,7 @@ namespace MainPower.Osi.Enricher
                 foreach (var text in texts)
                 {
                     text.SetAttributeValue("layer", $"Layer_{display}_Text");
-                    text.SetAttributeValue("overlay", $"Overlay_{display}_Default");
+                    text.SetAttributeValue("overlay", $"Overlay_{display}_Text");
                 }
             }
         }
@@ -470,7 +501,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        private void SetTextSize()
+        private void SetText()
         {
             foreach (var group in _displayGroups.Values)
             {
@@ -480,8 +511,45 @@ namespace MainPower.Osi.Enricher
 
                     foreach (var text in texts.ToList())
                     {
-                        text.SetAttributeValue("fixedSize", "True");
-                        text.SetAttributeValue("fontSize", "4");
+                        //extract id from text
+                        var objId = text.Attribute("id").Value;
+                        objId = objId.Substring(4, objId.Length - 4);
+                        
+                        //TODO: convert to this
+                        //objId = objId[4..];
+                        objId = $"d_{objId}";
+
+                        //find matching object
+                        var device = group.Descendants("element").Where(n => n.Attribute("type").Value == "Symbol" && n.Attribute("id").Value == objId).FirstOrDefault();
+                        if (device != null)
+                        {
+                            var x = double.Parse(device.Attribute("x").Value);
+                            var y = double.Parse(device.Attribute("y").Value);
+
+                            if (text.Attribute("mpwr_internals")?.Value == "True")
+                            {
+                                x += 0.25;
+                                text.SetAttributeValue("anchor", "Left");
+                                text.SetAttributeValue("x", x.ToString());
+                                text.SetAttributeValue("y", y.ToString());
+                                text.SetAttributeValue("fixedSize", "False");
+                                text.SetAttributeValue("maxFontSize", "50");
+                                text.SetAttributeValue("fontSize", "0.5");
+                            }
+                            else
+                            {
+                                x += 1;
+                                text.SetAttributeValue("x", x.ToString());
+                                text.SetAttributeValue("y", y.ToString());
+                                text.SetAttributeValue("anchor", "Left");
+                                text.SetAttributeValue("fixedSize", "False");
+                                text.SetAttributeValue("maxFontSize", "50");
+                                text.SetAttributeValue("fontSize", "16");
+                            }
+                        }
+                        //set coordinates
+
+                        
                     }
                 }
             }
@@ -611,3 +679,4 @@ namespace MainPower.Osi.Enricher
         }
     }
 }
+

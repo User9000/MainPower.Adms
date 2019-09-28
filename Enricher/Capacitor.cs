@@ -5,6 +5,8 @@ namespace MainPower.Osi.Enricher
 {
     internal class Capacitor : Element
     {
+        private const string SYMBOL_CAPACITOR = "Symbol 12";
+
         /// <summary>
         /// Represents a IDF Capacitor object
         /// </summary>
@@ -39,8 +41,8 @@ namespace MainPower.Osi.Enricher
                     Debug("Overriding base voltage from 230V to 400V");
                 }
 
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.ShuntCapacitor, geo);
-
+                //Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.ShuntCapacitor, geo);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CAPACITOR);
                 ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
             }
             catch (Exception ex)

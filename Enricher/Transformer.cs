@@ -9,11 +9,23 @@ namespace MainPower.Osi.Enricher
     {
         #region Constants
         private const string SYMBOL_TX = "Symbol 1";
-        private const string SYMBOL_TX_OLTC = "Symbol 5";
-        private const string SYMBOL_TX_DYN11_OLTC = "Symbol 19";
-        private const string SYMBOL_TX_DYN3_OLTC = "Symbol 20";
-        private const string SYMBOL_TX_DYN11 = "Symbol 21";
-        private const string SYMBOL_TX_DYN3 = "Symbol 22";
+        //private const string SYMBOL_TX_OLTC = "Symbol 5";
+        //private const string SYMBOL_TX_DYN11_OLTC = "Symbol 19";
+        //private const string SYMBOL_TX_DYN3_OLTC = "Symbol 20";
+        //private const string SYMBOL_TX_DYN11 = "Symbol 21";
+        //private const string SYMBOL_TX_DYN3 = "Symbol 22";
+
+        private const string SYMBOL_TX_UNK = "Symbol 34";
+        private const string SYMBOL_TX_DYN = "Symbol 21";
+        private const string SYMBOL_TX_DYN_OLTC = "Symbol 19";
+        private const string SYMBOL_TX_DZN_OLTC = "Symbol 32";
+        private const string SYMBOL_TX_ZN = "Symbol 8";
+        private const string SYMBOL_TX_YYN = "Symbol 33";
+        private const string SYMBOL_TX_II0 = "Symbol 1";
+
+        private const double SYMBOL_TX_SCALE = 0.1;
+        private const double SYMBOL_TX_SCALE_INTERNALS = 0.1;
+        private const double SYMBOL_TX_ROTATION = 0;
         
         private const string T1_TX_PRI_OPERATINGKV = "Op#Volt-Tx Power";            //the primary operating voltage
         private const string T1_TX_PRI_RATEDKV = "Rat#Volt-Tx Power";             //the rated primary voltage
@@ -113,6 +125,7 @@ namespace MainPower.Osi.Enricher
         private double _dkva = double.NaN;
         private double _s1kV = double.NaN;
         private double _s2kV = double.NaN;
+        private string _symbolName = SYMBOL_TX_UNK;
 
         //transformer type fields
         private string _kva = "";
@@ -203,8 +216,9 @@ namespace MainPower.Osi.Enricher
                                 Warn("Split phase transformer detected :/");
                             if (t1s2kv == 230 || t1s2kv == 240 || t1s2kv == 14 || t1s2kv == 15 || t1s2kv == 16 || t1s2kv == 17 || t1s2kv == 20)
                                 t1s2kv = 400;
+                            //TODO: this is actually 480V... not sure what to do with these yet
                             if (t1s2kv == 11)
-                                t1s2kv = 22000;
+                                t1s2kv = 400;
                         }
                         if (t1s2kv.HasValue && t1s2kv > 300)
                         { 
@@ -293,7 +307,7 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue(IDF_DEVICE_NOMSTATE2, IDF_TRUE);
                 Node.SetAttributeValue(IDF_DEVICE_NOMSTATE3, IDF_TRUE);
 
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_TX_DYN11, 0.1, 0);
+                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_INTERNALS, SYMBOL_TX_ROTATION);
                 GenerateScadaLinking();
                 RemoveExtraAttributes();
 
@@ -532,30 +546,33 @@ namespace MainPower.Osi.Enricher
             if (mWinding.Success)
             {
                 _vGroup = mWinding.Value;
-                switch (mWinding.Value)
+                switch (_vGroup+_phaseshift)
                 {
-                    case "Dyn":
+                    case "Dyn11":
                         _s1ConnectionType = IDF_TX_WINDING_DELTA;
                         _s2ConnectionType = IDF_TX_WINDING_WYEG;
+                        _symbolName = SYMBOL_TX_DYN;
                         return;
                     case "Dy":
                         _s1ConnectionType = IDF_TX_WINDING_DELTA;
                         _s2ConnectionType = IDF_TX_WINDING_WYE;
                         return;
-                    case "Dzn":
+                    case "Dzn2":
                         _s1ConnectionType = IDF_TX_WINDING_DELTA;
                         _s2ConnectionType = IDF_TX_WINDING_ZIGZAGG;
+                        _symbolName = SYMBOL_TX_DZN_OLTC;
                         return;
                     case "Dz":
                         _s1ConnectionType = IDF_TX_WINDING_DELTA;
                         _s2ConnectionType = IDF_TX_WINDING_ZIGZAG;
                         return;
-                    case "Yyn":
-                    case "Yna":
+                    case "Yyn0":
+                    case "Yna0":
                         _s1ConnectionType = IDF_TX_WINDING_WYE;
                         _s2ConnectionType = IDF_TX_WINDING_WYEG;
+                        _symbolName = SYMBOL_TX_YYN;
                         return;
-                    case "YNyn":
+                    case "YNyn0":
                         _s1ConnectionType = IDF_TX_WINDING_WYEG;
                         _s2ConnectionType = IDF_TX_WINDING_WYEG;
                         return;
@@ -564,10 +581,12 @@ namespace MainPower.Osi.Enricher
                         //TODO: fiddle with the phases
                         _s1ConnectionType = IDF_TX_WINDING_DELTA;
                         _s2ConnectionType = IDF_TX_WINDING_WYEG;
+                        _symbolName = SYMBOL_TX_II0;
                         return;
                     case "ZN":
                         _s1ConnectionType = IDF_TX_WINDING_ZIGZAG;
                         _s2ConnectionType = "";
+                        _symbolName = SYMBOL_TX_ZN;
                         break;
                     default:
                         Warn($"Couldn't parse vector group [{v}], assuming Dyn11");

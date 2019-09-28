@@ -28,6 +28,7 @@ namespace MainPower.Osi.Enricher
         private const string SYMBOL_LVFUSE = "Symbol 17";
         private const string SYMBOL_HVFUSESWITCH = "Symbol 17";
         private const string SYMBOL_HVFUSESWITCH_QUAD = "Symbol 17";
+        private const string SYMBOL_EARTH_SWITCH = "Symbol 4";
 
         private const string T1_FUSE_GANGED = "Is Tri Fuse";
         private const string T1_SWITCH_SWNUMBER = "Switch Number";
@@ -171,49 +172,51 @@ namespace MainPower.Osi.Enricher
                     //MV Isolator
                     case @"MV Isolator\Knife Isolator":
                         //basically a non ganged disconnector e.g. links
-                        ProcessDisconnector(true);
+                        ProcessDisconnector();
                         _ganged = IDF_FALSE;
                         _loadBreakCapable = IDF_FALSE;
                         break;
                     case @"MV Isolator\HV Fuse":
-                        ProcessHVFuse(true);
+                        ProcessHVFuse();
                         break;
                     case @"MV Isolator\Circuit Breaker - Substation Feeder":
-                        ProcessCircuitBreaker(true);
-                        break;
                     case @"MV Isolator\Circuit Breaker - Substation General":
-                        ProcessCircuitBreaker2(true);
+                    case @"MV Isolator\Circuit Breaker - Line":
+                        ProcessCircuitBreaker2();
                         break;
                     case @"MV Isolator\Air Break Switch":
-                        ProcessDisconnector(true);
+                        ProcessDisconnector();
                         break;
                     case @"MV Isolator\MV Switch":
+                        //TODO: sort this
+                        ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                         Warn("Not sure what to do with switch type [MV Isolator\\MV Switch]");
                         break;
                     case @"MV Isolator\Earth Switch":
+                        ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_EARTH_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
 
                         break;
                     case @"MV Isolator\Disconnector":
-                        ProcessDisconnector(true);
+                        ProcessDisconnector();
                         break;
                     case @"MV Isolator\HV Fuse Switch":
                         ProcessRingMainFuseSwitch();
                         break;
                     //MV Line Switch
                     case @"MV Line Switch\Circuit Breaker - Line":
-                        ProcessCircuitBreaker(false);
+                        ProcessCircuitBreaker();
                         break;
                     case @"MV Line Switch\HV Link":
-                        ProcessHVLinks(false);
+                        ProcessHVLinks();
                         break;
                     case @"MV Line Switch\HV Fuse":
-                        ProcessHVFuse(false);
+                        ProcessHVFuse();
                         break;
                     case @"MV Line Switch\Automated LBS":
                         ProcessEntec();
                         break;
                     case @"MV Line Switch\Disconnector":
-                        ProcessDisconnector(false);
+                        ProcessDisconnector();
                         break;
                     case @"MV Line Switch\Fuse Saver":
                         ProcessFuseSaver();
@@ -222,7 +225,7 @@ namespace MainPower.Osi.Enricher
                         //TODO
                         break;
                     case @"MV Line Switch\HV Tri - Fuse":
-                        ProcessHVFuse(false);
+                        ProcessHVFuse();
                         break;
                     //LV Line Switch
                     case @"LV Line Switch\OH LV Open Point":
@@ -265,6 +268,10 @@ namespace MainPower.Osi.Enricher
 
                 Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
                 var scada = GenerateScadaLinking();
+
+                //need to do this before the SCADA linking otherwise the datalink will be replaced
+                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
+
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
                     ParentGroup.AddGroupElement(scada.Item2);
@@ -304,9 +311,12 @@ namespace MainPower.Osi.Enricher
             x.SetAttributeValue("type", "SCADA");
             x.SetAttributeValue("id", Id);
 
-            x.SetAttributeValue("p1State", status.Key);
-            x.SetAttributeValue("p2State", status.Key);
-            x.SetAttributeValue("p3State", status.Key);
+            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+                x.SetAttributeValue("p1State", status.Key);
+            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
+                x.SetAttributeValue("p2State", status.Key);
+            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
+                x.SetAttributeValue("p3State", status.Key);
 
             //we can't assign any of this telemtry without knowing what the upstream side of the switch is
             if (_nominalUpstreamSide == "1" || _nominalUpstreamSide == "2")
@@ -427,13 +437,13 @@ namespace MainPower.Osi.Enricher
 
         #region Switch Type Processing
         
-        private void ProcessCircuitBreaker2(bool internals)
+        private void ProcessCircuitBreaker2()
         {
             if (!string.IsNullOrEmpty(T1Id)) {
                 DataType asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
                 if (asset != null)
                 {
-                    ProcessCircuitBreaker(internals);
+                    ProcessCircuitBreaker();
                     return;
                 }
                 asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
@@ -455,19 +465,17 @@ namespace MainPower.Osi.Enricher
 
             ProcessCircuitBreakerAdms();
 
-            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
         }
 
@@ -506,13 +514,13 @@ namespace MainPower.Osi.Enricher
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
         }
 
@@ -550,13 +558,13 @@ namespace MainPower.Osi.Enricher
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
         }
         
@@ -597,13 +605,13 @@ namespace MainPower.Osi.Enricher
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_INTERNALS, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
         }
 
@@ -620,7 +628,7 @@ namespace MainPower.Osi.Enricher
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_SWITCH;
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVSWITCH, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVSWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
         }
 
         private void ProcessLVFuse()
@@ -636,7 +644,7 @@ namespace MainPower.Osi.Enricher
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_FUSE;
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVFUSE, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVFUSE, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
         }
 
         private void ProcessFuseSaver()
@@ -679,7 +687,7 @@ namespace MainPower.Osi.Enricher
                 }
 
             }
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSESAVER, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSESAVER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
         }
 
         private void ProcessEntec()
@@ -717,17 +725,17 @@ namespace MainPower.Osi.Enricher
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC_QUAD, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
         }
 
-        private void ProcessHVLinks(bool internals)
+        private void ProcessHVLinks()
         {
             _ganged = IDF_FALSE;
             _loadBreakCapable = IDF_FALSE;//TODO
@@ -755,11 +763,11 @@ namespace MainPower.Osi.Enricher
                     ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_FUSE_RATED_VOLTAGE] as string);
                 }
             }
-            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LINKS, scale, double.NaN, IDF_SWITCH_Z);
+            
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LINKS, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
         }
 
-        private void ProcessDisconnector(bool internals)
+        private void ProcessDisconnector()
         {
             _ganged = IDF_TRUE;          
             _switchType = IDF_SWITCH_TYPE_SWITCH;
@@ -788,22 +796,22 @@ namespace MainPower.Osi.Enricher
                 }
 
             }
-            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
+            
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR_QUAD, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, scale, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
         }
      
-        private void ProcessCircuitBreaker(bool internals)
+        private void ProcessCircuitBreaker()
         {
             _bidirectional = IDF_TRUE;
             _ganged = IDF_TRUE;
@@ -835,18 +843,18 @@ namespace MainPower.Osi.Enricher
 
             }
 
-            var scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
+            
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, scale, double.NaN, IDF_SWITCH_Z);
+                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
             }
         }
 
@@ -871,7 +879,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        private void ProcessHVFuse(bool internals)
+        private void ProcessHVFuse()
         {
             _bidirectional = IDF_TRUE;
             _forwardTripAmps = _reverseTripAmps = ValidateFuseTrip(_fuserating);
@@ -906,8 +914,8 @@ namespace MainPower.Osi.Enricher
                     Error($"T1 asset number [{T1Id}] wasn't in T1");
                 }
             }
-            double scale = internals ? IDF_SCALE_INTERNALS : IDF_SCALE_GEOGRAPHIC;
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSE, scale, double.NaN, IDF_SWITCH_Z);
+            
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSE, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
         }
 
         private void ProcessServiceFuse()
@@ -920,7 +928,7 @@ namespace MainPower.Osi.Enricher
             _ratedAmps = "";//TODO?
             _switchType = "Fuse";
             _ratedKv = ValidateRatedVoltage(_baseKv, _baseKv, 1);
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SERVICE_FUSE, double.NaN, IDF_SWITCH_Z);
+            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SERVICE_FUSE, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
         }
         #endregion
 

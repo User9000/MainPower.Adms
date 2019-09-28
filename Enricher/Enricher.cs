@@ -22,6 +22,7 @@ namespace MainPower.Osi.Enricher
         
         internal int TransformerCount { get; set; }
         internal int LineCount { get; set; }
+        internal int CapCount { get; set; }
         internal int SwitchCount { get; set; }
         internal int LoadCount { get; set; }
 
@@ -70,15 +71,8 @@ namespace MainPower.Osi.Enricher
                 Model.ValidateConnectivity();
                 Model.ValidateBaseVoltages();
                 Model.ValidatePhasing();
-                Model.PrintPFDetailsByName("P91");
-                Model.PrintPFDetailsByName("P92");
-                Model.PrintPFDetailsByName("P21");
-                Model.PrintPFDetailsByName("P22");
-                Model.PrintPFDetailsByName("P25");
-                Model.PrintPFDetailsByName("P35");
-                Model.PrintPFDetailsByName("P45");
-                Model.PrintPFDetailsByName("P55");
-
+                //Model.PrintPFDetailsByName("");
+                
                 if (Fatals == 0)
                 {
                     
