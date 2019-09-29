@@ -162,19 +162,17 @@ namespace MainPower.Osi.Enricher
             }
             var tasks = new List<Task>();
 
-            var groups = fm.ImportConfig.Content.Descendants("group");
-            foreach (var group in groups)
+            foreach (var group in fm.Groups.Values)
             {
                 try
                 {
-                    Group p = new Group(group, null);
-                    if (p.NoData || p.NoGroup)
+                    if (group.NoData)
                         continue;
                     if (Options.ProcessTopology)
-                        Model.RemoveGroup(p.Id);
+                        Model.RemoveGroup(group.Id);
                     while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > 10)
                         Thread.Sleep(100);
-                    tasks.Add(Task.Run((Action)p.Process));
+                    tasks.Add(Task.Run((Action)group.Process));
                 }
                 catch (Exception ex)
                 {

@@ -172,12 +172,6 @@ namespace MainPower.Osi.Enricher
         ShuntCapacitor,
     }
 
-    internal class GroupSet
-    {
-        public List<Idf> GraphicFiles { get; set; } = new List<Idf>();
-        public Idf DataFile { get; set; } = null;
-    }
-
     internal enum IdfFileType
     {
         Data,

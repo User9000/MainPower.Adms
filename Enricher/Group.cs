@@ -10,18 +10,29 @@ namespace MainPower.Osi.Enricher
 {
     internal class Group : Element
     {
-        private GroupSet _groupset = null;
+        //private GroupSet _groupset = null;
         private XElement _dataGroup = null;
         private Dictionary<string, XElement> _displayGroups = new Dictionary<string, XElement>();
 
-        internal bool NoGroup
+
+        public void SetDataGroup (XElement element)
         {
-            get
+            //TODO validate
+            if (_dataGroup == null)
             {
-                return _groupset == null;
+                _dataGroup = element;
+            }
+            else
+            {
+                throw new Exception("Datagroup is already set");
             }
         }
 
+        public void AddDisplayGroup(string displayName, XElement element)
+        {
+            //TODO validate
+            _displayGroups.Add(displayName, element);
+        }
 
         internal bool NoData
         {
@@ -31,27 +42,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        public Group(XElement node, Group processor) : base(node, processor)
-        {
-            if (!FileManager.I.GroupFiles.ContainsKey(Id))
-            {
-                Error("There were no files containing this group");
-                return;
-            }
-            _groupset = FileManager.I.GroupFiles[Id];
-            if (_groupset.DataFile != null)
-                _dataGroup = _groupset.DataFile.Content.Descendants("group").Where(n => n.Attribute("id").Value == Id).First();
-
-            foreach (var idf in _groupset.GraphicFiles)
-            {
-                var name = idf.Content.Descendants("data").First().Attribute("displayName").Value;
-                var group = idf.Content.Descendants("group").Where(x => x.Attribute("id").Value == Id).FirstOrDefault();
-                if (group != null)
-                {
-                    _displayGroups.Add(name, group);
-                }
-            }
-        }
+        public Group(XElement node, Group processor) : base(node, processor) { }
 
         /// <summary>
         /// Finds all symbol elements with the provided datalink id, and sets the symbol parameters
@@ -561,8 +552,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="xml"></param>
         internal void AddGroupElement (XElement xml)
         {
-            var groupnode = FileManager.I.GroupFiles[Id].DataFile.Content.Descendants("group").Where(n => n.Attribute("id")?.Value == Id).First();
-            groupnode.Add(xml);
+            _dataGroup.Add(xml);
         }
 
         /// <summary>

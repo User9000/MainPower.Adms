@@ -945,7 +945,7 @@ namespace MainPower.Osi.Enricher
             try
             {
                 var iOpVoltage = float.Parse(opVoltage);
-                if (string.IsNullOrEmpty(ratedVoltage))
+                if (string.IsNullOrEmpty(ratedVoltage) || ratedVoltage == "99")
                     return (iOpVoltage * 1.1).ToString();
 
 
@@ -959,7 +959,7 @@ namespace MainPower.Osi.Enricher
                     }
                     else if (iNewValue == iOpVoltage)
                     {
-                        Info($"Rated voltage [{iNewValue}] == operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                        Debug($"Rated voltage [{iNewValue}] == operating voltage [{opVoltage}], setting to 110% of operating voltage");
                     }
                     else
                     {

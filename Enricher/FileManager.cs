@@ -12,10 +12,11 @@ namespace MainPower.Osi.Enricher
         internal List<Idf> DataFiles = new List<Idf>();
         internal List<Idf> GraphicsFiles = new List<Idf>();
         internal Idf ImportConfig = null;
-        internal Dictionary<string, GroupSet> GroupFiles = new Dictionary<string, GroupSet>();
+        internal Dictionary<string, Group> Groups = new Dictionary<string, Group>();
 
         public bool Initialize(string path)
         {
+            _log.Info("Sorting idfs...");
             //Read all the xml files in the directory
             var files = Directory.GetFiles(path, "*.xml", SearchOption.TopDirectoryOnly);
             foreach (var file in files)
@@ -60,29 +61,50 @@ namespace MainPower.Osi.Enricher
                 }
             }
 
-            //work out which groups are in which files
-            List<Idf> Files = new List<Idf>();
-            Files.AddRange(DataFiles);
-            Files.AddRange(GraphicsFiles);
-
-            foreach(var idf in Files)
+            _log.Info("Reading Import Config...");
+            //Read all the groups we are going to import add them to the collection
+            foreach (var group in ImportConfig.Content.Descendants("group"))
             {
-                var ids = idf.Content.Descendants("groups").Descendants("group").Attributes("id");
-                foreach (string id in ids)
+                var g = new Group(group, null);
+                Groups.Add(g.Id, g);
+            }
+
+            _log.Info("Loading groups from data files...");
+            //loop through the data files and assign the elements to the groups
+            foreach (var idf in DataFiles)
+            {
+                var groups = idf.Content.Descendants("group");
+                foreach (var group in groups)
                 {
-                    if (!GroupFiles.ContainsKey(id))
+                    var id = group.Attribute("id").Value;
+                    if (Groups.ContainsKey(id))
                     {
-                        GroupFiles.Add(id, new GroupSet());
+                        Groups[id].SetDataGroup(group);
                     }
-                    if (idf.Type == IdfFileType.Data)
+                    else
                     {
-                        if (GroupFiles[id].DataFile == null)
-                            GroupFiles[id].DataFile = idf;
-                        else
-                            Fatal("Group data file was already specified");
+                        Warn($"group {id} was is not in the import configuration");
                     }
-                    else if (idf.Type == IdfFileType.Graphics)
-                        GroupFiles[id].GraphicFiles.Add(idf);
+                }
+            }
+
+            _log.Info("Loading groups from display files...");
+            //loop through the graphics files and assign the elements to the groups
+            foreach (var idf in GraphicsFiles)
+            {
+                string display = idf.Content.Root.Attribute("displayName").Value;
+                var groups = idf.Content.Descendants("group");
+                foreach (var group in groups)
+                {
+                    var id = group.Attribute("id").Value;
+                    if (Groups.ContainsKey(id))
+                    {
+                        Groups[id].AddDisplayGroup(display, group);
+                    }
+                    else
+                    {
+                        Warn($"group {id} was is not in the import configuration");
+                    }
                 }
             }
 
