@@ -42,8 +42,8 @@ namespace MainPower.Osi.Enricher
         /// <returns>true if adding the device was successful, false otherwise</returns>
         public bool AddDevice(XElement node, string gid, DeviceType type, List<PointD> geo, int phaseshift = 0)
         {
-            var s1nodeid = node.Attribute("s1node").Value;
-            var s2nodeid = node.Attribute("s2node").Value;
+            var s1nodeid = node.Attribute("s1node")?.Value;
+            var s2nodeid = node.Attribute("s2node")?.Value;
 
             Device d = new Device
             {
@@ -108,15 +108,27 @@ namespace MainPower.Osi.Enricher
             lock (Devices) lock (Nodes)
                 {
                     Node n1, n2;
-                    if (Nodes.ContainsKey(n1id))
+                    if (string.IsNullOrWhiteSpace(n1id))
+                    {
+                        n1 = null;
+                    }
+                    else if (Nodes.ContainsKey(n1id))
+                    {
                         n1 = Nodes[n1id];
+                    }
                     else
                     {
                         n1 = new Node() { Id = n1id };
                         Nodes.Add(n1id, n1);
                     }
-                    if (Nodes.ContainsKey(n2id))
+                    if (string.IsNullOrWhiteSpace(n2id))
+                    {
+                        n2 = null;
+                    }
+                    else if (Nodes.ContainsKey(n2id))
+                    {
                         n2 = Nodes[n2id];
+                    }
                     else
                     {
                         n2 = new Node() { Id = n2id };
@@ -126,8 +138,8 @@ namespace MainPower.Osi.Enricher
                     d.Node2 = n2;
 
                     Devices.Add(d.Id, d);
-                    n1.Devices.Add(d);
-                    n2.Devices.Add(d);
+                    n1?.Devices.Add(d);
+                    n2?.Devices.Add(d);
                 }
             return true;
         }
@@ -287,15 +299,26 @@ namespace MainPower.Osi.Enricher
                 return;
             int i = 0;
             var sources = Sources.Values.ToList();
+            //TODO tidy this up
             while (!Devices.ContainsKey(sources[i].DeviceId) && i < Sources.Count)
             {
                 i++;
             }
             if (i < sources.Count)
                 TraceNodeConnectivity(Devices[sources[i].DeviceId], sources[i]);
+            
+            //if (_log.IsDebugEnabled)
+            {
+                foreach (var device in (from d in Devices.Values where !d.ConnectivityMark select d))
+                {
+                    //TODO: change to debug
+                    Info($"Device is disconnected", device.Id, device.Name);
+                }
+            }
 
             TimeSpan runtime = DateTime.Now - start;
             Info($"Connectivity check: {GetDisconnectedCount()} of {Devices.Count} devices disconnected ({runtime.TotalSeconds} seconds)");
+
         }
 
         /// <summary>
@@ -328,6 +351,8 @@ namespace MainPower.Osi.Enricher
                 {
                     traceNode = set.d.Node1;
                 }
+                if (traceNode == null)
+                    continue;
                 foreach (Device dd in traceNode.Devices)
                 {
                     if (dd != set.d)
@@ -465,7 +490,7 @@ namespace MainPower.Osi.Enricher
                         set.d.SP2S[s].N1IntDistance = set.distance + d.Length;
                     traceNode = set.d.Node1;
                 }
-                if (set.d.SwitchState || set.d.Type != DeviceType.Switch)
+                if (set.d.SwitchState || set.d.Type != DeviceType.Switch && traceNode != null)
                 {
                     foreach (Device dd in traceNode.Devices)
                     {
@@ -497,7 +522,7 @@ namespace MainPower.Osi.Enricher
                 //check that we have the same phases on both sides
                 //TODO implement for transformers
                 //lets leave transformers alone at the moment because the rules are different
-                if (d.Type != DeviceType.Transformer)
+                if (d.Type != DeviceType.Transformer && d.Type != DeviceType.Load)
                 {
                     //t is a temporary array used to track matched phases
                     int[] t = new int[3];
@@ -584,6 +609,30 @@ namespace MainPower.Osi.Enricher
             {
                 d.PrintPFResults();
             }
+        }
+
+        public void ExportExtraDeviceInfo()
+        {
+            XDocument doc = new XDocument();
+            XElement data = new XElement("data", new XAttribute("type", "Electric Distribution Extra"), new XAttribute("timestamp", "TODO"), new XAttribute("format", "1.0"));
+            XElement groups = new XElement("groups");
+            doc.Add(data);
+            data.Add(groups);
+            var devices = (from i in Devices.Values where i.Type == DeviceType.Switch || i.Type == DeviceType.Load select i).GroupBy(i => i.GroupId);
+            foreach (var group in devices)
+            {
+                XElement xgroup = new XElement("group", new XAttribute("id", group.Key));
+                groups.Add(xgroup);
+                foreach (var device in group)
+                {
+                    if (device.Geometry.Any())
+                    {
+                        XElement element = new XElement("element", new XAttribute("type", "Device"), new XAttribute("id", device.Id), new XAttribute("latitude", device.Geometry[0].Y.ToString()), new XAttribute("longitude", device.Geometry[0].X.ToString()));
+                        xgroup.Add(element);
+                    }
+                }
+            }
+            doc.Save(Path.Combine(Enricher.I.Options.OutputPath, "DeviceInfo.xml"));
         }
 
         /// <summary>
@@ -701,8 +750,8 @@ namespace MainPower.Osi.Enricher
                 foreach (Device d in Devices.Values)
                 {
                     string[] fieldData = new string[14];
-                    fieldData[0] = d.Node1.Id;
-                    fieldData[1] = d.Node2.Id;
+                    fieldData[0] = d.Node1?.Id ?? "";
+                    fieldData[1] = d.Node2?.Id ?? "";
                     fieldData[2] = d.Id;
                     fieldData[3] = d.Name;
                     fieldData[4] = d.GroupId;

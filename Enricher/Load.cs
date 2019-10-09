@@ -26,18 +26,40 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
+#if !nofixes
                 ParentGroup.AddMissingPhases(Node, true);
-
+                if (string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID1)?.Value) &&
+                    string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID2)?.Value) &&
+                    string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID3)?.Value) &&
+                    string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID1)?.Value) &&
+                    string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID2)?.Value) &&
+                    string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID3)?.Value))
+                {
+                    Error("All phases are belong to null, now it 3 phase");
+                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "1");
+                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "2");
+                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "3");
+                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, "1");
+                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, "2");
+                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, "3");
+                }
+#endif
+                ParentGroup.UpdateLinkId(Id, Name);
+                UpdateId(Name);
 
                 if (Name.StartsWith("Streetlight"))
                 {
+                    Error("I'm a streetlight");
+#if !nofixes
                     ParentGroup.SetLayerFromDatalinkId(Id, "Loads", "Loads", "Default", "Default");
                     ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_SL, 1.0, 1.0);
-                    ParentGroup.RemoveDataLinksFromSymbols(Id);
+                    ParentGroup.RemoveDataLinkFromSymbols(Id);
                     Node.Remove();
+#endif
                 }
                 else
                 {
+#if !nofixes
                     Node.SetAttributeValue("aorGroup", "1");
                     Node.SetAttributeValue("nominalState1", "True");
                     Node.SetAttributeValue("nominalState2", "True");
@@ -47,6 +69,7 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue("baseKV", "0.4000");
                     Node.SetAttributeValue("connectionType", "Wye-G");
                     Node.SetAttributeValue("loadProfileType", "Conforming");
+#endif
                     double nomLoad = 3;
                     int phases = 0;
 
@@ -57,7 +80,6 @@ namespace MainPower.Osi.Enricher
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
                         phases++;
 
-                    //string icpType = DataManager.I.RequestRecordById<Icp>(Node.Attribute("name").Value)
                     Icp icp = DataManager.I.RequestRecordById<Icp>(Node.Attribute("name").Value);
                     string icpType = icp?[LOAD_ICP_TYPE];
                     double? load = icp?.AsDouble(LOAD_ICP_LOAD);
@@ -76,14 +98,11 @@ namespace MainPower.Osi.Enricher
                         load /= 72;
                     }
                     
-
-                    //double? load = nomLoad;
                     if (phases != 0)
                         load /= phases;
                     else
                         Error("No phase IDs are set");
 
-                    //TODO: we need to unset the unused phases in case they are changed from export to export
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
                     {
                         Node.SetAttributeValue("nominalKW1", load?.ToString("N2"));
@@ -127,8 +146,14 @@ namespace MainPower.Osi.Enricher
                             ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_UNKNOWN, 2.0);
                             break;
                     }
-                    //ParentGroup.SetSymbolNameByDataLink(Id, "Symbol 13", 2.0);
+                    double voltage = double.Parse(Node.Attribute(IDF_DEVICE_BASEKV).Value);
+                    Node.SetAttributeValue("ratedKV", (voltage * 1.2).ToString());
+
+                    var geo = ParentGroup.GetSymbolGeometry(Id);
+                    Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Load, geo);
+#if !nofixes
                     ParentGroup.SetLayerFromDatalinkId(Id, "Loads", "Loads", "Default", "Default");
+#endif
                 }
             }
             catch (Exception ex)

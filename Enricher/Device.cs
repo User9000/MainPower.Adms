@@ -6,6 +6,9 @@ using System.Collections.Generic;
 
 namespace MainPower.Osi.Enricher
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [Serializable]
     [MessagePackObject]
     public class Device

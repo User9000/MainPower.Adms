@@ -9,7 +9,6 @@ namespace MainPower.Osi.Enricher
     {
 
     }
-
     internal class T1Fuse : DataType
     {
 
@@ -22,12 +21,10 @@ namespace MainPower.Osi.Enricher
     {
 
     }
-
     internal class T1Transformer : DataType
     {
 
     }
-
     internal class OsiScadaPoint : DataType
     {
         public const string SCADA_KEY = "Key";
@@ -40,7 +37,6 @@ namespace MainPower.Osi.Enricher
             }
         }
     }
-
     internal class OsiScadaStatus : OsiScadaPoint
     {
         

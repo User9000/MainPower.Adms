@@ -19,6 +19,8 @@ namespace MainPower.Osi.Enricher
         protected abstract bool OnInitialize();
         internal abstract T RequestRecordByIndex<T>(string resourceIndexName, string resourceIndexValue, string id) where T : DataType, new();
         internal abstract T RequestRecordByColumn<T>(string resourceIndexName, string resourceIndexValue, string id, bool exact) where T : DataType, new();
+        internal abstract bool SetVale<T>(object indexValue, string columnName, object val) where T : DataType, new();
+        internal abstract bool Save<T>() where T : DataType, new();
 
     }
 
@@ -106,6 +108,45 @@ namespace MainPower.Osi.Enricher
                 Fatal(ex.Message);
                 return null;
             }
+        }
+
+        
+        internal override bool SetVale<T>(object indexValue, string columnName, object val)
+        {
+            try
+            {
+                string c = Data.Columns[IndexColumn].DataType == typeof(string) ? "'" : "";
+
+                var result = Data.Select($"[{IndexColumn}] = {c}{indexValue.ToString()}{c}");
+                foreach (var r in result)
+                {
+                    r[columnName] = val;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+                return false;
+            }
+
+        }
+
+        internal override bool Save<T>()
+        {
+            try
+            {
+                Data.AcceptChanges();
+                Util.ExportDatatable(Data, Path.Combine(Enricher.I.Options.DataPath, FileName));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+                return false;
+            }
+
+
         }
     }
     /*

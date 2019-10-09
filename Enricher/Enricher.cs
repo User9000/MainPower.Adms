@@ -31,7 +31,7 @@ namespace MainPower.Osi.Enricher
         internal void Go(Options o)
         {
             DateTime start = DateTime.Now;
-            Options = o;
+            ValidateOptions(o);
             PrintLogHeader();
             if (o.ProcessTopology)
             {
@@ -92,14 +92,20 @@ namespace MainPower.Osi.Enricher
                                     if ((upstream ?? 0) != d.Upstream)
                                     {
                                         Warn($"Calculated nominal upstream side for switch [{d.Name}] ({d.Upstream}) is different from adms database ({upstream})");
+                                        DataManager.I.SetVale<AdmsSwitch>(d.Name, "NominalUpstreamSide", d.Upstream);
                                     }
                                 }
                             }
                         }
+                        DataManager.I.Save<AdmsSwitch>();
                     }
                     if (o.ExportShapeFiles)
                     {
                         Model.ExportToShapeFile($"{o.DataPath}\\");
+                    }
+                    if (o.ExportDeviceInfo)
+                    {
+                        Model.ExportExtraDeviceInfo();
                     }
                 }    
                 else
@@ -121,6 +127,17 @@ namespace MainPower.Osi.Enricher
             Info($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
         }
 
+        private void ValidateOptions(Options o)
+        {
+            if (o.Threads < 1 || o.Threads > 100)
+            {
+                Warn("Options.Threads was outside the range 1-100, setting to 10");
+                o.Threads = 10;
+            }
+            Options = o;
+        }
+
+        //TODO: get rid of this
         public  void ConvertIcpDatabase()
         {
             DataTable icps = Util.GetDataTableFromCsv($"{Options.DataPath}\\ICPs-source.csv", true);
@@ -170,7 +187,9 @@ namespace MainPower.Osi.Enricher
                         continue;
                     if (Options.ProcessTopology)
                         Model.RemoveGroup(group.Id);
-                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > 10)
+                    
+                    //No point running 1000 threads at once
+                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Options.Threads)
                         Thread.Sleep(100);
                     tasks.Add(Task.Run((Action)group.Process));
                 }

@@ -14,16 +14,16 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
+#if !nofixes
                 Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
                 Node.SetAttributeValue(IDF_FEEDER_SOURCE, "");
-                //if (Node.Attribute("substationCircuit") == null)
-                    Node.SetAttributeValue("substationCircuit", "");
-                //TODO
-                //ParentGroup.SetSwitchInSubstation(Node.Attribute(IDF_FEEDER_DEVICE).Value, IDF_TRUE);
+                Node.SetAttributeValue("substationCircuit", "");
+#endif
+                Node.SetAttributeValue("substationCircuit", "");
             }
             catch (Exception ex)
             {
-                Error($"Uncaught exception: {ex.Message}");
+                Fatal($"Uncaught exception: {ex.Message}");
             }
         }
     }

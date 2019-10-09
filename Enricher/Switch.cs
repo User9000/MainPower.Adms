@@ -99,7 +99,7 @@ namespace MainPower.Osi.Enricher
         private const string IDF_SWITCH_SCADA_S2_BR_VOLTS = "s2p3KV";
 
         private const double IDF_SCALE_GEOGRAPHIC = 1.0;
-        private const double IDF_SCALE_INTERNALS = 0.1;
+        private const double IDF_SCALE_INTERNALS = 0.2;
         private const double IDF_SWITCH_Z = double.NaN;
         #endregion
      
@@ -112,8 +112,8 @@ namespace MainPower.Osi.Enricher
         private string _baseKv = "";//GIS will set this to the operating voltage
         private string _bidirectional = IDF_TRUE;
         private string _forwardTripAmps = "";
-        private string _ganged = IDF_FALSE;
-        private string _loadBreakCapable = IDF_FALSE;
+        private string _ganged = IDF_TRUE;
+        private string _loadBreakCapable = IDF_TRUE;
         private string _maxInterruptAmps = "";
         private string _ratedAmps = "";
         private string _ratedKv = "";
@@ -121,51 +121,39 @@ namespace MainPower.Osi.Enricher
         private string _switchType = "";
         private string _nominalUpstreamSide = "";
 
+        //others
+        private string _symbol = SYMBOL_SWITCH;
+        private DataType _t1Asset = null;
+        private DataType _admsAsset = null;
+
         internal Switch(XElement node, Group processor) : base(node, processor) { }
         
         internal override void Process()
         {
             try
             {
+#if !nofixes
                 ParentGroup.AddMissingPhases(Node);
 
-                var geo = ParentGroup.GetSymbolGeometry(Id);
-
-                if (Node.Attribute(GIS_T1_ASSET)!= null)
-                    T1Id = Node.Attribute(GIS_T1_ASSET).Value;
-                if (Node.Attribute(GIS_SWITCH_TYPE) != null)
-                    _gisswitchtype = Node.Attribute(GIS_SWITCH_TYPE).Value;
-                if (Node.Attribute(GIS_FUSE_RATING)!= null)
-                    _fuserating = Node.Attribute(GIS_FUSE_RATING).Value;
-                if (Node.Attribute(IDF_SWITCH_BIDIRECTIONAL) != null)
-                    _bidirectional = Node.Attribute(IDF_SWITCH_BIDIRECTIONAL).Value;
-                if (Node.Attribute(IDF_SWITCH_FORWARDTRIPAMPS) != null)
-                    _forwardTripAmps = Node.Attribute(IDF_SWITCH_FORWARDTRIPAMPS).Value;
-                if (Node.Attribute(IDF_SWITCH_REVERSETRIPAMPS) != null)
-                    _reverseTripAmps = Node.Attribute(IDF_SWITCH_REVERSETRIPAMPS).Value;
-                if (Node.Attribute(IDF_SWITCH_GANGED) != null)
-                    _ganged = Node.Attribute(IDF_SWITCH_GANGED).Value;
-                if (Node.Attribute(IDF_SWITCH_LOADBREAKCAPABLE) != null)
-                    _loadBreakCapable = Node.Attribute(IDF_SWITCH_LOADBREAKCAPABLE).Value;
-                if (Node.Attribute(IDF_SWITCH_MAXINTERRUPTAMPS) != null)
-                    _maxInterruptAmps = Node.Attribute(IDF_SWITCH_MAXINTERRUPTAMPS).Value;
-                if (Node.Attribute(IDF_SWITCH_RATEDAMPS) != null)
-                    _ratedAmps = Node.Attribute(IDF_SWITCH_RATEDAMPS).Value;
-                if (Node.Attribute(IDF_SWITCH_RATEDKV) != null)
-                    _ratedKv = Node.Attribute(IDF_SWITCH_RATEDKV).Value;
-                
-                //TODO: backport into GIS
-                //TODO: IDF bug?
                 Node.SetAttributeValue("inSubstation", null);
-
-                _switchType = Node.Attribute(IDF_SWITCH_SWITCHTYPE).Value;
 
                 if (Node.Attribute("baseKV").Value == "0.2300")
                 {
                     Node.SetAttributeValue("baseKV", "0.4000");
                     Debug("Overriding base voltage from 230V to 400V");
                 }
+                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
+#endif
+                CheckPhases();
+
+                var geo = ParentGroup.GetSymbolGeometry(Id);
+
+                T1Id = Node.Attribute(GIS_T1_ASSET)?.Value;
+                _gisswitchtype = Node.Attribute(GIS_SWITCH_TYPE)?.Value ?? "";
+                _fuserating = Node.Attribute(GIS_FUSE_RATING)?.Value;
                 _baseKv = Node.Attribute(IDF_SWITCH_BASEKV).Value;
+                //not sure this is required
+                _switchType = Node.Attribute(IDF_SWITCH_SWITCHTYPE).Value;
 
                 switch (_gisswitchtype)
                 {
@@ -174,58 +162,46 @@ namespace MainPower.Osi.Enricher
                         //basically a non ganged disconnector e.g. links
                         ProcessDisconnector();
                         _ganged = IDF_FALSE;
-                        _loadBreakCapable = IDF_FALSE;
+                        //TODO
+                        //_loadBreakCapable = IDF_FALSE;
                         break;
-                    case @"MV Isolator\HV Fuse":
-                        ProcessHVFuse();
+                    case @"MV Isolator\MV Switch":
+                    case @"MV Isolator\Air Break Switch":
+                    case @"MV Isolator\Disconnector":
+                    case @"MV Line Switch\Disconnector":
+                    case @"MV Line Switch\MV Gas Switch":
+                        ProcessDisconnector();
                         break;
+
                     case @"MV Isolator\Circuit Breaker - Substation Feeder":
                     case @"MV Isolator\Circuit Breaker - Substation General":
                     case @"MV Isolator\Circuit Breaker - Line":
-                        ProcessCircuitBreaker2();
-                        break;
-                    case @"MV Isolator\Air Break Switch":
-                        ProcessDisconnector();
-                        break;
-                    case @"MV Isolator\MV Switch":
-                        //TODO: sort this
-                        ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-                        Warn("Not sure what to do with switch type [MV Isolator\\MV Switch]");
+                    case @"MV Line Switch\Recloser":
+                    case @"MV Line Switch\Circuit Breaker - Line":
+                        ProcessCircuitBreaker();
                         break;
                     case @"MV Isolator\Earth Switch":
-                        ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_EARTH_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-
-                        break;
-                    case @"MV Isolator\Disconnector":
-                        ProcessDisconnector();
+                        //ProcessEarthSwitch();
+                        _symbol = SYMBOL_EARTH_SWITCH;
                         break;
                     case @"MV Isolator\HV Fuse Switch":
                         ProcessRingMainFuseSwitch();
                         break;
-                    //MV Line Switch
-                    case @"MV Line Switch\Circuit Breaker - Line":
-                        ProcessCircuitBreaker();
-                        break;
+                    case @"MV Isolator\HV Link":
                     case @"MV Line Switch\HV Link":
                         ProcessHVLinks();
                         break;
                     case @"MV Line Switch\HV Fuse":
+                    case @"MV Isolator\HV Fuse":
+                    case @"MV Line Switch\HV Tri - Fuse":
                         ProcessHVFuse();
                         break;
+                    case @"MV Line Switch\Sectionaliser"://TODO: should process this one differently
                     case @"MV Line Switch\Automated LBS":
                         ProcessEntec();
                         break;
-                    case @"MV Line Switch\Disconnector":
-                        ProcessDisconnector();
-                        break;
                     case @"MV Line Switch\Fuse Saver":
                         ProcessFuseSaver();
-                        break;
-                    case @"MV Line Switch\MV Gas Switch":
-                        //TODO
-                        break;
-                    case @"MV Line Switch\HV Tri - Fuse":
-                        ProcessHVFuse();
                         break;
                     //LV Line Switch
                     case @"LV Line Switch\OH LV Open Point":
@@ -263,15 +239,17 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue(IDF_SWITCH_RATEDKV, _ratedKv);
                 Node.SetAttributeValue(IDF_SWITCH_REVERSETRIPAMPS, _reverseTripAmps);
                 Node.SetAttributeValue(IDF_SWITCH_SWITCHTYPE, _switchType);
+
                 if (!string.IsNullOrWhiteSpace(_nominalUpstreamSide))
                     Node.SetAttributeValue(IDF_SWITCH_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
-
-                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
-                var scada = GenerateScadaLinking();
-
+                
                 //need to do this before the SCADA linking otherwise the datalink will be replaced
-                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
-
+                ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+#if !nofixes
+                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value, true);
+#endif
+                //TODO tidy this up
+                var scada = GenerateScadaLinking();
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
                     ParentGroup.AddGroupElement(scada.Item2);
@@ -280,8 +258,6 @@ namespace MainPower.Osi.Enricher
                 RemoveExtraAttributes();
 
                 Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Switch, geo);
-
-                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
             }
             catch (Exception ex)
             {
@@ -305,6 +281,7 @@ namespace MainPower.Osi.Enricher
             var status = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             
             //if we don't have the switch status, then assume we don't have any other telemtry either
+            //TODO this assumption needs to be documented
             if (status == null)
                 return ("", null);
             XElement x = new XElement("element");
@@ -319,6 +296,8 @@ namespace MainPower.Osi.Enricher
                 x.SetAttributeValue("p3State", status.Key);
 
             //we can't assign any of this telemtry without knowing what the upstream side of the switch is
+            //TODO emit a warning if not set
+            //TODO if upstream side changes we need to run enricher again to get the change?
             if (_nominalUpstreamSide == "1" || _nominalUpstreamSide == "2")
             {
                 //set the upstream and downstream nodes
@@ -326,19 +305,19 @@ namespace MainPower.Osi.Enricher
                 string ds = us == "1" ? "2" : "1";
 
                 var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps RØ");
-                if (rAmps != null)
-                {
+                if (rAmps != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value) && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+                {                        
                     x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
                     x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
                 }
                 var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps YØ");
-                if (yAmps != null)
+                if (yAmps != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value)  && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
                 {
                     x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
                     x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
                 }
                 var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps BØ");
-                if (bAmps != null)
+                if (bAmps != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value) && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
                 {
                     x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
                     x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
@@ -351,7 +330,7 @@ namespace MainPower.Osi.Enricher
                     x.SetAttributeValue($"s{us}AggregateKWUCF", "1");
 
                     x.SetAttributeValue($"s{ds}AggregateKW", "");
-                    x.SetAttributeValue($"s{ds}AggregateKWUCF", "");
+                    //x.SetAttributeValue($"s{ds}AggregateKWUCF", "");
                 }
                 else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MW")) != null)
                 {
@@ -366,7 +345,7 @@ namespace MainPower.Osi.Enricher
                     x.SetAttributeValue($"s{us}AggregateKVARUCF", "1");
 
                     x.SetAttributeValue($"s{ds}AggregateKVAR", "");
-                    x.SetAttributeValue($"s{ds}AggregateKVARUCF", "");
+                    //x.SetAttributeValue($"s{ds}AggregateKVARUCF", "");
                 }
                 else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MVar")) != null)
                 {
@@ -383,42 +362,42 @@ namespace MainPower.Osi.Enricher
                 }
                 */
                 var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R");
-                if (s1RYVolts != null)
+                if (s1RYVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
                 {
                     x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y");
-                if (s1YBVolts != null)
+                if (s1YBVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
                 {
                     x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B");
-                if (s1BRVolts != null)
+                if (s1BRVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
                 {
                     x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R2");
-                if (s2RYVolts != null)
+                if (s2RYVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s2phaseID1")?.Value))
                 {
                     x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y2");
-                if (s2YBVolts != null)
+                if (s2YBVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s2phaseID2")?.Value))
                 {
                     x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B2");
-                if (s2BRVolts != null)
+                if (s2BRVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s2phaseID3")?.Value))
                 {
                     x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
@@ -435,47 +414,21 @@ namespace MainPower.Osi.Enricher
                 
         }
 
-        #region Switch Type Processing
+#region Switch Type Processing
         
-        private void ProcessCircuitBreaker2()
+    
+        private void SetSymbol(OsiScadaStatus p, string normal, string quad)
         {
-            if (!string.IsNullOrEmpty(T1Id)) {
-                DataType asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
-                if (asset != null)
-                {
-                    ProcessCircuitBreaker();
-                    return;
-                }
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
-                if (asset != null)
-                {
-                    ProcessRingMainCb();
-                    return;
-                }
-                Error($"T1 asset number [{T1Id}] did not match HV Breaker or RMU asset");
-            }
-            else
-            {
-                Error("T1 asset number not set");
-            }
-
-            _bidirectional = IDF_TRUE;
-            _ganged = IDF_TRUE;
-            _loadBreakCapable = IDF_TRUE;
-
-            ProcessCircuitBreakerAdms();
-
-            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
             if (p != null)
             {
                 if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+                    _symbol = quad;
                 else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+                    _symbol = normal;
             }
             else
             {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+                _symbol = normal;
             }
         }
 
@@ -511,17 +464,7 @@ namespace MainPower.Osi.Enricher
             }
 
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
-            if (p != null)
-            {
-                if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-                else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
-            else
-            {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_HVFUSESWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
+            SetSymbol(p, SYMBOL_HVFUSESWITCH, SYMBOL_HVFUSESWITCH_QUAD);
         }
 
         private void ProcessRingMainSwitch()
@@ -555,64 +498,7 @@ namespace MainPower.Osi.Enricher
 
             }
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
-            if (p != null)
-            {
-                if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-                else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
-            else
-            {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
-        }
-        
-        private void ProcessRingMainCb()
-        {
-            _bidirectional = IDF_TRUE;
-            _ganged = IDF_TRUE;
-            _loadBreakCapable = IDF_TRUE;
-
-            //TODO: generally these won't be in the protection spreadsheet, will have generic settings
-            //TODO: how to link with the tx size?
-            ProcessCircuitBreakerAdms();
-
-            DataType asset = null;
-            if (T1Id == "")
-            {
-                Error($"No T1 asset number assigned");
-            }
-            else
-            {
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
-
-                if (asset != null)
-                {
-                    //TODO: validate operating voltage
-                    _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string, true);
-                    _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SW1] as string, asset[T1_SWITCH_SW2] as string, asset[T1_SWITCH_SW3] as string, asset[T1_SWITCH_SW4] as string);
-                }
-                else
-                {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
-                }
-
-            }
-            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
-            if (p != null)
-            {
-                if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-                else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
-            else
-            {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
+            SetSymbol(p, SYMBOL_SWITCH, SYMBOL_SWITCH_QUAD);
         }
 
         private void ProcessLVSwitch()
@@ -628,7 +514,7 @@ namespace MainPower.Osi.Enricher
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_SWITCH;
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVSWITCH, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+            _symbol = SYMBOL_LVSWITCH;
         }
 
         private void ProcessLVFuse()
@@ -644,7 +530,7 @@ namespace MainPower.Osi.Enricher
             //_ratedKv = "";
             //_reverseTripAmps = "";
             _switchType = IDF_SWITCH_TYPE_FUSE;
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LVFUSE, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+            _symbol = SYMBOL_LVFUSE;
         }
 
         private void ProcessFuseSaver()
@@ -687,7 +573,7 @@ namespace MainPower.Osi.Enricher
                 }
 
             }
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSESAVER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+            _symbol = SYMBOL_FUSESAVER;
         }
 
         private void ProcessEntec()
@@ -711,7 +597,8 @@ namespace MainPower.Osi.Enricher
                     //TODO: validate op voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
+                    //TODO
+                    //_loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
                     _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_DISCO_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
@@ -722,23 +609,14 @@ namespace MainPower.Osi.Enricher
 
             }
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
-            if (p != null)
-            {
-                if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-                else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
-            else
-            {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_ENTEC, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
+            SetSymbol(p, SYMBOL_ENTEC, SYMBOL_ENTEC_QUAD);
         }
 
         private void ProcessHVLinks()
         {
             _ganged = IDF_FALSE;
-            _loadBreakCapable = IDF_FALSE;//TODO
+            //TODO
+            //_loadBreakCapable = IDF_FALSE;//TODO
             _ratedAmps = "300";//confirmed by robert
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
@@ -764,7 +642,7 @@ namespace MainPower.Osi.Enricher
                 }
             }
             
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LINKS, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+            _symbol = SYMBOL_LINKS;
         }
 
         private void ProcessDisconnector()
@@ -786,7 +664,8 @@ namespace MainPower.Osi.Enricher
                     //TODO: validate rated voltage
                     _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
                     _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
+                    //TODO
+                    //_loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
                     _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_DISCO_RATED_VOLTAGE] as string);
                     ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
                 }
@@ -798,66 +677,69 @@ namespace MainPower.Osi.Enricher
             }
             
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
-            if (p != null)
-            {
-                if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-                else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
-            else
-            {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_DISCONNECTOR, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
+            SetSymbol(p, SYMBOL_DISCONNECTOR, SYMBOL_DISCONNECTOR_QUAD);
         }
-     
         private void ProcessCircuitBreaker()
         {
+
             _bidirectional = IDF_TRUE;
             _ganged = IDF_TRUE;
             _loadBreakCapable = IDF_TRUE;
 
+            if (!string.IsNullOrEmpty(T1Id))
+            {
+                _t1Asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
+                if (_t1Asset != null)
+                {
+                    ProcessT1CircuitBreaker();
+                }
+                else
+                {
+                    _t1Asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
+                    if (_t1Asset != null)
+                    {
+                        ProcessT1RingMainCb();
+                    }
+                    else
+                    {
+                        Error($"T1 asset number [{T1Id}] did not match HV Breaker or RMU asset");
+                    }
+                }
+            }
+            else
+            {
+                Error("T1 asset number not set");
+            }
+
             ProcessCircuitBreakerAdms();
 
-            DataType asset = null;
-            if (T1Id == "")
-            {
-                Error($"No T1 asset number assigned");
-            }
-            else
-            {
-                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
-
-                if (asset != null)
-                {
-                    //TODO: validate op voltage
-                    _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
-                    _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_HVCB_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
-                }
-                else
-                {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
-                }
-
-            }
-
-            
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
-            if (p != null)
-            {
-                if (p.QuadState)
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER_QUAD, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-                else
-                    ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
-            else
-            {
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CIRCUITBREAKER, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-            }
+            SetSymbol(p, SYMBOL_CIRCUITBREAKER, SYMBOL_CIRCUITBREAKER_QUAD);
         }
 
+        private void ProcessT1CircuitBreaker()
+        {
+
+            if (_t1Asset != null)
+            {
+                //TODO: validate op voltage
+                _ratedAmps = ValidatedRatedAmps(_t1Asset[T1_SWITCH_RATED_AMPS] as string);
+                _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
+                _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1_SWITCH_HVCB_RATED_VOLTAGE] as string);
+                ValidateSwitchNumber(_t1Asset[T1_SWITCH_SWNUMBER] as string);
+            }
+        }
+        private void ProcessT1RingMainCb()
+        {
+            if (_t1Asset != null)
+            {
+                //TODO: validate operating voltage
+                _ratedAmps = ValidatedRatedAmps(_t1Asset[T1_SWITCH_RATED_AMPS] as string, true);
+                _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
+                _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
+                ValidateSwitchNumber(_t1Asset[T1_SWITCH_SW1] as string, _t1Asset[T1_SWITCH_SW2] as string, _t1Asset[T1_SWITCH_SW3] as string, _t1Asset[T1_SWITCH_SW4] as string);
+            }
+        }
         private void ProcessCircuitBreakerAdms()
         {
             if (DataManager.I.RequestRecordById<AdmsSwitch>(Name) is DataType asset)
@@ -878,13 +760,13 @@ namespace MainPower.Osi.Enricher
                 _switchType = IDF_SWITCH_TYPE_BREAKER;
             }
         }
-
         private void ProcessHVFuse()
         {
             _bidirectional = IDF_TRUE;
             _forwardTripAmps = _reverseTripAmps = ValidateFuseTrip(_fuserating);
             _ganged = IDF_FALSE;
-            _loadBreakCapable = IDF_FALSE;
+            //TODO
+            //_loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "10000";//TODO check with sjw
             _ratedAmps = _forwardTripAmps == "" ? "" : (int.Parse(_forwardTripAmps) / 2).ToString();
             _switchType = IDF_SWITCH_TYPE_FUSE;
@@ -915,24 +797,24 @@ namespace MainPower.Osi.Enricher
                 }
             }
             
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_FUSE, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+         _symbol = SYMBOL_FUSE;
         }
-
         private void ProcessServiceFuse()
         {
             _bidirectional = IDF_TRUE;
             _forwardTripAmps = _reverseTripAmps = "";
             _ganged = IDF_FALSE;
-            _loadBreakCapable = IDF_FALSE;
+            //TODO
+            //_loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "";//TODO check with sjw
             _ratedAmps = "";//TODO?
             _switchType = "Fuse";
             _ratedKv = ValidateRatedVoltage(_baseKv, _baseKv, 1);
-            ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_SERVICE_FUSE, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+            _symbol = SYMBOL_SERVICE_FUSE;
         }
-        #endregion
+#endregion
 
-        #region Validation Routines
+#region Validation Routines
         /// <summary>
         /// Checks the rated voltage is greater than the operating voltage, and returns the validated rated voltage
         /// </summary>
@@ -1100,7 +982,7 @@ namespace MainPower.Osi.Enricher
                 return "";
             }
         }
-        #endregion
+#endregion
 
     }
 }

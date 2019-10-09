@@ -22,7 +22,9 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
+#if !nofixes
                 Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
+#endif
             }
             catch (Exception ex)
             {

@@ -34,6 +34,22 @@ namespace MainPower.Osi.Enricher
 
         }
 
+        public bool SetVale<T>(object indexValue, string columnName, object val) where T : DataType, new()
+        {
+            if (Datasets.ContainsKey(typeof(T).Name))
+                return Datasets[typeof(T).Name].SetVale<T>(indexValue, columnName, val);
+            else
+                return false;
+        }
+
+        public bool Save<T>() where T : DataType, new()
+        {
+            if (Datasets.ContainsKey(typeof(T).Name))
+                return Datasets[typeof(T).Name].Save<T>();
+            else
+                return false;
+        }
+
         /// <summary>
         /// Request a data record using a named column
         /// </summary>

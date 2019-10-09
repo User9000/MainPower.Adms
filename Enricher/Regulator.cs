@@ -19,24 +19,22 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                ParentGroup.AddMissingPhases(Node);
-
-                ParentGroup.SetSymbolNameByDataLink(Id, IDF_REGULATOR_SYMBOL, double.NaN, double.NaN, 2);
-                var geo = ParentGroup.GetSymbolGeometry(Id);
-
-                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
-
+#if !nofixes
                 //TOOD: Backport to GIS Extractor
+                ParentGroup.AddMissingPhases(Node);
+                
+                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
                 Node.SetAttributeValue(IDF_DEVICE_NOMSTATE1, IDF_TRUE);
                 Node.SetAttributeValue(IDF_DEVICE_NOMSTATE2, IDF_TRUE);
                 Node.SetAttributeValue(IDF_DEVICE_NOMSTATE3, IDF_TRUE);
-
                 Node.SetAttributeValue("ratedKV", "12");
                 Node.SetAttributeValue(GIS_T1_ASSET, null);
-
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Regulator, geo);
-
-                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value);
+                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value, false);
+#endif
+                //TODO
+                ParentGroup.SetSymbolNameByDataLink(Id, IDF_REGULATOR_SYMBOL, double.NaN, double.NaN, 2);
+                var geo = ParentGroup.GetSymbolGeometry(Id);
+                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Regulator, geo);               
             }
             catch (Exception ex)
             {

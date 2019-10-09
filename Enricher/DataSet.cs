@@ -18,5 +18,16 @@ namespace MainPower.Osi.Enricher
         {
             return Datasource.RequestRecordByColumn<T>(null, column, id, exact);
         }
+
+        public bool SetVale<T>(object indexValue, string columnName, object val) where T : DataType, new()
+        {
+            return Datasource.SetVale<T>(indexValue, columnName, val);
+        }
+
+        public bool Save<T>() where T : DataType, new()
+        {
+            return Datasource.Save<T>();
+        }
+
     }
 }

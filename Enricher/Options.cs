@@ -33,5 +33,11 @@ namespace MainPower.Osi.Enricher
 
         [Option("converticps", HelpText = "Convert the icp database", Default = false)]
         public bool ConvertIcps { get; set; }
+
+        [Option("exportdeviceinfo", HelpText = "Export extra device info", Default = true)]
+        public bool ExportDeviceInfo { get; set; }
+
+        [Option("threads", HelpText = "The number of threads for group processing", Default = 10)]
+        public int Threads { get; set; }
     }
 }

@@ -5,6 +5,9 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
+    /// <summary>
+    /// Reads IDF files and sorts them into groups
+    /// </summary>
     internal class FileManager : ErrorReporter
     {
         public static FileManager I { get; } = new FileManager();
@@ -16,7 +19,7 @@ namespace MainPower.Osi.Enricher
 
         public bool Initialize(string path)
         {
-            _log.Info("Sorting idfs...");
+            Info("Sorting idfs...");
             //Read all the xml files in the directory
             var files = Directory.GetFiles(path, "*.xml", SearchOption.TopDirectoryOnly);
             foreach (var file in files)
@@ -61,7 +64,7 @@ namespace MainPower.Osi.Enricher
                 }
             }
 
-            _log.Info("Reading Import Config...");
+            Info("Reading Import Config...");
             //Read all the groups we are going to import add them to the collection
             foreach (var group in ImportConfig.Content.Descendants("group"))
             {
@@ -69,7 +72,7 @@ namespace MainPower.Osi.Enricher
                 Groups.Add(g.Id, g);
             }
 
-            _log.Info("Loading groups from data files...");
+            Info("Loading groups from data files...");
             //loop through the data files and assign the elements to the groups
             foreach (var idf in DataFiles)
             {
@@ -88,7 +91,7 @@ namespace MainPower.Osi.Enricher
                 }
             }
 
-            _log.Info("Loading groups from display files...");
+            Info("Loading groups from display files...");
             //loop through the graphics files and assign the elements to the groups
             foreach (var idf in GraphicsFiles)
             {
