@@ -10,21 +10,21 @@ namespace MainPower.Osi.Enricher
         public string Name { get; set; }
         public bool InitializeFailIsFatal { get; set; }
 
-        internal bool Initialize()
+        public bool Initialize()
         {
             Info($"Initializing DataSource {Name}...");
             return OnInitialize();
         }
 
         protected abstract bool OnInitialize();
-        internal abstract T RequestRecordByIndex<T>(string resourceIndexName, string resourceIndexValue, string id) where T : DataType, new();
-        internal abstract T RequestRecordByColumn<T>(string resourceIndexName, string resourceIndexValue, string id, bool exact) where T : DataType, new();
-        internal abstract bool SetVale<T>(object indexValue, string columnName, object val) where T : DataType, new();
-        internal abstract bool Save<T>() where T : DataType, new();
+        //public abstract T RequestRecordByIndex<T>(string resourceIndexName, string resourceIndexValue, string id) where T : DataType, new();
+        public abstract T RequestRecord<T>(string resourceIndexName, string resourceIndexValue, string id, bool exact) where T : DataType, new();
+        public abstract bool SetVale<T>(object indexValue, string columnName, object val) where T : DataType, new();
+        public abstract bool Save<T>() where T : DataType, new();
 
     }
 
-    internal class CsvSource : DataSource
+    public class CsvSource : DataSource
     {
         private DataTable Data;
 
@@ -55,41 +55,28 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        internal override T RequestRecordByIndex<T>(string table, string columnName, string id)
+        public override T RequestRecord<T>(string table, string columnName, string id, bool exact)
         {
             try
             {
+                //TODO have a bunch of match types               
                 var s = Data.Columns[columnName].DataType == typeof(string) ? "'" : "";
-
-                var result = Data.Select($"[{columnName}] = {s}{id}{s}");
-                if (result.Length == 0)
+                //only string searches can be not exact
+                if (s == "" && !exact)
                 {
-                    Debug($"{table}: Not found with {columnName}:{id}");
+                    Warn("Can't have a non-exact non-string match");
                     return null;
                 }
-                else if (result.Length > 1)
-                {
-                    Warn($"{table}: More than one {table} found with {columnName}:{id}");
-                }
-                var obj = new T();
-                obj.FromDataRow(result[0]);
-                return obj;
-            }
-            catch (Exception ex)
-            {
-                Fatal(ex.Message);
-                return null;
-            }
-        }
 
-        internal override T RequestRecordByColumn<T>(string table, string columnName, string id, bool exact)
-        {
-            try
-            {
-                //var s = Data.Columns[columnName].DataType == typeof(string) ? "'" : "";
-                //TODO handle non string datatypes
-                //TODO handle exact
-                var result = Data.Select($"[{columnName}] LIKE '* {id}'");
+                DataRow[] result;
+                if (exact)
+                {
+                    result = Data.Select($"[{columnName}] = {s}{id}{s}");
+                }
+                else
+                {
+                    result = Data.Select($"[{columnName}] LIKE '* {id}'");
+                }
                 if (result.Length == 0)
                 {
                     Debug($"{table}: Not found with {columnName}:{id}");
@@ -111,7 +98,7 @@ namespace MainPower.Osi.Enricher
         }
 
         
-        internal override bool SetVale<T>(object indexValue, string columnName, object val)
+        public override bool SetVale<T>(object indexValue, string columnName, object val)
         {
             try
             {
@@ -132,7 +119,7 @@ namespace MainPower.Osi.Enricher
 
         }
 
-        internal override bool Save<T>()
+        public override bool Save<T>()
         {
             try
             {
@@ -150,19 +137,19 @@ namespace MainPower.Osi.Enricher
         }
     }
     /*
-    internal class SqlSource : DataSource
+    public class SqlSource : DataSource
     {
 
     }
-    internal class SqliteSource : DataSource
+    public class SqliteSource : DataSource
     {
 
     }
-    internal class OsiDatabaseSource : DataSource
+    public class OsiDatabaseSource : DataSource
     {
 
     }
-    internal class MsSqlSource : DataSource
+    public class MsSqlSource : DataSource
     {
 
 

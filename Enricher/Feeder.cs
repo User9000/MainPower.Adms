@@ -3,14 +3,14 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class Feeder : Element
+    public class Feeder : Element
     {
         public Feeder(XElement node, Group processor) : base(node, processor) { }
 
         private const string IDF_FEEDER_SOURCE = "source";
         private const string IDF_FEEDER_DEVICE = "primary";
 
-        internal override void Process()
+        public override void Process()
         {
             try
             {
@@ -19,7 +19,6 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue(IDF_FEEDER_SOURCE, "");
                 Node.SetAttributeValue("substationCircuit", "");
 #endif
-                Node.SetAttributeValue("substationCircuit", "");
             }
             catch (Exception ex)
             {

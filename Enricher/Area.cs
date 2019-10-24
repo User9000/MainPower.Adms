@@ -6,7 +6,7 @@ namespace MainPower.Osi.Enricher
     /// <summary>
     /// Represents the IDF Area element
     /// </summary>
-    internal class Area : Element
+    public class Area : Element
     {
         /// <summary>
         /// Creates a new Area
@@ -18,7 +18,7 @@ namespace MainPower.Osi.Enricher
         /// <summary>
         /// Process custom logic for Areas
         /// </summary>
-        internal override void Process()
+        public override void Process()
         {
             try
             {

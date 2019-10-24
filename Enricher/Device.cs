@@ -84,15 +84,23 @@ namespace MainPower.Osi.Enricher
         /// Phase Identifiers
         /// </summary>
         [Key(11)]
-        public short[,] PhaseID { get; set; } = new short[2,3];
+        public short[,] PhaseID { get; set; } = new short[2, 3];
 
         /// <summary>
         /// The Geometry of the device
         /// </summary>
         [Key(12)]
-        public List<PointD> Geometry { get; set; } = new List<PointD>();
+        public List<Point> Geometry { get; set; } = new List<Point>();
 
+        [Key(13)]
+        public string SymbolName { get; set; }
 
+        [Key(14)]
+        public string ScadaKey { get; set; }
+
+        [IgnoreMember]
+        public bool Trace { get; set;} = false;
+        
 
         [JsonIgnore]
         [IgnoreMember]

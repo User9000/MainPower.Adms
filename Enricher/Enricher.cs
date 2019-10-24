@@ -8,9 +8,9 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class Enricher : ErrorReporter
+    public class Enricher : ErrorReporter
     {
-        internal static Enricher I { get; } = new Enricher();
+        public static Enricher I { get; } = new Enricher();
 
         public Options Options { get; set; }
         
@@ -18,17 +18,17 @@ namespace MainPower.Osi.Enricher
         private const string ICP_Month = "Month";
         private const string ICP_Consumption = "Consumption";
 
-        internal Dictionary<string, double> IcpConsumption { get; set; }
+        public Dictionary<string, double> IcpConsumption { get; set; }
         
-        internal int TransformerCount { get; set; }
-        internal int LineCount { get; set; }
-        internal int CapCount { get; set; }
-        internal int SwitchCount { get; set; }
-        internal int LoadCount { get; set; }
+        public int TransformerCount { get; set; }
+        public int LineCount { get; set; }
+        public int CapCount { get; set; }
+        public int SwitchCount { get; set; }
+        public int LoadCount { get; set; }
 
-        internal NodeModel Model { get; set; } = new NodeModel();
+        public NodeModel Model { get; set; } = new NodeModel();
 
-        internal void Go(Options o)
+        public void Go(Options o)
         {
             DateTime start = DateTime.Now;
             ValidateOptions(o);
@@ -70,6 +70,7 @@ namespace MainPower.Osi.Enricher
             {
                 Model.ValidateConnectivity();
                 Model.ValidateBaseVoltages();
+                Model.OverrideSinglePhasing();
                 Model.ValidatePhasing();
                 //Model.PrintPFDetailsByName("");
                 
@@ -101,12 +102,14 @@ namespace MainPower.Osi.Enricher
                     }
                     if (o.ExportShapeFiles)
                     {
-                        Model.ExportToShapeFile($"{o.DataPath}\\");
+                        Model.ExportToShapeFile($"{o.OutputPath}\\");
                     }
                     if (o.ExportDeviceInfo)
                     {
                         Model.ExportExtraDeviceInfo();
                     }
+                    //TODO
+                    Line.ExportConductors();
                 }    
                 else
                 {
@@ -170,7 +173,7 @@ namespace MainPower.Osi.Enricher
             Util.ExportDatatable(icp2, $"{Options.DataPath}\\ICPs.csv");
         }
 
-        internal bool ProcessImportConfiguration()
+        public bool ProcessImportConfiguration()
         {
             FileManager fm = FileManager.I;
             if (!fm.Initialize(Options.InputPath))

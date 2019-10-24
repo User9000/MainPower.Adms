@@ -1,4 +1,5 @@
-﻿using MessagePack;
+﻿using EGIS.ShapeFileLib;
+using MessagePack;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,14 @@ using System.Text;
 
 namespace MainPower.Osi.Enricher
 {
-    static class Util
+    public enum MatchMode
+    {
+        Exact,
+        Like,
+        WholeWord
+    }
+
+    public static class Util
     {
         private static Random random = new Random();
         public static string RandomString(int length)
@@ -28,7 +36,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="path"></param>
         /// <param name="isFirstRowHeader"></param>
         /// <returns></returns>
-        internal static DataTable GetDataTableFromCsv(string path, bool isFirstRowHeader)
+        public static DataTable GetDataTableFromCsv(string path, bool isFirstRowHeader)
         {
             path = Path.GetFullPath(path);
             string header = isFirstRowHeader ? "Yes" : "No";
@@ -150,9 +158,21 @@ namespace MainPower.Osi.Enricher
                 return b.Deserialize(f) as T;
             }
         }
+
+        public static PointD[] PointToPointD(List<Point> points)
+        {
+            if (points == null)
+                throw new ArgumentNullException(nameof(points));
+            PointD[] result = new PointD[points.Count];
+            for (int i = 0; i < points.Count; i++)
+            {
+                result[i] = points[i].PointD;
+            }
+            return result;
+        }
     }
 
-    internal enum LogLevel
+    public enum LogLevel
     {
         Debug,
         Info,
@@ -170,9 +190,10 @@ namespace MainPower.Osi.Enricher
         Load,
         Regulator,
         ShuntCapacitor,
+        Generator,
     }
 
-    internal enum IdfFileType
+    public enum IdfFileType
     {
         Data,
         Graphics,
@@ -190,5 +211,48 @@ namespace MainPower.Osi.Enricher
         public double N1IntDistance { get; set; } = double.NaN;
         public double N2ExtDistance { get; set; } = double.NaN;
         public double N2IntDistance { get; set; } = double.NaN;
+    }
+    
+    [MessagePackObject]
+    public struct Point : IEquatable<Point>
+    {
+        [Key(0)]
+        public double X { get; set; }
+        [Key(1)]
+        public double Y { get; set; }
+        [IgnoreMember]
+        public PointD PointD
+        {
+            get
+            {
+                return new PointD { X = X, Y = Y };
+
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator ==(Point left, Point right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Point left, Point right)
+        {
+            return !(left == right);
+        }
+
+        public bool Equals(Point other)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

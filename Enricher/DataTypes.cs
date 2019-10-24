@@ -5,27 +5,27 @@ using System.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class T1Disconnector : DataType
+    public class T1Disconnector : DataType
     {
 
     }
-    internal class T1Fuse : DataType
+    public class T1Fuse : DataType
     {
 
     }
-    internal class T1HvCircuitBreaker : DataType
+    public class T1HvCircuitBreaker : DataType
     {
 
     }
-    internal class T1RingMainUnit : DataType
+    public class T1RingMainUnit : DataType
     {
 
     }
-    internal class T1Transformer : DataType
+    public class T1Transformer : DataType
     {
 
     }
-    internal class OsiScadaPoint : DataType
+    public class OsiScadaPoint : DataType
     {
         public const string SCADA_KEY = "Key";
 
@@ -37,7 +37,7 @@ namespace MainPower.Osi.Enricher
             }
         }
     }
-    internal class OsiScadaStatus : OsiScadaPoint
+    public class OsiScadaStatus : OsiScadaPoint
     {
         
         public const string SCADA_STATES = "pStates";
@@ -50,23 +50,23 @@ namespace MainPower.Osi.Enricher
             }
         }
     }
-    internal class OsiScadaAccumulator : OsiScadaPoint
+    public class OsiScadaAccumulator : OsiScadaPoint
     {
 
     }
-    internal class OsiScadaAnalog : OsiScadaPoint
+    public class OsiScadaAnalog : OsiScadaPoint
     {
 
     }
-    internal class AdmsSwitch : DataType
+    public class AdmsSwitch : DataType
     {
 
     }
-    internal class AdmsTransformer : DataType
+    public class AdmsTransformer : DataType
     {
 
     }
-    internal class Icp : DataType
+    public class Icp : DataType
     {
 
     }

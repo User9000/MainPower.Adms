@@ -605,6 +605,11 @@ namespace MainPower.Osi.ScadaConverter
                     p.NormalState = dt.Rows[i]["InitialDisc"] as string;
                     p.OnLabel = dt.Rows[i]["OnMsg"] as string;
                     p.OffLabel = dt.Rows[i]["OffMsg"] as string;
+
+                    if (!memoryTagFile)
+                    {
+                        p.Inverted = dt.Rows[i]["DConversion"] as string == "Reverse" ? true : false;
+                    }
                 }
                 else
                 {
@@ -616,7 +621,7 @@ namespace MainPower.Osi.ScadaConverter
                         r2 = double.Parse(dt.Rows[i]["MaxRaw"].ToString());
                         e1 = double.Parse(dt.Rows[i]["MinEU"].ToString());
                         e2 = double.Parse(dt.Rows[i]["MaxEU"].ToString());
-                        p.ScaleFactor = (e2 - e1)/ (r2 - r1);
+                        p.ScaleFactor = (e2 - e1) / (r2 - r1);
                         p.Offset = e1 - p.ScaleFactor * r1;
                     }
                     //alarms

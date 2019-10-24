@@ -8,11 +8,11 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class Substation : Element
+    public class Substation : Element
     {
         public Substation(XElement node, Group processor) : base(node, processor) { }
 
-        internal override void Process()
+        public override void Process()
         {
             try
             {

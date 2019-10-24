@@ -3,9 +3,10 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class Generator : Element
+    public class Generator : Element
     {
         private const string SYMBOL_GENERATOR = "Symbol 37";
+        private const string GEN_DEFAULT_MACHINE = "machineType_default";
 
         /// <summary>
         /// Represents a IDF Generator object
@@ -17,7 +18,7 @@ namespace MainPower.Osi.Enricher
         /// <summary>
         /// Process the Generator object
         /// </summary>
-        internal override void Process()
+        public override void Process()
         {
             try
             {
@@ -25,7 +26,7 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue("ratedKV", "0.500");
                 Node.SetAttributeValue("nominalKW", "1000");
                 Node.SetAttributeValue("nominalKVAR", "50");
-                Node.SetAttributeValue("machineType", "DEFAULT_MACHINE_TYPE");
+                Node.SetAttributeValue("machineType", GEN_DEFAULT_MACHINE);
                 Node.SetAttributeValue("connectionType", "Wye-G");
                 Node.SetAttributeValue("lowVoltageLimit", "6.351");
                 Node.SetAttributeValue("highVoltageLimit", "6.697");

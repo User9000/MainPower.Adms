@@ -28,7 +28,7 @@ namespace MainPower.Osi.Enricher
         {
             
             if (Datasets.ContainsKey(typeof(T).Name))
-                return Datasets[typeof(T).Name].RequestRecord<T>(id);
+                return Datasets[typeof(T).Name].RequestRecordByIndex<T>(id);
             else
                 return null;
 

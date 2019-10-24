@@ -4,14 +4,19 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class Idf
+    public class Idf
     {
         private string _fullFileName = "";
 
         public XDocument Content { get; set; }
         public IdfFileType Type { get; set; }
         public string FileName { get; private set; }
+        
+        //TODO: just for data\graphics idfs, should we sub class this into a separate type?
         public Dictionary<string, XElement> GroupElements { get; set; } = new Dictionary<string, XElement>();
+
+        //TODO: just for the import config.  should we sub class this into a import config type?
+        public XElement Groups { get; set; }
         public string FullFileName
         {
             get

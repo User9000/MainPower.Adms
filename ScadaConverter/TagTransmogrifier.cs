@@ -880,8 +880,19 @@ namespace MainPower.Osi.ScadaConverter
                 //for discrete points, assign the default On/Off labels according to the override substitutions in the tagmap for the property
                 if (discrete)
                 {
-                    opoint.OnLabel = SubstituteLabel(ipoint.OnLabel, tmi.Substitutions, true);
-                    opoint.OffLabel = SubstituteLabel(ipoint.OffLabel, tmi.Substitutions, false);
+                    //we won't carry over inverted points.
+                    if (ipoint.Inverted)
+                    {
+                        _log.Warn($"Point {ipoint.PointName} is inverted");
+                        opoint.OffLabel = SubstituteLabel(ipoint.OnLabel, tmi.Substitutions, true);
+                        opoint.OnLabel = SubstituteLabel(ipoint.OffLabel, tmi.Substitutions, false);
+                    }
+                    else
+                    {
+                        opoint.OnLabel = SubstituteLabel(ipoint.OnLabel, tmi.Substitutions, true);
+                        opoint.OffLabel = SubstituteLabel(ipoint.OffLabel, tmi.Substitutions, false);
+
+                    }
                 }
                 //for analog points, apply units, scale factor override
                 if (!discrete)

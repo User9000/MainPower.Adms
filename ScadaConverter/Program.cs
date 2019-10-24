@@ -82,6 +82,8 @@ namespace MainPower.Osi.ScadaConverter
 
             ZipFile.CreateFromDirectory(adir.FullName, Path.Combine(o.Archive, "SCADA Export " + adir.Name + ".zip"));
 
+            ZipFile.CreateFromDirectory(o.Input, Path.Combine(o.Archive, "SCADA Input Data " + adir.Name + ".zip"));
+
         }
 
     }

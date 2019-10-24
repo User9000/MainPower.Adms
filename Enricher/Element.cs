@@ -6,15 +6,17 @@ namespace MainPower.Osi.Enricher
     /// <summary>
     /// 
     /// </summary>
-    abstract internal class Element : ErrorReporter
+    abstract public class Element : ErrorReporter
     {
-
         public XElement Node { get; private set; }
         public Group ParentGroup { get; private set; }
         public string Id { get; private set; }
         public string Name { get; protected set; }
         public string T1Id { get; protected set; }
-
+        public int S1Phases { get; protected set; } = 0;
+        public int S2Phases { get; protected set; } = 0;
+        
+        #region Common IDF attributes
         protected const string IDF_ELEMENT_NAME = "name";
         protected const string IDF_ELEMENT_ID = "id";
         protected const string IDF_ELEMENT_AOR_GROUP = "aorGroup";
@@ -23,6 +25,7 @@ namespace MainPower.Osi.Enricher
         protected const string IDF_DEVICE_NOMSTATE3 = "nominalState3";
         protected const string IDF_DEVICE_INSUBSTATION = "inSubstation";
         protected const string IDF_DEVICE_BASEKV = "baseKV";
+        protected const string IDF_DEVICE_RATEDKV = "ratedKV";
 
         protected const string IDF_DEVICE_S1_PHASEID1 = "s1phaseID1";
         protected const string IDF_DEVICE_S1_PHASEID2 = "s1phaseID2";
@@ -44,23 +47,31 @@ namespace MainPower.Osi.Enricher
 
         protected const string SCADA_NAME = "Name";
 
-        internal Element(XElement node, Group processor)
+        #endregion
+
+        public Element(XElement node, Group processor)
         {
             Node = node;
             ParentGroup = processor;
             Id = node.Attribute(IDF_ELEMENT_ID).Value;
             Name = node.Attribute(IDF_ELEMENT_NAME).Value;
+            T1Id = Node.Attribute(GIS_T1_ASSET)?.Value;
+
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID1)?.Value)) S1Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID2)?.Value)) S1Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID3)?.Value)) S1Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID1)?.Value)) S2Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID2)?.Value)) S2Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID3)?.Value)) S2Phases++;
+
             //TODO
             node.SetAttributeValue("aorGroup", "1");
         }
-
         protected void CheckPhasesSide1Only()
         {
-            if (string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID1)?.Value) &&
-                string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID2)?.Value) &&
-                string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID3)?.Value))
+            if (S1Phases == 0)
             {
-                Error("All phases are belong to null, now it 3 phase");
+                Error("All side 1 phases are null, defaulted to 3 phase");
                 Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "1");
                 Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "2");
                 Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "3");
@@ -69,23 +80,22 @@ namespace MainPower.Osi.Enricher
 
         protected void CheckPhases()
         {
-            if (string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID1)?.Value) &&
-                string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID2)?.Value) &&
-                string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID3)?.Value) &&
-                string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID1)?.Value) &&
-                string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID2)?.Value) &&
-                string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID3)?.Value))
+            CheckPhasesSide1Only();
+            if (S2Phases == 0)
             {
-                Error("All phases are belong to null, now it 3 phase");
-                Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "1");
-                Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "2");
-                Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "3");
+                Error("All side 2 phases are null, defaulted to 3 phase");
                 Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, "1");
                 Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, "2");
                 Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, "3");
             }
         }
 
+        protected void SetAllNominalStates()
+        {
+            Node.SetAttributeValue(IDF_DEVICE_NOMSTATE1, "True");
+            Node.SetAttributeValue(IDF_DEVICE_NOMSTATE2, "True");
+            Node.SetAttributeValue(IDF_DEVICE_NOMSTATE3, "True");
+        }
 
         protected void UpdateId(string id)
         {
@@ -93,8 +103,9 @@ namespace MainPower.Osi.Enricher
             Id = id;
         }
 
-        abstract internal void Process();
+        abstract public void Process();
 
+        #region Logging Overrides
         protected override void Debug(string message, [CallerMemberName]string caller = "")
         {
             Debug(message, Id, $"{Name}:{T1Id}", caller);
@@ -115,6 +126,7 @@ namespace MainPower.Osi.Enricher
         {
             Fatal(message, Id, $"{Name}:{T1Id}", caller);
         }
+        #endregion
     }
 
 }

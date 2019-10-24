@@ -5,7 +5,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class Transformer : Element
+    public  class Transformer : Element
     {
         #region Constants
         private const string SYMBOL_TX_UNK = "Symbol 34";
@@ -19,7 +19,7 @@ namespace MainPower.Osi.Enricher
         private const string SYMBOL_TX_II0 = "Symbol 1";
 
         private const double SYMBOL_TX_SCALE = 0.3;
-        private const double SYMBOL_TX_SCALE_INTERNALS = 0.3;
+        private const double SYMBOL_TX_SCALE_publicS = 0.3;
         private const double SYMBOL_TX_ROTATION = 0;
         
         private const string T1_TX_PRI_OPERATINGKV = "Op#Volt-Tx Power";            //the primary operating voltage
@@ -36,8 +36,6 @@ namespace MainPower.Osi.Enricher
         private const string T1_TX_SEC_AMPS = "Rated Current (Sec)";          //
         private const string T1_TX_SEC_RATEDKV = "Rated Voltage (Sec)";          //the secondary operating voltage
         private const string T1_TX_SEC_OPERATINGKV = "Op Voltage (Sec)";   //the base secondary voltage
-
-        private const string GIS_TAP = "mpwr_tap_position";
         
         private const string ADMS_TX_BASEKVA = "basekVA";                    //the base kVA to be used for calculation
         private const string ADMS_TX_S1BASEKV = "s1basekV";                  //the primary side base kV used for calculation
@@ -78,11 +76,14 @@ namespace MainPower.Osi.Enricher
         private const string IDF_TX_WINDING_WYEG = "Wye-G";
         private const string IDF_TX_WINDING_DELTA = "Delta";
 
+        private const string IDF_TX_DEFAULT_TYPE = "transformerType_default";
+
+        private const string GIS_TAP = "mpwr_tap_position";
         #endregion
 
+        #region Private fields
         //temporary fields from GIS
-        private string _gistap = "";
-        
+        private string _gistap = "";        
 
         //fields that should be set and validated by this class
         private string _bandwidth = "";
@@ -129,19 +130,21 @@ namespace MainPower.Osi.Enricher
         private short _phaseshift = 11;
         private string _vGroup;
 
-        DataType _t1Asset = null;
-        DataType _admsAsset = null;
+        private DataType _t1Asset = null;
+        private DataType _admsAsset = null;
+
+        #endregion
 
         public Transformer(XElement node, Group processor) : base(node, processor) { }
 
-        internal override void Process()
+        public override void Process()
         {
             try
             {
+                SetAllNominalStates();
                 var geo = ParentGroup.GetSymbolGeometry(Id);
-
-                _transformerType = "TRANSFORMER_TYPE_HV_MV_Transformer";
-                T1Id = Node.Attribute(GIS_T1_ASSET)?.Value;
+                //default transformer type
+                _transformerType = IDF_TX_DEFAULT_TYPE;
                 _s1BaseKv = Node.Attribute(IDF_TX_S1BASEKV)?.Value;
                 _s2BaseKv = Node.Attribute(IDF_TX_S2BASEKV)?.Value;
                 
@@ -157,21 +160,19 @@ namespace MainPower.Osi.Enricher
 
                 if (string.IsNullOrEmpty(T1Id))
                 {
-                    Error( $"T1 asset number is unset");
+                    Warn( $"T1 asset number is unset");
                 }
                 else
                 {
                     _t1Asset = DataManager.I.RequestRecordById<T1Transformer>(T1Id);
                     if (_t1Asset == null)
                     {                        
-                        Error( $"T1 asset number [{T1Id}] was not in T1");
+                        Warn( $"T1 asset number [{T1Id}] was not in T1");
                     }
                     else
                     {
-                        ValidateT1OperatingVoltages();
-                        ValidateT1Phases();
-                        ValidateT1kVA();
-                        ValidateT1VectorGroup();
+                        ParseT1kVA();
+                        ParseT1VectorGroup();
                         
                         if (_vGroup != "ZN")
                         {
@@ -197,6 +198,7 @@ namespace MainPower.Osi.Enricher
                     //If we don't even have the kva, then no point generating a type as it will just generate errors in maestro
                     if (string.IsNullOrWhiteSpace(_kva))
                     {
+                        //TODO: assume 1MVA or something
                         Error("Using generic transformer type as kva was unset");
                     }
                     else
@@ -205,10 +207,6 @@ namespace MainPower.Osi.Enricher
                         ParentGroup.AddGroupElement(GenerateTransformerType());
                     }
                 }
-
-                //TODO: confirm the ratings for this
-                _s1RatedKv = (_s1kV * 1.1 / 1000).ToString("N3");
-                _s2RatedKv = (_s2kV * 1.1 / 1000).ToString("N3");
 
                 Node.SetAttributeValue(IDF_TX_BANDWIDTH, _bandwidth);
                 Node.SetAttributeValue(IDF_TX_BIDIRECTIONAL, _bidirectional);
@@ -221,10 +219,10 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue(IDF_TX_REGULATIONTYPE, _regulationType);
                 Node.SetAttributeValue(IDF_TX_S1BASEKV, _s1BaseKv);
                 Node.SetAttributeValue(IDF_TX_S1CONNECTIONTYPE, _s1ConnectionType);
-                Node.SetAttributeValue(IDF_TX_S1RATEDKV, _s1RatedKv);
+                Node.SetAttributeValue(IDF_TX_S1RATEDKV, _s1BaseKv);
                 Node.SetAttributeValue(IDF_TX_S2BASEKV, _s2BaseKv);
                 Node.SetAttributeValue(IDF_TX_S2CONNECTIONTYPE, _s2ConnectionType);
-                Node.SetAttributeValue(IDF_TX_S2RATEDKV, _s2RatedKv);
+                Node.SetAttributeValue(IDF_TX_S2RATEDKV, _s2BaseKv);
                 Node.SetAttributeValue(IDF_TX_ROTATION, _standardRotation);
                 Node.SetAttributeValue(IDF_TX_TAPSIDE, _tapSide);
                 Node.SetAttributeValue(IDF_TX_TXTYPE, _transformerType);
@@ -245,7 +243,7 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue(IDF_TX_S2RATEDKV, "1");
                 }
 
-                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_INTERNALS, SYMBOL_TX_ROTATION);
+                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_publicS, SYMBOL_TX_ROTATION);
                 GenerateScadaLinking();
                 RemoveExtraAttributes();
 
@@ -257,66 +255,8 @@ namespace MainPower.Osi.Enricher
             }
         }
         #region Tech1 Validation
-        private void ValidateT1OperatingVoltages()
-        {
-            //Check the primary voltage in T1 is the same as GIS
-            var t1s1kv = _t1Asset.AsDouble(T1_TX_PRI_OPERATINGKV);
-            if (t1s1kv.HasValue)
-            {
-                if (t1s1kv.Value != _s1kV)
-                {
-                    Error($"T1 s1kv [{t1s1kv.Value}] doesn't equal GIS [{_s1kV}]");
-                }
-            }
-            else
-            {
-                Warn("T1 s1kv is unset");
-            }
-            //Check the secondary voltage is the same as GIS
-            //TODO: handle earthing transformers
-            var t1s2kv = _t1Asset.AsDouble(T1_TX_SEC_OPERATINGKV);
-            if (t1s2kv.HasValue)
-            {
-                if (t1s2kv == 20 || t1s2kv == 480)
-                    Warn("Split phase transformer detected :/");
-                if (t1s2kv == 230 || t1s2kv == 240 || t1s2kv == 14 || t1s2kv == 15 || t1s2kv == 16 || t1s2kv == 17 || t1s2kv == 20)
-                    t1s2kv = 400;
-                //TODO: this is actually 480V... not sure what to do with these yet
-                if (t1s2kv == 11)
-                    t1s2kv = 400;
 
-                if (t1s2kv.Value != _s2kV)
-                {
-                    Error($"T1 s2kv [{t1s2kv.Value}] doesn't equal GIS [{_s2kV}]");
-                }
-            }
-            else
-            {
-                Warn("T1 s2kv is unset or invalid");
-            }
-        }
-
-        private void ValidateT1Phases()
-        {
-            //TODO: also check the actual phases set on the object
-            int? v = _t1Asset?.AsInt(T1_TX_PHASES);
-            if (v == null)
-            {
-                Warn( "Number of phases is null, assuming 3");
-                _phases = 3;
-            }
-            else if (v == 1 || v == 3)
-            {
-                _phases =  v.Value;
-            }
-            else
-            {
-                Warn( $"Invalid number of phases [{v}], assuming 3");
-                _phases = 3;
-            }
-        }
-
-        private void ValidateT1kVA()
+        private void ParseT1kVA()
         {
             double? v = _t1Asset?.AsDouble(T1_TX_KVA);
             if (v != null && v != 0)
@@ -325,19 +265,29 @@ namespace MainPower.Osi.Enricher
                 _kva = v.Value.ToString();
             }
             else
-                Warn( "kVA is unset");
+                Warn("kVA is unset");
         }
 
-        private void ValidateT1VectorGroup()
+        private void ParseT1VectorGroup()
         {
             string v = _t1Asset?[T1_TX_VECTORGROUP];
             if (string.IsNullOrWhiteSpace(v))
             {
-                Warn("Vector group is unset, assuming Dyn11");
-                _s1ConnectionType = IDF_TX_WINDING_DELTA;
-                _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                _phaseshift = 11;
-                return;
+                if (S2Phases == 3)
+                {
+                    v = "Dyn11";
+                    Warn("Vector group is unset, assuming Dyn11");
+                }
+                else if (S2Phases == 1)
+                {
+                    v = "Ii0";
+                    Warn("Vector group is unset, assuming Ii0");
+                }
+                else
+                {
+                    Error("Vector group is unset, unable to guess vector group");
+                }
+
             }
 
             switch (v)
@@ -380,12 +330,24 @@ namespace MainPower.Osi.Enricher
                     return;
                 case "Single":
                 case "Ii0":
-                    //TODO: fiddle with the phases
                     _s1ConnectionType = IDF_TX_WINDING_DELTA;
                     _s2ConnectionType = IDF_TX_WINDING_WYEG;
                     _symbolName = SYMBOL_TX_II0;
-                    //TODO: check on this
-                    _phaseshift = 11;
+                    //phase shift is -30 for non SWER, but 0 for SWER.
+                    if (S1Phases == 1)
+                        _phaseshift = 0;
+                    else
+                        _phaseshift = 11;
+                    return;
+                case "Ii6":
+                    _s1ConnectionType = IDF_TX_WINDING_DELTA;
+                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
+                    _symbolName = SYMBOL_TX_II0;
+                    //phase shift is +150 for non SWER, but 180 for SWER
+                    if (S1Phases == 1)
+                        _phaseshift = 6;
+                    else
+                        _phaseshift = 5;
                     return;
                 case "ZN":
                     _s1ConnectionType = IDF_TX_WINDING_ZIGZAG;
@@ -535,8 +497,25 @@ namespace MainPower.Osi.Enricher
 
         private XElement GenerateTransformerType()
         {
-            //TODO: tidy this up
-            return XElement.Parse($"<element type=\"Transformer Type\" id=\"{Id}_type\" name=\"{Name}\" kva=\"{_kva}\" ratedKVA=\"{_kva}\" percentResistance=\"{_percresistance}\" percentReactance=\"{_percreactance}\" maxTap=\"{_maxTap}\" minTap=\"{_minTap}\" phases=\"{_phases}\" tapSteps=\"{_tapSteps}\" transformerType=\"{_transformerTypeType}\" lowNeutralResistance=\"{_nerResistance}\" />");
+            XElement t = new XElement("element");
+            t.Add(new XAttribute("type", "Transformer Type"));
+            t.Add(new XAttribute("id", $"{Id}_type"));
+            t.Add(new XAttribute("name", Name));
+            t.Add(new XAttribute("kva", _kva));
+            t.Add(new XAttribute("ratedKVA", _kva));
+            t.Add(new XAttribute("percentResistance", _percresistance));
+            t.Add(new XAttribute("percentReactance", _percreactance));
+            if (_vGroup != "ZN")
+            {
+                t.Add(new XAttribute("maxTap", _maxTap));
+                t.Add(new XAttribute("minTap", _minTap));
+                t.Add(new XAttribute("phases", _phases));
+                t.Add(new XAttribute("tapSteps", _tapSteps));
+            }
+            t.Add(new XAttribute("transformerType", _transformerTypeType));
+            //only include for WYG-G secondaries
+            t.Add(new XAttribute("lowNeutralResistance", _nerResistance));
+            return t;
         }
     }
 }

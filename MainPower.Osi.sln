@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HistorianExtractor", "Histo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScadaConverter", "ScadaConverter\ScadaConverter.csproj", "{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GmrCalc", "GmrCalc\GmrCalc.csproj", "{45E373E3-EB21-4B44-BAC5-41820C502046}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Leika2Adms", "Leika2Adms\Leika2Adms.csproj", "{89E096DF-5227-4734-808A-B6DC8408A55D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +35,10 @@ Global
 		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{45E373E3-EB21-4B44-BAC5-41820C502046}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{45E373E3-EB21-4B44-BAC5-41820C502046}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{45E373E3-EB21-4B44-BAC5-41820C502046}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{45E373E3-EB21-4B44-BAC5-41820C502046}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89E096DF-5227-4734-808A-B6DC8408A55D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89E096DF-5227-4734-808A-B6DC8408A55D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89E096DF-5227-4734-808A-B6DC8408A55D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89E096DF-5227-4734-808A-B6DC8408A55D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

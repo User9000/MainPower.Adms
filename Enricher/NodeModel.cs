@@ -2,10 +2,9 @@
 using MessagePack;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
@@ -40,7 +39,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(XElement node, string gid, DeviceType type, List<PointD> geo, int phaseshift = 0)
+        public bool AddDevice(XElement node, string gid, DeviceType type, List<Point> geo, int phaseshift = 0)
         {
             var s1nodeid = node.Attribute("s1node")?.Value;
             var s2nodeid = node.Attribute("s2node")?.Value;
@@ -245,8 +244,7 @@ namespace MainPower.Osi.Enricher
             Info("Saving the connectivity model...");
             try
             {
-                //TODO: skip this until we have sorted out the PointD thing
-                //Util.SerializeMessagePack(file, this);
+                Util.SerializeMessagePack(file, this);
             }
             catch (Exception ex)
             {
@@ -299,13 +297,11 @@ namespace MainPower.Osi.Enricher
                 return;
             int i = 0;
             var sources = Sources.Values.ToList();
-            //TODO tidy this up
-            while (!Devices.ContainsKey(sources[i].DeviceId) && i < Sources.Count)
+            //loop through all the sources and trace connectivity downstream
+            foreach (Source s in sources)
             {
-                i++;
+                TraceNodeConnectivity(Devices[s.DeviceId], s);
             }
-            if (i < sources.Count)
-                TraceNodeConnectivity(Devices[sources[i].DeviceId], sources[i]);
             
             //if (_log.IsDebugEnabled)
             {
@@ -328,6 +324,9 @@ namespace MainPower.Osi.Enricher
         /// <param name="s">The source of the trace</param>
         private void TraceNodeConnectivity(Device d, Source s)
         {
+            if (d == null)
+                return;
+
             long loop = 0;
             Stack<(Device d, Node n)> stack = new Stack<(Device, Node)>();
             stack.Push((d, d.Node1));
@@ -516,31 +515,77 @@ namespace MainPower.Osi.Enricher
                 if (!d.ConnectivityMark || d.Upstream == 0 || !d.SP2SMark)
                     continue;
 
+                //convert from upstream side (1 or 2) to array indexes (0 or 1)
                 int iUp = d.Upstream - 1;
                 int iDown = (iUp + 1) % 2;
 
-                //check that we have the same phases on both sides
-                //TODO implement for transformers
-                //lets leave transformers alone at the moment because the rules are different
-                if (d.Type != DeviceType.Transformer && d.Type != DeviceType.Load)
+                //check that we only have phases 1 on index 1, 2 on index 2 etc. 
+                // This isn't required by OSI, but it is what we are expecting as output from the Extractor
+                for (int i = 0; i < 3; i++)
                 {
-                    //t is a temporary array used to track matched phases
-                    int[] t = new int[3];
-                    //-1 is used as the default valie
-                    t[0] = t[1] = t[2] = -1;
-                    //loop through phases on the upstream side
+                    if (d.PhaseID[iUp, i] != 0 && d.PhaseID[iUp, i] != i + 1)
+                    {
+                        Warn($"Unexpected phase {d.PhaseID[iUp, i]} on index {i+1}.", d);
+                    }
+                    if (d.PhaseID[iDown, i] != 0 && d.PhaseID[iDown, i] != i + 1)
+                    {
+                        Warn($"Unexpected phase {d.PhaseID[iDown, i]} on index {i+1}.", d);
+                    }
+                }
+
+                //for non transformers, loads and generators check that we have the same phases on both sides
+                if (d.Type != DeviceType.Transformer && d.Type != DeviceType.Load && d.Type != DeviceType.Generator && d.Type != DeviceType.ShuntCapacitor)
+                {
                     for (int i = 0; i < 3; i++)
                     {
-                        //and match them up to phases on the downstream side
-                        for (int j = 0; j < 3; j++)
+                        if (d.PhaseID[iUp, i] != d.PhaseID[iDown, i])
                         {
-                            if (d.PhaseID[iUp, i] == d.PhaseID[iDown, j] && t[j] == -1)
-                                t[j] = i; //when we find a match on the lv side, mark that side as used in the t array
+                            Error($"Phasing on index {i+1} is not consistent on both sides of the device", d);
                         }
                     }
-                    //if there are any unmatched phases at the end of it, then raise a mismatch warning
-                    if (t[0] == -1 || t[1] == -1 || t[2] == -1)
-                        Warn($"Phases on both sides of device are different", d.Id, d.Name);
+                }
+
+                //for transformers, check that there isn't invalid downstream phasing
+                //for three phase transformers we should see three phases on both sides
+                //for single phase transformers we shouldn't see phases assigned to the unused HV phase(s)
+                if (d.Type == DeviceType.Transformer)
+                {
+                    //TODO: remove
+                    if (CountPhases(d.PhaseID, 0) == 1)
+                    {
+                        Error("Was not expecting SWER transformer in VS", d.Id, d.Name);
+                        return;
+                    }
+
+                    //count up the HV phases to determine if the transformer is three phase
+                    bool threephase = true;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (d.PhaseID[iUp, i] == 0)
+                        {
+                            threephase = false;
+                        }
+                    }
+
+                    //loop through the phases
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (threephase)
+                        {
+                            if (d.PhaseID[iUp, i] != d.PhaseID[iDown, i])
+                            {
+                                Error($"Phasing on index {i+1} is not consistent on both sides of the device", d);
+                            }
+                        }
+                        else
+                        {
+                            if (d.PhaseID[iUp, i] == 0 && d.PhaseID[iDown, i] != 0)
+                            {
+                                //this is an error because it will cause DPF to crash
+                                Error($"Phasing on upstream side of transformer on index {i+1} is unset, but downstream side is {d.PhaseID[iDown, i]}", d);
+                            }
+                        }
+                    }
                 }
 
                 //check that the phase IDs on this device match the phase IDs on all upstream devices
@@ -553,7 +598,7 @@ namespace MainPower.Osi.Enricher
                     {
                         //if the phase is not set (0) then it doens't need to be connected upstream
                         if (d.PhaseID[iUp, i] != 0 && d.PhaseID[iUp, i] != us.PhaseID[usUp, i])
-                            Warn($"Phase {i + 1} on side {d.Upstream} doesn't agree with upstream device {us.Name}", d.Id, d.Name);
+                            Error($"Phase {i + 1} on side {d.Upstream} doesn't agree with upstream device {us.Name}", d);
                     }
                 }
             }
@@ -766,22 +811,22 @@ namespace MainPower.Osi.Enricher
                     fieldData[13] = d.PhaseShift.ToString("N2");
                     if (d.Geometry == null)
                     {
-                        Warn("Not exporting device to shape file due to null geometry", d.Id, d.Name);
+                        Warn("Not exporting device to shape file due to null geometry", d);
                         continue; 
                     }
                     if (d.Geometry.Count == 0)
                     {
-                        Warn("Not exporting device to shape file due to missing geometry", d.Id, d.Name);
+                        Warn("Not exporting device to shape file due to missing geometry", d);
                         continue;
                     }
 
                     if (d.Type == DeviceType.Line)
                     {
-                        sfwLines.AddRecord(d.Geometry.ToArray(), d.Geometry.Count, fieldData);
+                        sfwLines.AddRecord(Util.PointToPointD(d.Geometry), d.Geometry.Count, fieldData);
                     }
                     else
                     {
-                        sfwDevices.AddRecord(new PointD[] { d.Geometry[0] }, 1, fieldData);
+                        sfwDevices.AddRecord(new PointD[] { d.Geometry[0].PointD }, 1, fieldData);
                     }
                 }
             }
@@ -802,10 +847,173 @@ namespace MainPower.Osi.Enricher
         /// <param name="file">The file to write to</param>
         private void ExportWebMercatorProjectionFile(string file)
         {
-            File.WriteAllText(file, "PROJCS[\"WGS_1984_Web_Mercator_Auxiliary_Sphere\",GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.017453292519943295]],PROJECTION[\"Mercator_Auxiliary_Sphere\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"Standard_Parallel_1\",0.0],PARAMETER[\"Auxiliary_Sphere_Type\",0.0],UNIT[\"Meter\",1.0]]");
+            //File.WriteAllText(file, "PROJCS[\"WGS_1984_Web_Mercator_Auxiliary_Sphere\",GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.017453292519943295]],PROJECTION[\"Mercator_Auxiliary_Sphere\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"Standard_Parallel_1\",0.0],PARAMETER[\"Auxiliary_Sphere_Type\",0.0],UNIT[\"Meter\",1.0]]");
+            File.WriteAllText(file, "GEOGCS[\"GCS_WGS_1984\", DATUM[\"D_WGS_1984\", SPHEROID[\"WGS_1984\", 6378137, 298.257223563]], PRIMEM[\"Greenwich\", 0], UNIT[\"Degree\", 0.017453292519943295]]");
         }
 
+        public void OverrideSinglePhasing()
+        {
+            foreach (Device d in Devices.Values)
+            {
+                if (d.Type == DeviceType.Transformer && CountPhases(d.PhaseID, 1) == 1)
+                {
+                    //TraceSinglePhasing(d);
+                }
+            }
+        }
 
+        private void ClearTrace()
+        {
+            foreach (Device d in Devices.Values)
+            {
+                d.Trace = false;
+            }
+        }
+
+        private int CountPhases(short[,] array, short index)
+        {
+            int result = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                if (array[index, i] != 0)
+                    result++;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Traces downstream of a single phse transformer and overwrites all phasing along the way
+        /// </summary>
+        /// <param name="d"></param>
+        private void TraceSinglePhasing(Device d)
+        {
+            if (CountPhases(d.PhaseID, 1) != 1 || d.Type != DeviceType.Transformer)
+            {
+                Warn("Not a single phase transformer", d.Id, d.Name);
+                return;
+            }
+
+            ///RW transformer
+            if (d.PhaseID[0,0] == 1 && d.PhaseID[0, 1] == 2 && d.PhaseID[0, 2] == 0)
+            {
+                d.PhaseID[1, 0] = 1;
+                d.PhaseID[1, 1] = 0;
+                d.PhaseID[1, 2] = 0;
+            }
+
+            ///WB transformer
+            else if (d.PhaseID[0, 0] == 0 && d.PhaseID[0, 1] == 2 && d.PhaseID[0, 2] == 3)
+            {
+                d.PhaseID[1, 0] = 0;
+                d.PhaseID[1, 1] = 2;
+                d.PhaseID[1, 2] = 0;
+            }
+
+            ///BR transformer
+            else if (d.PhaseID[0, 0] == 1 && d.PhaseID[0, 1] == 0 && d.PhaseID[0, 2] == 3)
+            {
+                d.PhaseID[1, 0] = 0;
+                d.PhaseID[1, 1] = 0;
+                d.PhaseID[1, 2] = 3;
+            }
+            ///R SWER
+            else if (d.PhaseID[0, 0] == 1 && d.PhaseID[0, 1] == 0 && d.PhaseID[0, 2] == 0)
+            {
+                d.PhaseID[1, 0] = 1;
+                d.PhaseID[1, 1] = 0;
+                d.PhaseID[1, 2] = 0;
+            }
+            ///W SWER
+            else if (d.PhaseID[0, 0] == 0 && d.PhaseID[0, 1] == 2 && d.PhaseID[0, 2] == 0)
+            {
+                d.PhaseID[1, 0] = 0;
+                d.PhaseID[1, 1] = 2;
+                d.PhaseID[1, 2] = 0;
+            }
+            ///B SWER
+            else if (d.PhaseID[0, 0] == 0 && d.PhaseID[0, 1] == 0 && d.PhaseID[0, 2] == 3)
+            {
+                d.PhaseID[1, 0] = 0;
+                d.PhaseID[1, 1] = 0;
+                d.PhaseID[1, 2] = 3;
+            }
+            else
+            {
+                Error("Unknown HV phasing", d.Id, d.Name);
+                return;
+            }
+
+            long loop = 0;
+
+            //each stack item is (device to trace through, node that 
+            Stack<(Device d, Node n, Device ud)> stack = new Stack<(Device, Node, Device)>();
+            stack.Push((d, d.Node1, null));
+            do
+            {
+
+                loop++;
+                var set = stack.Pop();
+                Node traceNode = null;
+                //if we haven't visited this node from source s, add new PFDetails for this source
+                if (set.d.Trace)
+                    continue;
+                else
+                    set.d.Trace = true;
+
+                var dontprocess = (!set.d.SwitchState && set.d.Type == DeviceType.Switch) || (set.d.Type == DeviceType.Transformer && d != set.d);
+                if (dontprocess)
+                    return;
+
+                if (!d.PhaseID.Equals(set.d.PhaseID))
+                {
+                    set.d.PhaseID[0, 0] = set.d.PhaseID[1, 0] = d.PhaseID[1, 0];
+                    set.d.PhaseID[0, 1] = set.d.PhaseID[1, 1] = d.PhaseID[1, 1];
+                    set.d.PhaseID[0, 2] = set.d.PhaseID[1, 2] = d.PhaseID[1, 2];                    
+                    Warn("Overwriting phasing", set.d.Id, set.d.Name);
+                }
+
+                //we are coming in from side 1
+                if (set.d?.Node1 == set.n)
+                {
+                    traceNode = set.d.Node2;
+                }
+                else if (set.d?.Node2 == set.n)
+                {
+                    traceNode = set.d.Node1;
+                }
+                
+                foreach (Device dd in traceNode?.Devices ?? Enumerable.Empty<Device>())
+                {
+                    if (dd != set.d)
+                    {
+                        stack.Push((dd, traceNode, set.d));
+                    }
+                }
+            }
+            while (stack.Count > 0);
+            Debug($"Trace took {loop} loops", d.Id, d.Name);
+        }
+
+        private void Debug(string message, Device d, [CallerMemberName]string caller = "")
+        {
+            Debug(message, d.Id, d.Name, caller);
+        }
+        private void Info(string message, Device d, [CallerMemberName]string caller = "")
+        {
+            Info(message, d.Id, d.Name, caller);
+        }
+        private void Warn(string message, Device d, [CallerMemberName]string caller = "")
+        {
+            Warn(message, d.Id, d.Name, caller);
+        }
+        private void Error(string message, Device d, [CallerMemberName]string caller = "")
+        {
+            Error(message, d.Id, d.Name, caller);
+        }
+        private void Fatal(string message, Device d, [CallerMemberName]string caller = "")
+        {
+            Fatal(message, d.Id, d.Name, caller);
+        }
 
     }
 }

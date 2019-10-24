@@ -20,9 +20,9 @@ namespace MainPower.Osi.Enricher
         private const double OriginShift = 2 * Math.PI * EarthRadius / 2;
 
         //Converts given lat/lon in WGS84 Datum to XY in Spherical Mercator EPSG:900913
-        public static PointD LatLonToMeters(double lat, double lon)
+        public static Point LatLonToMeters(double lat, double lon)
         {
-            var p = new PointD();
+            var p = new Point();
             p.X = lon * OriginShift / 180;
             p.Y = Math.Log(Math.Tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
             p.Y = p.Y * OriginShift / 180;
@@ -30,9 +30,9 @@ namespace MainPower.Osi.Enricher
         }
 
         //Converts XY PointD from (Spherical) Web Mercator EPSG:3785 (unofficially EPSG:900913) to lat/lon in WGS84 Datum
-        public static PointD MetersToLatLon(PointD m)
+        public static Point MetersToLatLon(Point m)
         {
-            var ll = new PointD();
+            var ll = new Point();
             ll.X = (m.X / OriginShift) * 180;
             ll.Y = (m.Y / OriginShift) * 180;
             ll.Y = 180 / Math.PI * (2 * Math.Atan(Math.Exp(ll.Y * Math.PI / 180)) - Math.PI / 2);

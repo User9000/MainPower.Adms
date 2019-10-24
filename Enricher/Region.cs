@@ -3,11 +3,11 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    internal class Region : Element
+    public class Region : Element
     {
         public Region(XElement node, Group processor) : base(node, processor) { }
 
-        internal override void Process()
+        public override void Process()
         {
             try
             {

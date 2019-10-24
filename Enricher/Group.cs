@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
-{
-    internal class Group : Element
+{ 
+    public class Group : Element
     {
+        private const string SYMBOL_DATALINK = "Symbol 23";
+
         private XElement _dataGroup = null;
         private Dictionary<string, XElement> _displayGroups = new Dictionary<string, XElement>();
-        internal bool NoData
+        public bool NoData
         {
             get
             {
@@ -49,7 +51,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="scale"></param>
         /// <param name="rotation"></param>
         /// <param name="z"></param>
-        internal void SetSymbolNameByDataLink(string id, string symbolName, double scale = double.NaN, double iScale = double.NaN, double rotation = double.NaN, double z = double.NaN)
+        public void SetSymbolNameByDataLink(string id, string symbolName, double scale = double.NaN, double iScale = double.NaN, double rotation = double.NaN, double z = double.NaN)
         {
             foreach (var group in _displayGroups.Values)
             {
@@ -83,376 +85,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-#if !nofixes
-        internal void SetStreetlightLayers()
-        {
-            //this shouold be called after everything else has been processed
-            foreach (var group in _displayGroups.Values)
-            {
-                string display = group.Document.Root.Attribute("displayName").Value;
-                var streetlights = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Symbol" && n.Attribute("name")?.Value == "DEFAULT");
-                foreach (var streetlight in streetlights)
-                {
-                    streetlight.SetAttributeValue("name", $"Symbol 24");
-                    streetlight.SetAttributeValue("library", $"MPNZ.LIB2");
-                    streetlight.SetAttributeValue("scale", $"1.0");
-                    streetlight.SetAttributeValue("layer", $"Layer_{display}_SL");
-                    streetlight.SetAttributeValue("overlay", $"Overlay_{display}_Default");
-                }
-
-                streetlights = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Line" && n.Attribute("layer")?.Value == "Layer_MPWR_ALWAYS_ON");
-                foreach (var streetlight in streetlights)
-                {
-                    streetlight.SetAttributeValue("layer", $"Layer_{display}_SL");
-                    streetlight.SetAttributeValue("overlay", $"Overlay_{display}_Default");
-                }
-            }
-        }
-        
-        /// <summary>
-        /// Finds all symbols with datalinks referring to capacitors and deletes them
-        /// </summary>
-        /// <param name="id"></param>
-        internal void RemoveCapacitorDataLinksFromSymbols()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value.StartsWith("mpwr_capac") ?? false);
-                foreach (var dataLink in dataLinks.ToList())
-                {
-                    dataLink.Remove();
-                }
-            }
-        }
-
-        internal void AddMissingPhases(XElement node, bool onesideonly = false)
-        {
-            if (node.Attribute(IDF_DEVICE_S1_PHASEID1) == null)
-                node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "");
-            if (node.Attribute(IDF_DEVICE_S1_PHASEID2) == null)
-                node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "");
-            if (node.Attribute(IDF_DEVICE_S1_PHASEID3) == null)
-                node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "");
-
-            if (!onesideonly)
-            {
-                if (node.Attribute(IDF_DEVICE_S2_PHASEID1) == null)
-                    node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, "");
-                if (node.Attribute(IDF_DEVICE_S2_PHASEID2) == null)
-                    node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, "");
-                if (node.Attribute(IDF_DEVICE_S2_PHASEID3) == null)
-                    node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, "");
-            }
-        }
-
-        
-        private void ReplaceSymbolLibraryName()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var symbols = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Symbol" && n.Attribute("library")?.Value == "OSI.LIB2");
-                foreach (var symbol in symbols)
-                {
-                    symbol.SetAttributeValue("library", "MPNZ.LIB2");
-                }
-            }
-        }
-
-        public void SetLayerFromVoltage(string id, string basekV, bool isSwitch)
-        {
-            SetLayerFromVoltage(id, double.Parse(basekV), isSwitch);
-        }
-
-        public void SetLayerFromVoltage(string id, double basekV, bool isSwitch)
-        {
-            if (basekV < 1)
-            {
-                SetLayerFromDatalinkId(id, "LV", "Internals", "Default", "Default");
-            }
-            else if (basekV < 30)
-            {
-                if (isSwitch)
-                    SetLayerFromDatalinkId(id, "HVSwitchgear", "Internals", "Default", "Default");
-                else 
-                    SetLayerFromDatalinkId(id, "HVDistribution", "Internals", "Default", "Default");
-            }
-            else  if (basekV < 100)
-            {
-                if (isSwitch)
-                    SetLayerFromDatalinkId(id, "HVSwitchgear", "Internals", "Default", "Default");
-                else
-                    SetLayerFromDatalinkId(id, "HVSubtransmission", "Internals", "Default", "Default");
-            }
-        }
-
-        public void SetLayerFromDatalinkId(string id, string layer, string internalsLayer, string overlay, string internalsOverlay)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                string display = group.Document.Root.Attribute("displayName").Value;
-                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var dataLink in dataLinks)
-                {
-                    var parent = dataLink.Parent;
-                    var internals = parent.Attribute("mpwr_internals")?.Value == "True";
-                    if (internals)
-                    {
-                        parent.SetAttributeValue("layer", $"Layer_{display}_{internalsLayer}");
-                        parent.SetAttributeValue("overlay", $"Overlay_{display}_{internalsOverlay}");
-                    }
-                    else
-                    {
-                        parent.SetAttributeValue("layer", $"Layer_{display}_{layer}");
-                        parent.SetAttributeValue("overlay", $"Overlay_{display}_{overlay}");
-                    }
-                }
-            }
-        }
-
-        private void DeleteTextElements()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-
-                var texts = group.Descendants("element").Where(n => n.Attribute("type").Value == "Text");
-
-                foreach (var text in texts.ToList())
-                {
-                    text.Remove();
-                }
-            }
-        }
-
-        private void SetPoleLayer()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                string display = group.Document.Root.Attribute("displayName").Value;
-                var poles = group.Descendants("element").Where(n => n.Attribute("type").Value == "Symbol" && n.Attribute("name")?.Value == "Symbol 23");
-                foreach (var pole in poles)
-                {
-                    pole.SetAttributeValue("layer", $"Layer_{display}_Poles");
-                    pole.SetAttributeValue("overlay", $"Overlay_{display}_Default");
-                    pole.SetAttributeValue("scale", "1.0");
-                }
-
-                //move the tranny symbols onto the pole layer
-                var trannys = group.Descendants("element").Where(n => n.Attribute("type").Value == "Symbol" && n.Attribute("name")?.Value == "Symbol 35");
-                foreach (var tranny in trannys)
-                {
-                    tranny.SetAttributeValue("layer", $"Layer_{display}_Poles");
-                    tranny.SetAttributeValue("overlay", $"Overlay_{display}_Default");
-                    tranny.SetAttributeValue("scale", "1.0");
-                    tranny.SetAttributeValue("z", "4");
-                }
-            }
-        }
-
-        private void SetTextLayer()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                string display = group.Document.Root.Attribute("displayName").Value;
-                var texts = group.Descendants("element").Where(n => n.Attribute("type").Value == "Text");
-                foreach (var text in texts)
-                {
-                    text.SetAttributeValue("layer", $"Layer_{display}_Text");
-                    text.SetAttributeValue("overlay", $"Overlay_{display}_Text");
-                }
-            }
-        }
-
-        private void SetInternalsOutlineLayer()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                string display = group.Document.Root.Attribute("displayName").Value;
-                var internals = group.Descendants("color").Where(n => n.Attribute("red").Value == "255" && n.Attribute("green").Value == "0" && n.Attribute("blue").Value == "128");
-                foreach (var intern in internals)
-                {
-                    intern.Parent.SetAttributeValue("layer", $"Layer_{display}_Internals");
-                    intern.Parent.SetAttributeValue("overlay", $"Overlay_{display}_Default");
-                }
-            }
-        }
-
-        private void SetStationOutlineLayer()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                string display = group.Document.Root.Attribute("displayName").Value;
-                var internals = group.Descendants("color").Where(n => n.Attribute("red").Value == "128" && n.Attribute("green").Value == "128" && n.Attribute("blue").Value == "0");
-                foreach (var intern in internals)
-                {
-                    intern.Parent.SetAttributeValue("layer", $"Layer_{display}_Stations");
-                    intern.Parent.SetAttributeValue("overlay", $"Overlay_{display}_Default");
-                }
-            }
-        }
-
-        private void DeleteInternals()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var elements = group.Descendants("element").Where(n => n.Attribute("mpwr_internals") != null);
-
-                foreach (var element in elements.ToList())
-                {
-                    element.SetAttributeValue("mpwr_internals", null);
-                }
-
-            }
-        }
-
-        private void SetText()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var texts = group.Descendants("element").Where(n => n.Attribute("type").Value == "Text");
-
-                foreach (var text in texts.ToList())
-                {
-                    //extract id from text
-                    var objId = text.Attribute("id").Value;
-                    objId = objId.Substring(4, objId.Length - 4);
-
-                    //TODO: convert to this
-                    //objId = objId[4..];
-                    objId = $"d_{objId}";
-
-                    //find matching object
-                    var device = group.Descendants("element").Where(n => n.Attribute("type").Value == "Symbol" && n.Attribute("id").Value == objId).FirstOrDefault();
-                    if (device != null)
-                    {
-                        var x = double.Parse(device.Attribute("x").Value);
-                        var y = double.Parse(device.Attribute("y").Value);
-
-                        if (text.Attribute("mpwr_internals")?.Value == "True")
-                        {
-                            x += 0.25;
-                            //text.SetAttributeValue("anchor", "Left");
-                            //text.SetAttributeValue("x", x.ToString());
-                            //text.SetAttributeValue("y", y.ToString());
-                            text.SetAttributeValue("fixedSize", "False");
-                            text.SetAttributeValue("maxFontSize", "50");
-                            text.SetAttributeValue("fontSize", "0.5");
-                        }
-                        else
-                        {
-                            x += 1;
-                            //text.SetAttributeValue("x", x.ToString());
-                            //text.SetAttributeValue("y", y.ToString());
-                            //text.SetAttributeValue("anchor", "Left");
-                            text.SetAttributeValue("fixedSize", "False");
-                            text.SetAttributeValue("maxFontSize", "50");
-                            text.SetAttributeValue("fontSize", "16");
-                        }
-                    }
-                }
-            }
-        }
-
-                /// <summary>
-        /// Set the InSubstation of a Switch with the given id
-        /// </summary>
-        /// <param name="value"></param>
-        internal void SetSwitchInSubstation(string id, string value)
-        {
-            var switches = _dataGroup.Descendants("element").Where(n => n.Attribute("id")?.Value == id);
-            foreach (var sw in switches)
-            {
-                //TODO attribute name constant
-                sw.SetAttributeValue("inSubstation", value);
-            }
-        }
-
-        /// <summary>
-        /// Finds all symbols with a given datalink id and deletes the datalink
-        /// </summary>
-        /// <param name="id"></param>
-        internal void RemoveDataLinkFromSymbols(string id)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var dataLink in dataLinks.ToList())
-                {
-                    dataLink.Remove();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Sets the width of all lines in the group
-        /// </summary>
-        /// <param name="width"></param>
-        internal void SetGlobalLineWidth(int width = 4)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                //lock (idf)
-                {
-                    var lines = group.Descendants("element").Where(n => n.Attribute("type").Value == "Line");
-                    foreach (var line in lines)
-                    {
-                        line.SetAttributeValue("width", width.ToString());
-                    }
-                }
-            }
-        }
-
-#endif
-
-        private void SetText2()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var texts = group.Descendants("element").Where(n => n.Attribute("type").Value == "Text");
-
-                foreach (var text in texts.ToList())
-                {
-                    text.SetAttributeValue("layer", "Layer_MainPower_Text");
-
-                    if (text.Attribute("mpwr_internals")?.Value == "True")
-                    {
-                        text.SetAttributeValue("anchor", "Left");
-                        text.SetAttributeValue("fixedSize", "False");
-                        text.SetAttributeValue("maxFontSize", "50");
-                        text.SetAttributeValue("fontSize", "0.5");
-                    }
-                    else
-                    {
-                        text.SetAttributeValue("anchor", "Left");
-                        text.SetAttributeValue("fixedSize", "False");
-                        text.SetAttributeValue("maxFontSize", "50");
-                        text.SetAttributeValue("fontSize", "16");
-                    }
-                }
-            }
-        }
-
-        private void SetPoles()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                string display = group.Document.Root.Attribute("displayName").Value;
-                var poles = group.Descendants("element").Where(n => n.Attribute("type").Value == "Symbol" && n.Attribute("name")?.Value == "Symbol 23");
-                foreach (var pole in poles)
-                {
-                    pole.SetAttributeValue("scale", "1.0");
-                }
-
-                //move the tranny symbols onto the pole layer
-                var trannys = group.Descendants("element").Where(n => n.Attribute("type").Value == "Symbol" && n.Attribute("name")?.Value == "Symbol 35");
-                foreach (var tranny in trannys)
-                {
-                    tranny.SetAttributeValue("scale", "1.0");
-                    tranny.SetAttributeValue("z", "4");
-                }
-            }
-        }
-
-        internal void AddColorToLine(string id, Color c)
+        public void AddColorToLine(string id, Color c)
         {
             foreach (var group in _displayGroups.Values)
             {
@@ -467,7 +100,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        internal void UpdateLinkId(string oldId, string newId)
+        public void UpdateLinkId(string oldId, string newId)
         {
             foreach (var group in _displayGroups.Values)
             {
@@ -491,8 +124,95 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        public void CreateDataLinkSymbol(string id)
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                var dataLinks = group.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id).ToList();
+                foreach (var dataLink in dataLinks)
+                {
+                    var parent = dataLink.Parent;
+
+                    double x = double.Parse(parent.Attribute("x").Value) - 1;
+                    double y = double.Parse(parent.Attribute("y").Value);
+
+                    XElement symbol = new XElement("element");
+                    symbol.Add(new XAttribute("id", parent.Attribute("id").Value + "_dlink"));
+                    symbol.Add(new XAttribute("type", "Symbol"));
+                    symbol.Add(new XAttribute("x", x.ToString()));
+                    symbol.Add(new XAttribute("y", y.ToString()));
+                    //symbol.Add(new XAttribute("overlay", parent.Attribute("overlay")?.Value??""));
+                    symbol.Add(new XAttribute("layer", parent.Attribute("layer")?.Value??""));
+                    symbol.Add(new XAttribute("library", "MPNZ.LIB2"));
+                    symbol.Add(new XAttribute("z", "4"));
+                    symbol.Add(new XAttribute("name", SYMBOL_DATALINK));
+                    symbol.Add(new XAttribute("scale", "0.5"));
+                    //symbol.Add(new XAttribute("maxSize", ""));
+
+                    XElement command = new XElement("command");
+                    command.Add(new XAttribute("topic", "Jump to Tabular"));
+                    command.Add(new XAttribute("plugin", "eMap"));
+                    command.Add(new XAttribute("instance", "Active"));
+                    symbol.Add(command);
+
+                    XElement field1 = new XElement("field");
+                    field1.Add(new XAttribute("name", "Data Link URL"));
+                    field1.Add(new XAttribute("value", "@URL"));
+                    command.Add(field1);
+
+                    XElement field2 = new XElement("field");
+                    field2.Add(new XAttribute("name", "Data Mode"));
+                    field2.Add(new XAttribute("value", "@MODE"));
+                    command.Add(field2);
+
+                    XElement field3 = new XElement("field");
+                    field3.Add(new XAttribute("name", "Data Instance"));
+                    field3.Add(new XAttribute("value", "@I"));
+                    command.Add(field3);
+
+                    XElement field4 = new XElement("field");
+                    field4.Add(new XAttribute("name", "Tabular Type"));
+                    field4.Add(new XAttribute("value", "Detail"));
+                    command.Add(field4);
+
+                    XElement datalink = new XElement("dataLink");
+                    datalink.Add(new XAttribute("id", id));
+                    symbol.Add(dataLink);
+
+
+                    XElement link = new XElement("link");
+                    link.Add(new XAttribute("d", "EMAP"));
+                    link.Add(new XAttribute("o", "EMAP_DEVICE"));
+                    link.Add(new XAttribute("f", "AggregateState"));
+                    link.Add(new XAttribute("i", "0"));
+                    link.Add(new XAttribute("identityType", "Key"));
+                    datalink.Add(link);
+
+                    group.Add(symbol);
+
+                }
+            }
+        }
+        
+        private void CheckDataLinks()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                var dataLinks = group.Descendants("element").Descendants("dataLink");
+                foreach (var dataLink in dataLinks)
+                {
+                    if (!_dataGroup.Descendants("element").Where(x => x.Attribute("id")?.Value == dataLink.Attribute("id")?.Value).Any())
+                    {
+                        //TODO: actually we can't check these without the data...
+                        //TODO: we could check the cache.
+                        Error("Datalink ");
+                    }
+                }
+            }
+        }
+
         //TODO: backport to extractor
-        internal void AddDataAndFlowlink(string id)
+        public void AddDataAndFlowlink(string id)
         {
             foreach (var group in _displayGroups.Values)
             {
@@ -500,22 +220,7 @@ namespace MainPower.Osi.Enricher
                 foreach (var symbol in symbols)
                 {
                     var parent = symbol.Parent;
-#if !nofixes
-                    if (parent.Descendants("dataLink").Any())
-                    {
-                        XElement x = new XElement("dataLink",
-                            new XAttribute("id", id),
-                            new XElement("link",
-                                new XAttribute("d", "EMAP"),
-                                new XAttribute("f", "AggregateState"),
-                                new XAttribute("i", "0"),
-                                new XAttribute("identityType", "Key"),
-                                new XAttribute("o", "EMAP_DEVICE")
-                            )
-                        );
-                        parent.Add(x);
-                    }
-#endif
+
                     if (parent.Descendants("flowLink").Any())
                     {
 
@@ -535,22 +240,8 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        internal override void Process()
+        public override void Process()
         {
-#if !nofixes
-            //TODO: Backport into GIS Extractor
-            SetGlobalLineWidth();
-            ReplaceSymbolLibraryName();
-            //DeleteTextElements();
-            SetTextLayer();
-            SetPoleLayer();
-            SetText();
-            SetStationOutlineLayer();
-            SetInternalsOutlineLayer();
-            //RemoveCapacitorDataLinksFromSymbols();
-            SetPoles();
-            SetText2();
-#endif
             var tasks = new List<Task>();
 
             var nodes = _dataGroup.Descendants("element");
@@ -576,7 +267,6 @@ namespace MainPower.Osi.Enricher
                     case "Load":
                         Enricher.I.LoadCount++;
                         d = new Load(node, this);
-                        //Enricher.I.Model.AddDevice(node, Id, DeviceType.Load);
                         break;
                     case "Feeder":
                         Enricher.I.LoadCount++;
@@ -620,17 +310,27 @@ namespace MainPower.Osi.Enricher
                     d.Process();
                 }
             }
-#if !nofixes
-            SetStreetlightLayers();
             DeleteInternals();
-#endif
+        }
+
+
+        private void DeleteInternals()
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                var elements = group.Descendants("element").Where(n => n.Attribute("mpwr_internals") != null);
+                foreach (var element in elements.ToList())
+                {
+                    element.SetAttributeValue("mpwr_internals", null);
+                }
+            }
         }
 
         /// <summary>
         /// Adds an element to the first data file containing the group
         /// </summary>
         /// <param name="xml"></param>
-        internal void AddGroupElement (XElement xml)
+        public void AddGroupElement (XElement xml)
         {
             _dataGroup.Add(xml);
         }
@@ -639,9 +339,9 @@ namespace MainPower.Osi.Enricher
         /// Returns the point for a symbol with datalink
         /// </summary>
         /// <param name="id">The datalink id</param>
-        internal List<PointD> GetSymbolGeometry(string id)
+        public List<Point> GetSymbolGeometry(string id)
         {
-            var points = new List<PointD>();
+            var points = new List<Point>();
             try
             {
 
@@ -653,7 +353,7 @@ namespace MainPower.Osi.Enricher
                         var res = elements.Descendants("dataLink").Where(x => x.Attribute("id")?.Value == id).FirstOrDefault();
                         if (res != null)
                         {
-                            PointD p = new PointD();
+                            Point p = new Point();
                             p.X = double.Parse(res.Parent.Attribute("x").Value);
                             p.Y = double.Parse(res.Parent.Attribute("y").Value);
                             p = TranslatePoint(p);
@@ -675,9 +375,9 @@ namespace MainPower.Osi.Enricher
         /// Returns the point for a symbol with datalink
         /// </summary>
         /// <param name="id">The datalink id</param>
-        internal List<PointD> GetLineGeometry(string id)
+        public List<Point> GetLineGeometry(string id)
         {
-            var points = new List<PointD>();
+            var points = new List<Point>();
             foreach (var kvp in _displayGroups)
             {
                 if (kvp.Key != "MainPower")
@@ -688,7 +388,7 @@ namespace MainPower.Osi.Enricher
                 {
                     foreach (var xy in res.Parent.Descendants("xy"))
                     {
-                        PointD p = new PointD();
+                        Point p = new Point();
                         p.X = float.Parse(xy.Attribute("x").Value);
                         p.Y = float.Parse(xy.Attribute("y").Value);
                         p = TranslatePoint(p);
@@ -701,7 +401,7 @@ namespace MainPower.Osi.Enricher
             return points;
         }
 
-        private PointD TranslatePoint(PointD p)
+        private Point TranslatePoint(Point p)
         {
             p.X -= 250000;
             p.Y -= 250000;
@@ -711,18 +411,17 @@ namespace MainPower.Osi.Enricher
             p.Y -= 5288390.101;
 
             p = ProjectionTransforms.MetersToLatLon(p);
-            //p.X /= 1e5;
-            //p.Y /= 1e5;
+ 
             return p;
         }
 
-        internal void AddScadaCommand(string id, string key)
+        public void AddScadaCommand(string id, string key)
         {
             try
             {
                 foreach (var group in _displayGroups.Values)
                 {
-                    var symbols = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                    var symbols = group.Descendants("element").Where(x=> x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value != SYMBOL_DATALINK).Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
                     foreach (var symbol in symbols.ToList())
                     {
                         var parent = symbol.Parent;

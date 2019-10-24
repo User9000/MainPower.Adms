@@ -6,7 +6,7 @@ namespace MainPower.Osi.Enricher
     /// <summary>
     /// Represents the IDF Circuit element
     /// </summary>
-    internal class Circuit : Element
+    public class Circuit : Element
     {
         /// <summary>
         /// Creates a new Circuit
@@ -18,7 +18,7 @@ namespace MainPower.Osi.Enricher
         /// <summary>
         /// Process custom logic for Circuits
         /// </summary>
-        internal override void Process()
+        public override void Process()
         {
             try
             {

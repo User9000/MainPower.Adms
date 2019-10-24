@@ -2,20 +2,21 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
+using System.Linq;
 
 namespace MainPower.Osi.Enricher
 {
     /// <summary>
     /// Reads IDF files and sorts them into groups
     /// </summary>
-    internal class FileManager : ErrorReporter
+    public class FileManager : ErrorReporter
     {
         public static FileManager I { get; } = new FileManager();
 
-        internal List<Idf> DataFiles = new List<Idf>();
-        internal List<Idf> GraphicsFiles = new List<Idf>();
-        internal Idf ImportConfig = null;
-        internal Dictionary<string, Group> Groups = new Dictionary<string, Group>();
+        public List<Idf> DataFiles = new List<Idf>();
+        public List<Idf> GraphicsFiles = new List<Idf>();
+        public Idf ImportConfig = null;
+        public Dictionary<string, Group> Groups = new Dictionary<string, Group>();
 
         public bool Initialize(string path)
         {
@@ -65,6 +66,8 @@ namespace MainPower.Osi.Enricher
             }
 
             Info("Reading Import Config...");
+            ImportConfig.Groups = ImportConfig.Content.Descendants("container").Where(x=> x.Attribute("name")?.Value == "Mainpower").FirstOrDefault();
+
             //Read all the groups we are going to import add them to the collection
             foreach (var group in ImportConfig.Content.Descendants("group"))
             {
@@ -86,7 +89,12 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        Warn($"group {id} was is not in the import configuration");
+                        Error("Data group is not in the import configuration, it will be added.", id, idf.FileName);
+                        //TODO: we probably shouldn't do this in prod
+                        //XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
+                        //ImportConfig.Groups.Add(g);
+                        //var gr = new Group(g, null);
+                        //Groups.Add(gr.Id, gr);
                     }
                 }
             }
@@ -97,17 +105,27 @@ namespace MainPower.Osi.Enricher
             {
                 string display = idf.Content.Root.Attribute("displayName").Value;
                 var groups = idf.Content.Descendants("group");
-                foreach (var group in groups)
+                //TODO: tolist  required so we can add new ones...
+                foreach (var group in groups.ToList())
                 {
-                    var id = group.Attribute("id").Value;
-                    if (Groups.ContainsKey(id))
+
+                    var id = group.Attribute("id")?.Value;
+                    if (id == null)
                     {
-                        Groups[id].AddDisplayGroup(display, group);
+                        Error($"A display group with no id was in file {idf.FileName} and will be deleted");
+                        group.Remove();
+                        continue;
                     }
-                    else
+                    if (!Groups.ContainsKey(id))
                     {
-                        Warn($"group {id} was is not in the import configuration");
+                        Error("Display group is not in the import configuration, it will be added.", id, idf.FileName);
+                        //TODO: we probably shouldn't do this in prod
+                        XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
+                        ImportConfig.Groups.Add(g);
+                        var gr = new Group(g, null);
+                        Groups.Add(gr.Id, gr);
                     }
+                    Groups[id].AddDisplayGroup(display, group);
                 }
             }
 

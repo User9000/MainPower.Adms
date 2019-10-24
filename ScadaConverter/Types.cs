@@ -41,6 +41,7 @@ namespace MainPower.Osi.ScadaConverter
         public RtuTagInfo RTUTag;
         public string DnpControlOnCode;
         public string DnpControlOffCode;
+        public bool Inverted;
         //public string ReasonabilityLow;
         //public string ReasonabilityHigh;
         public string ModbusFunctionCode;

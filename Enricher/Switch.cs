@@ -98,7 +98,7 @@ namespace MainPower.Osi.Enricher
         private const string IDF_SWITCH_SCADA_S2_YB_VOLTS = "s2p2KV";
         private const string IDF_SWITCH_SCADA_S2_BR_VOLTS = "s2p3KV";
 
-        private const double IDF_SCALE_GEOGRAPHIC = 1.0;
+        private const double IDF_SCALE_GEOGRAPHIC = 2.0;
         private const double IDF_SCALE_INTERNALS = 0.2;
         private const double IDF_SWITCH_Z = double.NaN;
         #endregion
@@ -126,24 +126,12 @@ namespace MainPower.Osi.Enricher
         private DataType _t1Asset = null;
         private DataType _admsAsset = null;
 
-        internal Switch(XElement node, Group processor) : base(node, processor) { }
+        public Switch(XElement node, Group processor) : base(node, processor) { }
         
-        internal override void Process()
+        public override void Process()
         {
             try
             {
-#if !nofixes
-                ParentGroup.AddMissingPhases(Node);
-
-                Node.SetAttributeValue("inSubstation", null);
-
-                if (Node.Attribute("baseKV").Value == "0.2300")
-                {
-                    Node.SetAttributeValue("baseKV", "0.4000");
-                    Debug("Overriding base voltage from 230V to 400V");
-                }
-                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
-#endif
                 CheckPhases();
 
                 var geo = ParentGroup.GetSymbolGeometry(Id);
@@ -165,6 +153,7 @@ namespace MainPower.Osi.Enricher
                         //TODO
                         //_loadBreakCapable = IDF_FALSE;
                         break;
+                    //TODO: this could be a ring main switch?
                     case @"MV Isolator\MV Switch":
                     case @"MV Isolator\Air Break Switch":
                     case @"MV Isolator\Disconnector":
@@ -222,10 +211,10 @@ namespace MainPower.Osi.Enricher
                         ProcessServiceFuse();
                         break;
                     case "":
-                        Error($"Gis Switch Type is not set");
+                        Warn($"Gis Switch Type is not set");
                         break;
                     default:
-                        Error($"Unrecognised GisSwitchType [{_gisswitchtype}]");
+                        Warn($"Unrecognised GisSwitchType [{_gisswitchtype}]");
                         break;
                 }
                 
@@ -245,13 +234,12 @@ namespace MainPower.Osi.Enricher
                 
                 //need to do this before the SCADA linking otherwise the datalink will be replaced
                 ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
-#if !nofixes
-                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value, true);
-#endif
+
                 //TODO tidy this up
                 var scada = GenerateScadaLinking();
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
+                    ParentGroup.CreateDataLinkSymbol(Id);
                     ParentGroup.AddGroupElement(scada.Item2);
                     ParentGroup.AddScadaCommand(Id, scada.Item1);
                 }
@@ -442,7 +430,7 @@ namespace MainPower.Osi.Enricher
             DataType asset = null;
             if (T1Id == "")
             {
-                Error($"No T1 asset number assigned");
+                Warn($"No T1 asset number assigned");
             }
             else
             {
@@ -458,7 +446,7 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
+                    Warn($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -477,7 +465,7 @@ namespace MainPower.Osi.Enricher
             DataType asset = null;
             if (T1Id == "")
             {
-                Error($"No T1 asset number assigned");
+                Warn($"No T1 asset number assigned");
             }
             else
             {
@@ -493,7 +481,7 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
+                    Warn($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -553,7 +541,7 @@ namespace MainPower.Osi.Enricher
             DataType asset = null;
             if (T1Id == "")
             {
-                Error($"No T1 asset number assigned");
+                Warn($"No T1 asset number assigned");
             }
             else
             {
@@ -569,7 +557,7 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
+                    Warn($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -586,7 +574,7 @@ namespace MainPower.Osi.Enricher
             DataType asset = null;
             if (T1Id == "")
             {
-                Error($"No T1 asset number assigned");
+                Warn($"No T1 asset number assigned");
             }
             else
             {
@@ -604,7 +592,7 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
+                    Warn($"T1 asset number [{T1Id}] wasn't in T1");
                 }
 
             }
@@ -623,7 +611,7 @@ namespace MainPower.Osi.Enricher
             DataType asset = null;
             if (T1Id == "")
             {
-                Error($"No T1 asset number assigned");
+                Warn($"No T1 asset number assigned");
             }
             else
             {
@@ -631,7 +619,7 @@ namespace MainPower.Osi.Enricher
 
                 if (asset == null)
                 {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
+                    Warn($"T1 asset number [{T1Id}] wasn't in T1");
                 }
                 else
                 {
@@ -653,7 +641,7 @@ namespace MainPower.Osi.Enricher
             DataType asset = null;
             if (T1Id == "")
             {
-                Error($"No T1 asset number assigned");
+                Warn($"No T1 asset number assigned");
             }
             else
             {
@@ -671,7 +659,14 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
+                    _t1Asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
+                    if (_t1Asset != null)
+                    {
+                    }
+                    else
+                    {
+                        Warn($"T1 asset number [{T1Id}] wasn't in T1");
+                    }
                 }
 
             }
@@ -702,13 +697,13 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        Error($"T1 asset number [{T1Id}] did not match HV Breaker or RMU asset");
+                        Warn($"T1 asset number [{T1Id}] did not match HV Breaker or RMU asset");
                     }
                 }
             }
             else
             {
-                Error("T1 asset number not set");
+                Warn("T1 asset number not set");
             }
 
             ProcessCircuitBreakerAdms();
@@ -774,7 +769,7 @@ namespace MainPower.Osi.Enricher
             DataType asset = null;
             if (T1Id == "")
             {
-                Error($"No T1 asset number assigned");
+                Warn($"No T1 asset number assigned");
             }
             else
             {
@@ -793,7 +788,7 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Error($"T1 asset number [{T1Id}] wasn't in T1");
+                    Warn($"T1 asset number [{T1Id}] wasn't in T1");
                 }
             }
             
@@ -845,18 +840,18 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        Error($"Rated voltage [{iNewValue}] is less than operating voltage [{opVoltage}], setting to 110% of operating voltage");
+                        Warn($"Rated voltage [{iNewValue}] is less than operating voltage [{opVoltage}], setting to 110% of operating voltage");
                     }
                 }
                 else
                 {
-                    Error($"Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
+                    Warn($"Could not parse rated voltage [{ratedVoltage}], setting to 110% of operating voltage");
                 }
                 return (iOpVoltage * 1.1).ToString();
             }
             catch
             {
-                Error($"Operating voltage [{opVoltage}] is not a valid float");
+                Warn($"Operating voltage [{opVoltage}] is not a valid float");
                 return opVoltage;
             }
         }

@@ -25,7 +25,7 @@ namespace MainPower.Osi.Enricher
                 Warn("Log header shouold be printed before any other message!");
         }
 
-        internal static string FormatLogString(LogLevel level, string code, string id, string name, string message)
+        public static string FormatLogString(LogLevel level, string code, string id, string name, string message)
         {
             switch (level)
             {
