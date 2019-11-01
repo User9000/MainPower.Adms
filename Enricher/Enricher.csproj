@@ -93,6 +93,7 @@
     <Compile Include="DataTypes.cs" />
     <Compile Include="Device.cs" />
     <Compile Include="ErrorReporter.cs" />
+    <Compile Include="ModelFeeder.cs" />
     <Compile Include="Feeder.cs" />
     <Compile Include="FileManager.cs" />
     <Compile Include="Generator.cs" />
@@ -102,9 +103,10 @@
     <Compile Include="Node.cs" />
     <Compile Include="NodeModel.cs" />
     <Compile Include="ProjectionTransforms.cs" />
+    <Compile Include="Source.cs" />
     <Compile Include="Region.cs" />
     <Compile Include="Regulator.cs" />
-    <Compile Include="Source.cs" />
+    <Compile Include="ModelSource.cs" />
     <Compile Include="DataManager.cs" />
     <Compile Include="Substation.cs" />
     <Compile Include="Transformer.cs" />

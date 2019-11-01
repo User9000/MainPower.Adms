@@ -65,7 +65,7 @@ namespace MainPower.Osi.Enricher
                 #endregion
 
                 var geo = ParentGroup.GetLineGeometry(Id);
-                if (!Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Line, geo))
+                if (!Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line, geo))
                 {
                     Error("Failed to add line to model -> deleted 😬");
                     Node.Remove();

@@ -58,6 +58,12 @@ namespace MainPower.Osi.Enricher
     {
 
     }
+
+    public class OsiScadaSetpoint : OsiScadaPoint
+    {
+
+    }
+
     public class AdmsSwitch : DataType
     {
 

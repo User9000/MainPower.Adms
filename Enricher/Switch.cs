@@ -243,9 +243,11 @@ namespace MainPower.Osi.Enricher
                     ParentGroup.AddGroupElement(scada.Item2);
                     ParentGroup.AddScadaCommand(Id, scada.Item1);
                 }
+                if (_baseKv != "0.4")
+                    GenerateDeviceInfo();
                 RemoveExtraAttributes();
 
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Switch, geo);
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, geo);
             }
             catch (Exception ex)
             {
@@ -276,11 +278,17 @@ namespace MainPower.Osi.Enricher
             x.SetAttributeValue("type", "SCADA");
             x.SetAttributeValue("id", Id);
 
-            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+            bool phase1, phase2, phase3;
+
+            phase1 = !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value);
+            phase2 = !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value);
+            phase3 = !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value);
+
+            if (phase1)
                 x.SetAttributeValue("p1State", status.Key);
-            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
+            if (phase2)
                 x.SetAttributeValue("p2State", status.Key);
-            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
+            if (phase3)
                 x.SetAttributeValue("p3State", status.Key);
 
             //we can't assign any of this telemtry without knowing what the upstream side of the switch is
@@ -293,52 +301,65 @@ namespace MainPower.Osi.Enricher
                 string ds = us == "1" ? "2" : "1";
 
                 var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps RØ");
-                if (rAmps != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value) && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+                if (rAmps != null && phase1)
                 {                        
                     x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
                     x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
                 }
                 var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps YØ");
-                if (yAmps != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value)  && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
+                if (yAmps != null && phase2)
                 {
                     x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
                     x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
                 }
                 var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps BØ");
-                if (bAmps != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value) && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
+                if (bAmps != null && phase3)
                 {
                     x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
                     x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
                 }
 
-                var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kW");
+                //when it comes to load telemetry, priority goes
+                //1. Metering
+                //2. Local kW/MW
+                var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Met MW");
                 if (kw != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
-                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1");
-
+                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1000");
                     x.SetAttributeValue($"s{ds}AggregateKW", "");
-                    //x.SetAttributeValue($"s{ds}AggregateKWUCF", "");
+                }
+                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kW")) != null)
+                {
+                    x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
+                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1");
+                    x.SetAttributeValue($"s{ds}AggregateKW", "");
                 }
                 else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MW")) != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
                     x.SetAttributeValue($"s{us}AggregateKWUCF", "1000");
+                    x.SetAttributeValue($"s{ds}AggregateKW", "");
                 }
 
-                var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kVar");
+                var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Met Mvar");
                 if (kvar != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
-                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1");
-
+                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
                     x.SetAttributeValue($"s{ds}AggregateKVAR", "");
-                    //x.SetAttributeValue($"s{ds}AggregateKVARUCF", "");
                 }
-                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MVar")) != null)
+                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kvar")) != null)
+                {
+                    x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
+                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1");
+                    x.SetAttributeValue($"s{ds}AggregateKVAR", "");
+                }
+                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Mvar")) != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
                     x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
+                    x.SetAttributeValue($"s{ds}AggregateKVAR", "");
                 }
                 /*
                 var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} PF");
@@ -350,47 +371,74 @@ namespace MainPower.Osi.Enricher
                 }
                 */
                 var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R");
-                if (s1RYVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+                if (s1RYVolts != null && phase1)
                 {
                     x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y");
-                if (s1YBVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
+                if (s1YBVolts != null && phase2)
                 {
                     x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B");
-                if (s1BRVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
+                if (s1BRVolts != null && phase3)
                 {
                     x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R2");
-                if (s2RYVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s2phaseID1")?.Value))
+                if (s2RYVolts != null && phase1)
                 {
                     x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y2");
-                if (s2YBVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s2phaseID2")?.Value))
+                if (s2YBVolts != null && phase2)
                 {
                     x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
                     hasVolts = true;
                 }
                 var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B2");
-                if (s2BRVolts != null && !string.IsNullOrWhiteSpace(Node.Attribute("s2phaseID3")?.Value))
+                if (s2BRVolts != null && phase3)
                 {
                     x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
                     hasVolts = true;
                 }
+
+                var lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Lockout");
+
+
+                if (lockout != null)
+                {
+                    if (phase1)
+                        x.SetAttributeValue("p1TripFaultSignal", lockout.Key);
+                    if (phase2)
+                        x.SetAttributeValue("p2TripFaultSignal", lockout.Key);
+                    if (phase3)
+                        x.SetAttributeValue("p3TripFaultSignal", lockout.Key);
+                }
+
+                //TODO: handle cases where there are two relays?
+                var watchdog = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Relay Watchdog");
+
+                //p1OCPMode = Watchdog 
+                //OCPModeNormal = 1
+                //p1OCPMode = Watchdog 
+                //p1FaultCurrent = fault current
+                //p1FaultInd = for directional devices is the side 1 fault indication, otherwise non directional
+                //p1FaultInd2 = for directional devices is the side 2 fault indication, otherwise non directional
+                //p1TripFaultSignal = lockout
+
+
+
             }
             if (hasVolts)
             {

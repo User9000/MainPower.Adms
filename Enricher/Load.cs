@@ -117,7 +117,7 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue("ratedKV", (voltage * 1.2).ToString());
 
                     var geo = ParentGroup.GetSymbolGeometry(Id);
-                    Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Load, geo);
+                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Load, geo);
                 }
             }
             catch (Exception ex)

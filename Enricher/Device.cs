@@ -3,6 +3,7 @@ using MessagePack;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
@@ -53,7 +54,7 @@ namespace MainPower.Osi.Enricher
 
         [JsonIgnore]
         [IgnoreMember]
-        public Source ClosestUpstreamSource { get; set; }
+        public ModelSource ClosestUpstreamSource { get; set; }
 
         [Key(4)]
         public DeviceType Type { get; set; }
@@ -100,11 +101,16 @@ namespace MainPower.Osi.Enricher
 
         [IgnoreMember]
         public bool Trace { get; set;} = false;
-        
+
+        [IgnoreMember]
+        public ModelFeeder NominalFeeder { get; set; } = null;
 
         [JsonIgnore]
         [IgnoreMember]
-        public Dictionary<Source, PFDetail> SP2S { get; set; } = new Dictionary<Source, PFDetail>();
+        public Dictionary<ModelSource, PFDetail> SP2S { get; set; } = new Dictionary<ModelSource, PFDetail>();
+
+        [IgnoreMember]
+        public Element IdfDevice { get; set; } = null;
 
         /// <summary>
         /// Calculates the upstream side of the device, based on the shorted path to source calculations

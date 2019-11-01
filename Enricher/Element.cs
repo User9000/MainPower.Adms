@@ -103,6 +103,19 @@ namespace MainPower.Osi.Enricher
             Id = id;
         }
 
+        protected void GenerateDeviceInfo()
+        {
+            XElement dinfo = new XElement("element");
+            dinfo.SetAttributeValue("type", "Device Info");
+            dinfo.SetAttributeValue("id", $"{Id}_deviceInfo");
+            dinfo.SetAttributeValue("key1", "T1 Asset Id");
+            dinfo.SetAttributeValue("value1", T1Id ?? "unknown");
+
+            ParentGroup.AddGroupElement(dinfo);
+
+            Node.SetAttributeValue("deviceInfo", $"{Id}_deviceInfo");
+        }
+
         abstract public void Process();
 
         #region Logging Overrides

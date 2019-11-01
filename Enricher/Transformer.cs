@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -47,6 +48,7 @@ namespace MainPower.Osi.Enricher
         private const string ADMS_TX_MAXTAPLIMIT = "maxTapControlLimit";     // 
         private const string ADMS_TX_MINTAPLIMIT = "minTapControlLimit";     // 
         private const string ADMS_TX_SCADAID = "scadaId";                    //the prefix used for SCADA e.g.BHL T1
+        private const string ADMS_TX_PARALLEL_SET = "parallelSet";
 
         private const string IDF_TX_BANDWIDTH = "bandwidth";
         private const string IDF_TX_BIDIRECTIONAL = "bidirectional";
@@ -72,7 +74,9 @@ namespace MainPower.Osi.Enricher
 
         private const string IDF_TX_WINDING_WYE = "Wye";
         private const string IDF_TX_WINDING_ZIGZAG = "Zig-Zag";
-        private const string IDF_TX_WINDING_ZIGZAGG = "Zig-Zag-G";
+        //TODO: update later
+        //private const string IDF_TX_WINDING_ZIGZAGG = "Zig-Zag-G";
+        private const string IDF_TX_WINDING_ZIGZAGG = "Wye-G";
         private const string IDF_TX_WINDING_WYEG = "Wye-G";
         private const string IDF_TX_WINDING_DELTA = "Delta";
 
@@ -137,6 +141,9 @@ namespace MainPower.Osi.Enricher
 
         public Transformer(XElement node, Group processor) : base(node, processor) { }
 
+        //A list of parallel sets already processed in this import
+        private static List<string> ParallelSets { get; set; } = new List<string>();
+
         public override void Process()
         {
             try
@@ -153,7 +160,7 @@ namespace MainPower.Osi.Enricher
                 _s2kV = double.Parse(_s2BaseKv) * 1000;
 
                 _bidirectional = IDF_TRUE;
-                _controlPhase = "2G";
+                _controlPhase = "12";
                 _nominalUpstreamSide = "1";
                 _standardRotation = IDF_TRUE;
                 _tapSide = "1";
@@ -193,7 +200,19 @@ namespace MainPower.Osi.Enricher
                         //_regulationType = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //_s1BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //_s2BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //GenerateScadaLinking();
+                        string parallelSet = _admsAsset[ADMS_TX_PARALLEL_SET] as string;
+                        if (!string.IsNullOrWhiteSpace(parallelSet))
+                        {
+                            if (!ParallelSets.Contains(parallelSet))
+                            {
+                                GenerateParallelSet(parallelSet);
+                            }
+                        }
+                        string scadaPrefix = _admsAsset[ADMS_TX_SCADAID] as string;
+                        if (!string.IsNullOrWhiteSpace(scadaPrefix))
+                        {
+                            GenerateScadaLinking(scadaPrefix);
+                        }
                     }
                     //If we don't even have the kva, then no point generating a type as it will just generate errors in maestro
                     if (string.IsNullOrWhiteSpace(_kva))
@@ -244,16 +263,37 @@ namespace MainPower.Osi.Enricher
                 }
 
                 ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_publicS, SYMBOL_TX_ROTATION);
-                GenerateScadaLinking();
+                GenerateDeviceInfo();
                 RemoveExtraAttributes();
 
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Transformer, geo, _phaseshift);
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo, _phaseshift);
             }
             catch (Exception ex)
             {
                 Fatal( $"Uncaught exception: {ex.Message}");
             }
         }
+
+        private void GenerateParallelSet(string setId)
+        {
+            XElement x = new XElement("element");
+            XAttribute id = new XAttribute("id", $"parallelSet_{setId}");
+            XAttribute name = new XAttribute("name", setId);
+            XAttribute type = new XAttribute("type", "Transformer Parallel Set");
+            XAttribute pmode = new XAttribute("parallelMode", "Enabled");
+            XAttribute ptype = new XAttribute("parallelType", "Solo/Parallel");
+
+            x.Add(id);
+            x.Add(type);
+            x.Add(name);
+            x.Add(pmode);
+            x.Add(ptype);
+
+            ParentGroup.AddGroupElement(x);
+            ParallelSets.Add(setId);
+        }
+
+
         #region Tech1 Validation
 
         private void ParseT1kVA()
@@ -262,7 +302,10 @@ namespace MainPower.Osi.Enricher
             if (v != null && v != 0)
             {
                 _dkva = v.Value;
-                _kva = v.Value.ToString();
+                //TODO: workaround for small kva's generating weird problems with IDFs
+                if (_dkva < 15)
+                    _dkva = 15;
+                _kva = _dkva.ToString();
             }
             else
                 Warn("kVA is unset");
@@ -295,13 +338,13 @@ namespace MainPower.Osi.Enricher
                 case "Dyn3":
                     _s1ConnectionType = IDF_TX_WINDING_DELTA;
                     _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = _hasOltc ? SYMBOL_TX_DYN : SYMBOL_TX_DYN_OLTC;
+                    _symbolName = _hasOltc ? SYMBOL_TX_DYN_OLTC : SYMBOL_TX_DYN;
                     _phaseshift = 3;
                     return;
                 case "Dyn11":
                     _s1ConnectionType = IDF_TX_WINDING_DELTA;
                     _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = _hasOltc ? SYMBOL_TX_DYN : SYMBOL_TX_DYN_OLTC;
+                    _symbolName = _hasOltc ? SYMBOL_TX_DYN_OLTC : SYMBOL_TX_DYN;
                     _phaseshift = 11;
                     return;
                 case "Dzn2":
@@ -490,9 +533,45 @@ namespace MainPower.Osi.Enricher
             Node.SetAttributeValue(GIS_TAP, null);
         }
 
-        private void GenerateScadaLinking()
+        private void GenerateScadaLinking(string scadaId)
         {
-            //TODO:
+            var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{scadaId} Tap Position", true);
+
+            //if we don't have the tap position, then assume we don't have any other telemtry either
+            //TODO this assumption needs to be documented
+            if (tap == null)
+                return;
+            XElement x = new XElement("element");
+            x.SetAttributeValue("type", "SCADA");
+            x.SetAttributeValue("id", Id);
+
+            x.SetAttributeValue("tapPosition", tap.Key);
+
+            var remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{scadaId} Supervisory", true);
+            if (remote != null)
+            {
+                x.SetAttributeValue("remoteLocalPoint", remote.Key);
+                x.SetAttributeValue("controlAllowState", "1");
+            }
+            else
+            {
+                remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{scadaId} AVR Supervisory", true);
+                if (remote != null)
+                {
+                    x.SetAttributeValue("remoteLocalPoint", remote.Key);
+                    x.SetAttributeValue("controlAllowState", "1");
+                }
+            }
+
+            var setpoint = DataManager.I.RequestRecordByColumn<OsiScadaSetpoint>(SCADA_NAME, $"{scadaId} AVR SP1 Value", true);
+            if (setpoint != null)
+                x.SetAttributeValue("controlPoint", setpoint.Key);
+
+            var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{scadaId} Volts RY", true);
+            if (voltage != null)
+                x.SetAttributeValue("controlVoltageReference", voltage.Key);
+
+            ParentGroup.AddGroupElement(x);
         }
 
         private XElement GenerateTransformerType()

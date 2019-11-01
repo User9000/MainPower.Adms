@@ -14,11 +14,11 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-#if !nofixes
-                Node.SetAttributeValue(IDF_ELEMENT_AOR_GROUP, AOR_DEFAULT);
-                Node.SetAttributeValue(IDF_FEEDER_SOURCE, "");
-                Node.SetAttributeValue("substationCircuit", "");
-#endif
+                var dev = Node.Attribute(IDF_FEEDER_DEVICE)?.Value;
+                if (!string.IsNullOrWhiteSpace(dev))
+                {
+                    Enricher.I.Model.AddFeeder(Id, dev, Name, ParentGroup.Id);
+                }
             }
             catch (Exception ex)
             {

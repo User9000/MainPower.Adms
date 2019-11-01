@@ -72,6 +72,7 @@ namespace MainPower.Osi.Enricher
                 Model.ValidateBaseVoltages();
                 Model.OverrideSinglePhasing();
                 Model.ValidatePhasing();
+                Model.CalculateNominalFeeders();
                 //Model.PrintPFDetailsByName("");
                 
                 if (Fatals == 0)

@@ -19,6 +19,29 @@ namespace MainPower.Osi.Enricher
         [Key(0)]
         public Dictionary<string, Device> Devices { get; set; } = new Dictionary<string, Device>();
 
+        [Key(3)]
+        public Dictionary<string, ModelFeeder> Feeders { get; set; } = new Dictionary<string, ModelFeeder>();
+
+        internal void AddFeeder(string id, string dev, string name, string group)
+        {
+            lock (Feeders)
+            {
+                if (Feeders.ContainsKey(id))
+                {
+                    Warn("Feeder already exists!", id, name);
+                    return;
+                }
+                ModelFeeder f = new ModelFeeder()
+                {
+                    DeviceId = dev,
+                    FeederId = id,
+                    FeederName = name,
+                    GroupId = group
+                };
+                Feeders.Add(id, f);
+            }
+        }
+
         /// <summary>
         /// The Dictionary of Nodes in the model, keyed by id
         /// </summary>
@@ -29,7 +52,7 @@ namespace MainPower.Osi.Enricher
         /// The Dictionary of Sources in the model, keyed by id
         /// </summary>
         [Key(2)]
-        public Dictionary<string, Source> Sources { get; set; } = new Dictionary<string, Source>();
+        public Dictionary<string, ModelSource> Sources { get; set; } = new Dictionary<string, ModelSource>();
 
         /// <summary>
         /// Add a device to the model from an IDF XML element
@@ -39,49 +62,50 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(XElement node, string gid, DeviceType type, List<Point> geo, int phaseshift = 0)
+        public bool AddDevice(Element node, string gid, DeviceType type, List<Point> geo, int phaseshift = 0)
         {
-            var s1nodeid = node.Attribute("s1node")?.Value;
-            var s2nodeid = node.Attribute("s2node")?.Value;
+            var s1nodeid = node.Node.Attribute("s1node")?.Value;
+            var s2nodeid = node.Node.Attribute("s2node")?.Value;
 
             Device d = new Device
             {
-                Id = node.Attribute("id").Value,
-                Name = node.Attribute("name").Value,
+                Id = node.Node.Attribute("id").Value,
+                Name = node.Node.Attribute("name").Value,
                 GroupId = gid,
                 Type = type,
-                Geometry = geo
+                Geometry = geo,
+                IdfDevice = node
             };
 
-            string t = node.Attribute("s1phaseID1").Value;
+            string t = node.Node.Attribute("s1phaseID1").Value;
             d.PhaseID[0, 0] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s1phaseID2")?.Value ?? "";
+            t = node.Node.Attribute("s1phaseID2")?.Value ?? "";
             d.PhaseID[0, 1] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s1phaseID3")?.Value ?? "";
+            t = node.Node.Attribute("s1phaseID3")?.Value ?? "";
             d.PhaseID[0, 2] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s2phaseID1")?.Value ?? "";
+            t = node.Node.Attribute("s2phaseID1")?.Value ?? "";
             d.PhaseID[1, 0] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s2phaseID2")?.Value ?? "";
+            t = node.Node.Attribute("s2phaseID2")?.Value ?? "";
             d.PhaseID[1, 1] = t == "" ? (short)0 : short.Parse(t);
-            t = node.Attribute("s2phaseID3")?.Value ?? "";
+            t = node.Node.Attribute("s2phaseID3")?.Value ?? "";
             d.PhaseID[1, 2] = t == "" ? (short)0 : short.Parse(t);
 
             if (type == DeviceType.Transformer)
             {
-                d.Base1kV = double.Parse(node.Attribute("s1baseKV").Value);
-                d.Base2kV = double.Parse(node.Attribute("s2baseKV").Value);
+                d.Base1kV = double.Parse(node.Node.Attribute("s1baseKV").Value);
+                d.Base2kV = double.Parse(node.Node.Attribute("s2baseKV").Value);
                 d.PhaseShift = phaseshift;
             }
             else
             {
                 d.PhaseShift = 0;
-                d.Base1kV = d.Base2kV = double.Parse(node.Attribute("baseKV").Value);
+                d.Base1kV = d.Base2kV = double.Parse(node.Node.Attribute("baseKV").Value);
 
                 if (type == DeviceType.Switch)
-                    d.SwitchState = bool.Parse(node.Attribute("nominalState1").Value);
+                    d.SwitchState = bool.Parse(node.Node.Attribute("nominalState1").Value);
                 else if (type == DeviceType.Line)
                 {
-                    d.Length = double.Parse(node.Attribute("length").Value);
+                    d.Length = double.Parse(node.Node.Attribute("length").Value);
                     if (d.Length == 0)
                         d.Length = 0.01;//helps improve directionality for parallel bus sections
                 }
@@ -151,7 +175,7 @@ namespace MainPower.Osi.Enricher
         /// <returns></returns>
         public bool AddSource(XElement node, string gid)
         {
-            Source s = new Source
+            ModelSource s = new ModelSource
             {
                 Id = node.Attribute("id").Value,
                 GroupId = gid,
@@ -170,7 +194,7 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         /// <param name="s">The Source</param>
         /// <returns>true if successful, false otherwise</returns>
-        private bool AddSource(Source s)
+        private bool AddSource(ModelSource s)
         {
             if (Sources.ContainsKey(s.Id))
             {
@@ -198,12 +222,20 @@ namespace MainPower.Osi.Enricher
                             RemoveDevice(d);
                         }
                         var sources = from s in Sources.Values where s.GroupId == id select s;
-                        foreach (Source s in sources.ToList())
+                        foreach (ModelSource s in sources.ToList())
                         {
                             Sources.Remove(s.Id);
                         }
                         CleanOrphanNodes();
                     }
+            lock (Feeders)
+            {
+                var feeders = from f in Feeders.Values where f.GroupId == id select f;
+                foreach (ModelFeeder f in feeders.ToList())
+                {
+                    Feeders.Remove(f.FeederId);
+                }
+            }
         }
 
         /// <summary>
@@ -298,7 +330,7 @@ namespace MainPower.Osi.Enricher
             int i = 0;
             var sources = Sources.Values.ToList();
             //loop through all the sources and trace connectivity downstream
-            foreach (Source s in sources)
+            foreach (ModelSource s in sources)
             {
                 TraceNodeConnectivity(Devices[s.DeviceId], s);
             }
@@ -322,7 +354,7 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         /// <param name="d">The device we are tracing into</param>
         /// <param name="s">The source of the trace</param>
-        private void TraceNodeConnectivity(Device d, Source s)
+        private void TraceNodeConnectivity(Device d, ModelSource s)
         {
             if (d == null)
                 return;
@@ -441,7 +473,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="d">The device we are tracing into</param>
         /// <param name="s">The source that is energizing this trace</param>
         /// <param name="distance">The distance thus far from the source</param>
-        private void TraceNodeEnergization(Device d, Source s)
+        private void TraceNodeEnergization(Device d, ModelSource s)
         {
             long loop = 0;
             //The stack keeps track of all the branches
@@ -686,7 +718,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="dir">The directory to export to</param>
         public void ExportToShapeFile(string dir)
         {
-            DbfFieldDesc[] deviceFields = new DbfFieldDesc[14];
+            DbfFieldDesc[] deviceFields = new DbfFieldDesc[15];
             deviceFields[0] = new DbfFieldDesc
             {
                 FieldName = "Node1Id",
@@ -786,6 +818,14 @@ namespace MainPower.Osi.Enricher
                 FieldType = DbfFieldType.Character,
             };
 
+            deviceFields[14] = new DbfFieldDesc
+            {
+                FieldName = "Feeder",
+                FieldLength = 10,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+
             ShapeFileWriter sfwDevices = ShapeFileWriter.CreateWriter(dir, "Devices", ShapeType.Point, deviceFields);
             ExportWebMercatorProjectionFile(Path.Combine(dir, "Devices.prj"));
             ShapeFileWriter sfwLines = ShapeFileWriter.CreateWriter(dir, "Lines", ShapeType.PolyLine, deviceFields);
@@ -794,9 +834,9 @@ namespace MainPower.Osi.Enricher
             {
                 foreach (Device d in Devices.Values)
                 {
-                    string[] fieldData = new string[14];
-                    fieldData[0] = d.Node1?.Id ?? "";
-                    fieldData[1] = d.Node2?.Id ?? "";
+                    string[] fieldData = new string[15];
+                    fieldData[0] = d.Node1?.Id ?? "-";
+                    fieldData[1] = d.Node2?.Id ?? "-";
                     fieldData[2] = d.Id;
                     fieldData[3] = d.Name;
                     fieldData[4] = d.GroupId;
@@ -809,6 +849,8 @@ namespace MainPower.Osi.Enricher
                     fieldData[11] = $"{d.PhaseID[0, 0]}{d.PhaseID[0, 1]}{d.PhaseID[0, 2]}";
                     fieldData[12] = $"{d.PhaseID[1, 0]}{d.PhaseID[1, 1]}{d.PhaseID[1, 2]}";
                     fieldData[13] = d.PhaseShift.ToString("N2");
+                    fieldData[14] = d.NominalFeeder?.FeederName ?? "-";
+
                     if (d.Geometry == null)
                     {
                         Warn("Not exporting device to shape file due to null geometry", d);
@@ -992,6 +1034,102 @@ namespace MainPower.Osi.Enricher
             }
             while (stack.Count > 0);
             Debug($"Trace took {loop} loops", d.Id, d.Name);
+        }
+
+        /// <summary>
+        /// Calculates the nominal feeder for all devices
+        /// </summary>
+        public void CalculateNominalFeeders()
+        {
+            Info("Calculating nominal feeders...");
+            DateTime start = DateTime.Now;
+            ClearTrace();
+
+            foreach (var source in Sources.Values)
+            {
+                if (Devices.ContainsKey(source.DeviceId))
+                    TraceNominalFeeders(Devices[source.DeviceId], source);
+            }
+            TimeSpan runtime = DateTime.Now - start;
+            Info($"Feeder tracing runtime: {runtime.TotalSeconds}s");
+        }
+
+        /// <summary>
+        /// Trace though the network starting at this device, and propagating feeders down the network
+        /// </summary>
+        /// <param name="d">The device we are tracing into</param>
+        /// <param name="s">The source that is energizing this trace</param>
+        private void TraceNominalFeeders(Device d, ModelSource s)
+        {
+            long loop = 0;
+            //The stack keeps track of all the branches
+            //The tuple items are:
+            //d - the device we are tracing into
+            //n - the node we are tracing in from
+            //ud - the device the trace came from
+            //TODO: make this a queue
+            Stack<(Device d, Node n, Device ud, ModelFeeder feeder)> stack = new Stack<(Device, Node, Device, ModelFeeder)>();
+            stack.Push((d, d.Node1, null, null));
+            do
+            {
+                loop++;
+                var set = stack.Pop();
+                Node traceNode = null;
+                ModelFeeder currentFeeder = set.feeder;
+
+                //if we have been here before then continue
+                if (set.d.Trace)
+                    continue;
+                else
+                    set.d.Trace = true;
+
+                var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
+
+                //check if there is a feeder attached to this device
+                var feeder = (from f in Feeders.Values where f.DeviceId == set.d.Id select f).FirstOrDefault();
+                if (feeder != null)
+                {
+                    currentFeeder = feeder;
+                }
+                //set device feeder
+                set.d.NominalFeeder = currentFeeder;
+                SetElementNominalFeeder(set.d);
+
+                if (openSwitch)
+                    continue;
+
+                //we are coming in from side 1
+                if (set.d.Node1 == set.n)
+                {
+                    traceNode = set.d.Node2;
+                }
+                else if (set.d.Node2 == set.n)//we are coming in from side 2
+                {
+                    traceNode = set.d.Node1;
+                }
+                //else single sided device
+                
+                if (traceNode != null)
+                {
+                    foreach (Device dd in traceNode.Devices)
+                    {
+                        if (dd != set.d && dd.UpstreamNode == traceNode)
+                        {
+                            stack.Push((dd, traceNode, set.d, currentFeeder));
+                        }
+                    }
+                }
+            }
+            while (stack.Count > 0);
+            Info($"Feeder trace took {loop} loops for source {s.Name}");
+        }
+
+        private void SetElementNominalFeeder(Device d)
+        {
+            if (d.NominalFeeder == null || d.IdfDevice == null)
+                return;
+
+            d.IdfDevice.Node.SetAttributeValue("nominalFeeder", d.NominalFeeder.FeederId);
         }
 
         private void Debug(string message, Device d, [CallerMemberName]string caller = "")

@@ -297,6 +297,7 @@ namespace MainPower.Osi.Enricher
                         d = new Region(node, this);
                         break;
                     case "Source":
+                        d = new Source(node, this);
                         Enricher.I.Model.AddSource(node, Id);
                         break;
                     case "Generator":

@@ -29,7 +29,7 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue(IDF_TRANSFORMER_TYPE, REGULATOR_DEFAULT_TYPE);
                 ParentGroup.SetSymbolNameByDataLink(Id, IDF_REGULATOR_SYMBOL, double.NaN, double.NaN, 2);
                 var geo = ParentGroup.GetSymbolGeometry(Id);
-                Enricher.I.Model.AddDevice(Node, ParentGroup.Id, DeviceType.Regulator, geo);
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Regulator, geo);
                 RemoveExtraAttributes();
             }
             catch (Exception ex)

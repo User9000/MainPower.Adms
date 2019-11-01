@@ -244,6 +244,22 @@ namespace MainPower.Osi.Enricher
 
                 source = new CsvSource()
                 {
+                    Name = "ScadaSetpoint",
+                    IndexColumn = "Key",
+                    FileName = "ScadaSetpoint.csv",
+                    InitializeFailIsFatal = true
+                };
+                dataset = new Dataset()
+                {
+                    IndexColumn = "Key",
+                    Name = "ScadaSetpoint",
+                    Datasource = source,
+                    Table = null
+                };
+                Datasets.Add(nameof(OsiScadaSetpoint), dataset);
+
+                source = new CsvSource()
+                {
                     Name = "AdmsSwitch",
                     FileName = "AdmsSwitch.csv",
                     //TODO: figure this out
