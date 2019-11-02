@@ -12,13 +12,13 @@ namespace MainPower.Osi.Enricher
     /// </summary>
     [Serializable]
     [MessagePackObject]
-    public class Device
+    public class ModelDevice
     {
         [Key(0)]
-        public Node Node1 { get; set; }
+        public ModelNode Node1 { get; set; }
 
         [Key(1)]
-        public Node Node2 { get; set; }
+        public ModelNode Node2 { get; set; }
 
         [Key(2)]
         public string Id { get; set; }
@@ -40,7 +40,7 @@ namespace MainPower.Osi.Enricher
 
         [JsonIgnore]
         [IgnoreMember]
-        public Node UpstreamNode
+        public ModelNode UpstreamNode
         {
             get
             {
@@ -110,7 +110,7 @@ namespace MainPower.Osi.Enricher
         public Dictionary<ModelSource, PFDetail> SP2S { get; set; } = new Dictionary<ModelSource, PFDetail>();
 
         [IgnoreMember]
-        public Element IdfDevice { get; set; } = null;
+        public IdfElement IdfDevice { get; set; } = null;
 
         /// <summary>
         /// Calculates the upstream side of the device, based on the shorted path to source calculations
@@ -152,9 +152,9 @@ namespace MainPower.Osi.Enricher
         /// Returns all devices that are upstream of this device
         /// </summary>
         /// <returns>A List of Devices</returns>
-        public List<Device> GetUpstreamDevices()
+        public List<ModelDevice> GetUpstreamDevices()
         {
-            List<Device> result = new List<Device>();
+            List<ModelDevice> result = new List<ModelDevice>();
             var devices = UpstreamNode?.Devices;
             if (devices != null)
             {

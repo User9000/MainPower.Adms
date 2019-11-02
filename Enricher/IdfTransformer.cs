@@ -6,7 +6,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public  class Transformer : Element
+    public  class IdfTransformer : IdfElement
     {
         #region Constants
         private const string SYMBOL_TX_UNK = "Symbol 34";
@@ -139,7 +139,7 @@ namespace MainPower.Osi.Enricher
 
         #endregion
 
-        public Transformer(XElement node, Group processor) : base(node, processor) { }
+        public IdfTransformer(XElement node, IdfGroup processor) : base(node, processor) { }
 
         //A list of parallel sets already processed in this import
         private static List<string> ParallelSets { get; set; } = new List<string>();

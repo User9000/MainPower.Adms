@@ -4,19 +4,19 @@ using System.Xml.Linq;
 namespace MainPower.Osi.Enricher
 {
     /// <summary>
-    /// Represents the IDF Circuit element
+    /// Represents the IDF Area element
     /// </summary>
-    public class Circuit : Element
+    public class IdfArea : IdfElement
     {
         /// <summary>
-        /// Creates a new Circuit
+        /// Creates a new Area
         /// </summary>
         /// <param name="node">The XElement node from the IDF</param>
-        /// <param name="processor">The IDF Group that the Circuit belongs to</param>
-        public Circuit(XElement node, Group processor) : base(node, processor) { }
+        /// <param name="processor">The IDF Group that the Area belongs to</param>
+        public IdfArea(XElement node, IdfGroup processor) : base(node, processor) { }
 
         /// <summary>
-        /// Process custom logic for Circuits
+        /// Process custom logic for Areas
         /// </summary>
         public override void Process()
         {
@@ -33,3 +33,4 @@ namespace MainPower.Osi.Enricher
         }
     }
 }
+

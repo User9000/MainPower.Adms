@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Line : Element
+    public class IdfLine : IdfElement
     {
         private const string GIS_PHASE_CONDUCTOR = "mpwr_cable_type";
         private const string GIS_NEUTRAL_CONDUCTOR = "mpwr_neutral_cable_type";
@@ -21,7 +21,7 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         /// <param name="node">The XElement node from the IDF</param>
         /// <param name="parent">The Group that this element belongs to</param>
-        public Line(XElement node, Group parent) : base(node, parent) { }
+        public IdfLine(XElement node, IdfGroup parent) : base(node, parent) { }
 
         /// <summary>
         /// Process the Line object

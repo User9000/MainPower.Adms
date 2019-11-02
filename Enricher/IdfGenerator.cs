@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Generator : Element
+    public class IdfGenerator : IdfElement
     {
         private const string SYMBOL_GENERATOR = "Symbol 37";
         private const string GEN_DEFAULT_MACHINE = "machineType_default";
@@ -13,7 +13,7 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         /// <param name="node">The XElement node from the IDF</param>
         /// <param name="parent">The Group that this element belongs to</param>
-        public Generator(XElement node, Group parent) : base(node, parent) { }
+        public IdfGenerator(XElement node, IdfGroup parent) : base(node, parent) { }
 
         /// <summary>
         /// Process the Generator object

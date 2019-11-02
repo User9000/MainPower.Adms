@@ -26,7 +26,7 @@ namespace MainPower.Osi.Enricher
         public int SwitchCount { get; set; }
         public int LoadCount { get; set; }
 
-        public NodeModel Model { get; set; } = new NodeModel();
+        public Model Model { get; set; } = new Model();
 
         public void Go(Options o)
         {
@@ -38,7 +38,7 @@ namespace MainPower.Osi.Enricher
                 if (!o.BlankModel)
                 {
                     
-                    var model = NodeModel.Deserialize($"{o.DataPath}\\model");
+                    var model = Model.Deserialize($"{o.DataPath}\\model");
                     if (model != null)
                     {
                         Model = model;
@@ -70,10 +70,8 @@ namespace MainPower.Osi.Enricher
             {
                 Model.ValidateConnectivity();
                 Model.ValidateBaseVoltages();
-                Model.OverrideSinglePhasing();
                 Model.ValidatePhasing();
                 Model.CalculateNominalFeeders();
-                //Model.PrintPFDetailsByName("");
                 
                 if (Fatals == 0)
                 {
@@ -107,10 +105,10 @@ namespace MainPower.Osi.Enricher
                     }
                     if (o.ExportDeviceInfo)
                     {
-                        Model.ExportExtraDeviceInfo();
+                        Model.ExportDeviceCoordinates();
                     }
                     //TODO
-                    Line.ExportConductors();
+                    IdfLine.ExportConductors();
                 }    
                 else
                 {

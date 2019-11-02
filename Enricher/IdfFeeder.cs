@@ -3,9 +3,9 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Feeder : Element
+    public class IdfFeeder : IdfElement
     {
-        public Feeder(XElement node, Group processor) : base(node, processor) { }
+        public IdfFeeder(XElement node, IdfGroup processor) : base(node, processor) { }
 
         private const string IDF_FEEDER_SOURCE = "source";
         private const string IDF_FEEDER_DEVICE = "primary";
@@ -17,7 +17,7 @@ namespace MainPower.Osi.Enricher
                 var dev = Node.Attribute(IDF_FEEDER_DEVICE)?.Value;
                 if (!string.IsNullOrWhiteSpace(dev))
                 {
-                    Enricher.I.Model.AddFeeder(Id, dev, Name, ParentGroup.Id);
+                    Enricher.I.Model.AddFeeder(Id, Name, dev, ParentGroup.Id);
                 }
             }
             catch (Exception ex)

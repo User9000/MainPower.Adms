@@ -3,9 +3,9 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Source : Element
+    public class IdfSource : IdfElement
     {
-        public Source(XElement node, Group processor) : base(node, processor) { }
+        public IdfSource(XElement node, IdfGroup processor) : base(node, processor) { }
 
         public override void Process()
         {

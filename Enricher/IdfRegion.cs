@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Substation : Element
+    public class IdfRegion : IdfElement
     {
-        public Substation(XElement node, Group processor) : base(node, processor) { }
+        public IdfRegion(XElement node, IdfGroup processor) : base(node, processor) { }
 
         public override void Process()
         {

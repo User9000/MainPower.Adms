@@ -6,10 +6,10 @@ namespace MainPower.Osi.Enricher
     /// <summary>
     /// 
     /// </summary>
-    abstract public class Element : ErrorReporter
+    abstract public class IdfElement : ErrorReporter
     {
         public XElement Node { get; private set; }
-        public Group ParentGroup { get; private set; }
+        public IdfGroup ParentGroup { get; private set; }
         public string Id { get; private set; }
         public string Name { get; protected set; }
         public string T1Id { get; protected set; }
@@ -49,7 +49,7 @@ namespace MainPower.Osi.Enricher
 
         #endregion
 
-        public Element(XElement node, Group processor)
+        public IdfElement(XElement node, IdfGroup processor)
         {
             Node = node;
             ParentGroup = processor;

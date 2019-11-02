@@ -13,10 +13,10 @@ namespace MainPower.Osi.Enricher
     {
         public static FileManager I { get; } = new FileManager();
 
-        public List<Idf> DataFiles = new List<Idf>();
-        public List<Idf> GraphicsFiles = new List<Idf>();
-        public Idf ImportConfig = null;
-        public Dictionary<string, Group> Groups = new Dictionary<string, Group>();
+        public List<IdfFile> DataFiles = new List<IdfFile>();
+        public List<IdfFile> GraphicsFiles = new List<IdfFile>();
+        public IdfFile ImportConfig = null;
+        public Dictionary<string, IdfGroup> Groups = new Dictionary<string, IdfGroup>();
 
         public bool Initialize(string path)
         {
@@ -27,7 +27,7 @@ namespace MainPower.Osi.Enricher
             {
                 try
                 {
-                    var idf = new Idf();
+                    var idf = new IdfFile();
                     idf.Content = XDocument.Load(file);
                     idf.FullFileName = file;
                     var type = idf.Content.Root.Attribute("type").Value;
@@ -71,7 +71,7 @@ namespace MainPower.Osi.Enricher
             //Read all the groups we are going to import add them to the collection
             foreach (var group in ImportConfig.Content.Descendants("group"))
             {
-                var g = new Group(group, null);
+                var g = new IdfGroup(group, null);
                 Groups.Add(g.Id, g);
             }
 
@@ -122,7 +122,7 @@ namespace MainPower.Osi.Enricher
                         //TODO: we probably shouldn't do this in prod
                         XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
                         ImportConfig.Groups.Add(g);
-                        var gr = new Group(g, null);
+                        var gr = new IdfGroup(g, null);
                         Groups.Add(gr.Id, gr);
                     }
                     Groups[id].AddDisplayGroup(display, group);
@@ -134,7 +134,7 @@ namespace MainPower.Osi.Enricher
 
         public void SaveFiles(string path)
         {
-            List<Idf> files = new List<Idf>();
+            List<IdfFile> files = new List<IdfFile>();
             files.AddRange(DataFiles);
             files.AddRange(GraphicsFiles);
             files.Add(ImportConfig);

@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Idf
+    public class IdfFile
     {
         private string _fullFileName = "";
 

@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 { 
-    public class Group : Element
+    public class IdfGroup : IdfElement
     {
         private const string SYMBOL_DATALINK = "Symbol 23";
 
@@ -41,7 +41,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        public Group(XElement node, Group processor) : base(node, processor) { }
+        public IdfGroup(XElement node, IdfGroup processor) : base(node, processor) { }
 
         /// <summary>
         /// Finds all symbol elements with the provided datalink id, and sets the symbol parameters
@@ -247,61 +247,61 @@ namespace MainPower.Osi.Enricher
             var nodes = _dataGroup.Descendants("element");
             foreach (var node in nodes.ToList())
             {
-                Element d = null;
+                IdfElement d = null;
                 var elType = node.Attribute("type").Value;
 
                 switch (elType)
                 {
                     case "Switch":
-                        d = new Switch(node, this);
+                        d = new IdfSwitch(node, this);
                         Enricher.I.SwitchCount++;
                         break;
                     case "Transformer":
-                        d = new Transformer(node, this);
+                        d = new IdfTransformer(node, this);
                         Enricher.I.TransformerCount++;
                         break;
                     case "Line":
                         Enricher.I.LineCount++;
-                        d = new Line(node, this);
+                        d = new IdfLine(node, this);
                         break;
                     case "Load":
                         Enricher.I.LoadCount++;
-                        d = new Load(node, this);
+                        d = new IdfLoad(node, this);
                         break;
                     case "Feeder":
                         Enricher.I.LoadCount++;
-                        d = new Feeder(node, this);
+                        d = new IdfFeeder(node, this);
                         break;
                     case "Circuit":
                         Enricher.I.LoadCount++;
-                        d = new Circuit(node, this);
+                        d = new IdfCircuit(node, this);
                         break;
                     case "Regulator":
                         Enricher.I.LoadCount++;
-                        d = new Regulator(node, this);
+                        d = new IdfRegulator(node, this);
                         break;
                     case "Substation":
                         Enricher.I.LoadCount++;
-                        d = new Substation(node, this);
+                        d = new IdfSubstation(node, this);
                         break;
                     case "Capacitor":
                         Enricher.I.CapCount++;
-                        d = new Capacitor(node, this);
+                        d = new IdfCapacitor(node, this);
                         break;
                     case "Area":
                         Enricher.I.LoadCount++;
-                        d = new Area(node, this);
+                        d = new IdfArea(node, this);
                         break;
                     case "Region":
                         Enricher.I.LoadCount++;
-                        d = new Region(node, this);
+                        d = new IdfRegion(node, this);
                         break;
                     case "Source":
-                        d = new Source(node, this);
+                        d = new IdfSource(node, this);
                         Enricher.I.Model.AddSource(node, Id);
                         break;
                     case "Generator":
-                        d = new Generator(node, this);
+                        d = new IdfGenerator(node, this);
                         break;
                     default:
                         break;

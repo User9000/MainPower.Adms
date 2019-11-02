@@ -6,7 +6,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    class Switch : Element
+    class IdfSwitch : IdfElement
     {
 
         #region Constants
@@ -126,7 +126,7 @@ namespace MainPower.Osi.Enricher
         private DataType _t1Asset = null;
         private DataType _admsAsset = null;
 
-        public Switch(XElement node, Group processor) : base(node, processor) { }
+        public IdfSwitch(XElement node, IdfGroup processor) : base(node, processor) { }
         
         public override void Process()
         {

@@ -11,48 +11,86 @@ namespace MainPower.Osi.Enricher
 {
     [Serializable]
     [MessagePackObject]
-    public class NodeModel : ErrorReporter
+    public class Model : ErrorReporter
     {
         /// <summary>
-        /// The Dictionary Devices in the model, keyed by id
+        /// The Devices in the model, keyed by id
         /// </summary>
         [Key(0)]
-        public Dictionary<string, Device> Devices { get; set; } = new Dictionary<string, Device>();
+        public Dictionary<string, ModelDevice> Devices { get; set; } = new Dictionary<string, ModelDevice>();
 
+        /// <summary>
+        /// The Nodes in the model, keyed by id
+        /// </summary>
+        [Key(1)]
+        public Dictionary<string, ModelNode> Nodes { get; set; } = new Dictionary<string, ModelNode>();
+
+        /// <summary>
+        /// The Sources in the model, keyed by id
+        /// </summary>
+        [Key(2)]
+        public Dictionary<string, ModelSource> Sources { get; set; } = new Dictionary<string, ModelSource>();
+
+        /// <summary>
+        /// The Feeders in the model, keyed by id
+        /// </summary>
         [Key(3)]
         public Dictionary<string, ModelFeeder> Feeders { get; set; } = new Dictionary<string, ModelFeeder>();
 
-        internal void AddFeeder(string id, string dev, string name, string group)
+
+        /// <summary>
+        /// The number of disconnected devices
+        /// </summary>
+        [IgnoreMember]
+        public int DisconnectedCount
         {
-            lock (Feeders)
+            get
             {
-                if (Feeders.ContainsKey(id))
-                {
-                    Warn("Feeder already exists!", id, name);
-                    return;
-                }
-                ModelFeeder f = new ModelFeeder()
-                {
-                    DeviceId = dev,
-                    FeederId = id,
-                    FeederName = name,
-                    GroupId = group
-                };
-                Feeders.Add(id, f);
+                var devices = from d in Devices.Values where !d.ConnectivityMark select d;
+                return devices.Count();
             }
         }
 
         /// <summary>
-        /// The Dictionary of Nodes in the model, keyed by id
+        /// The number of deenergized devices
         /// </summary>
-        [Key(1)]
-        public Dictionary<string, Node> Nodes { get; set; } = new Dictionary<string, Node>();
+        [IgnoreMember]
+        public int DeenergizedCount
+        {
+            get
+            {
+                var devices = from d in Devices.Values where !d.SP2SMark select d;
+                return devices.Count();
+            }
+        }
+
 
         /// <summary>
-        /// The Dictionary of Sources in the model, keyed by id
+        /// Add a feeder to the model
         /// </summary>
-        [Key(2)]
-        public Dictionary<string, ModelSource> Sources { get; set; } = new Dictionary<string, ModelSource>();
+        /// <param name="feederId"></param>
+        /// <param name="feederName"></param>
+        /// <param name="deviceId"></param>
+        /// <param name="groupId"></param>
+        public void AddFeeder(string feederId, string feederName, string deviceId, string groupId)
+        {
+            lock (Feeders)
+            {
+                if (Feeders.ContainsKey(feederId))
+                {
+                    Warn("Feeder already exists!", feederId, feederName);
+                    return;
+                }
+                ModelFeeder f = new ModelFeeder()
+                {
+                    DeviceId = deviceId,
+                    FeederId = feederId,
+                    FeederName = feederName,
+                    GroupId = groupId
+                };
+                Feeders.Add(feederId, f);
+            }
+        }
 
         /// <summary>
         /// Add a device to the model from an IDF XML element
@@ -62,12 +100,12 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(Element node, string gid, DeviceType type, List<Point> geo, int phaseshift = 0)
+        public bool AddDevice(IdfElement node, string gid, DeviceType type, List<Point> geo, int phaseshift = 0)
         {
             var s1nodeid = node.Node.Attribute("s1node")?.Value;
             var s2nodeid = node.Node.Attribute("s2node")?.Value;
 
-            Device d = new Device
+            ModelDevice d = new ModelDevice
             {
                 Id = node.Node.Attribute("id").Value,
                 Name = node.Node.Attribute("name").Value,
@@ -120,7 +158,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="n1id">Side 1 Node Id</param>
         /// <param name="n2id">Side 2 Node Id</param>
         /// <returns>true if successful, false otherwise</returns>
-        private bool AddDevice(Device d, string n1id, string n2id)
+        private bool AddDevice(ModelDevice d, string n1id, string n2id)
         {
             if (Devices.ContainsKey(d.Id))
             {
@@ -130,7 +168,7 @@ namespace MainPower.Osi.Enricher
             //in case someone does another operation at the same time
             lock (Devices) lock (Nodes)
                 {
-                    Node n1, n2;
+                    ModelNode n1, n2;
                     if (string.IsNullOrWhiteSpace(n1id))
                     {
                         n1 = null;
@@ -141,7 +179,7 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        n1 = new Node() { Id = n1id };
+                        n1 = new ModelNode() { Id = n1id };
                         Nodes.Add(n1id, n1);
                     }
                     if (string.IsNullOrWhiteSpace(n2id))
@@ -154,7 +192,7 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        n2 = new Node() { Id = n2id };
+                        n2 = new ModelNode() { Id = n2id };
                         Nodes.Add(n2id, n2);
                     }
                     d.Node1 = n1;
@@ -217,7 +255,7 @@ namespace MainPower.Osi.Enricher
             lock (Devices) lock (Nodes) lock (Sources)
                     {
                         var devices = from d in Devices.Values where d.GroupId == id select d;
-                        foreach (Device d in devices.ToList())
+                        foreach (ModelDevice d in devices.ToList())
                         {
                             RemoveDevice(d);
                         }
@@ -242,7 +280,7 @@ namespace MainPower.Osi.Enricher
         /// Removes a device from the model
         /// </summary>
         /// <param name="d"></param>
-        private void RemoveDevice(Device d)
+        private void RemoveDevice(ModelDevice d)
         {
             lock (Devices)
             {
@@ -289,19 +327,19 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         /// <param name="file">The filename</param>
         /// <returns>A new NodeModel, or null if the operation fails</returns>
-        public static NodeModel Deserialize(string file)
+        public static Model Deserialize(string file)
         {
-            StaticInfo("Loading model...", typeof(NodeModel));
+            StaticInfo("Loading model...", typeof(Model));
             try
             {
-                var model = Util.DeserializeMessagePack<NodeModel>(file);
+                var model = Util.DeserializeMessagePack<Model>(file);
                 if (model != null)
                     model.RebuildNodeReferences();
                 return model;
             }
             catch (Exception ex)
             {
-                StaticFatal($"Failed to deserialize model from file [{file}]. {ex.Message}", typeof(NodeModel));
+                StaticFatal($"Failed to deserialize model from file [{file}]. {ex.Message}", typeof(Model));
                 return null;
             }
         }
@@ -318,8 +356,9 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+
         /// <summary>
-        /// Trace connectivity downstream from the first connected source
+        /// Verify that all devices are connected to a source
         /// </summary>
         public void ValidateConnectivity()
         {
@@ -332,35 +371,31 @@ namespace MainPower.Osi.Enricher
             //loop through all the sources and trace connectivity downstream
             foreach (ModelSource s in sources)
             {
-                TraceNodeConnectivity(Devices[s.DeviceId], s);
+                TraceConnectivity(s);
             }
-            
-            //if (_log.IsDebugEnabled)
+
+            foreach (var device in (from d in Devices.Values where !d.ConnectivityMark select d))
             {
-                foreach (var device in (from d in Devices.Values where !d.ConnectivityMark select d))
-                {
-                    //TODO: change to debug
-                    Info($"Device is disconnected", device.Id, device.Name);
-                }
+                Warn($"Device is disconnected", device.Id, device.Name);
             }
 
             TimeSpan runtime = DateTime.Now - start;
-            Info($"Connectivity check: {GetDisconnectedCount()} of {Devices.Count} devices disconnected ({runtime.TotalSeconds} seconds)");
+            Info($"Connectivity check: {DisconnectedCount} of {Devices.Count} devices disconnected ({runtime.TotalSeconds} seconds)");
 
         }
 
         /// <summary>
         /// Marks the node as being connected
         /// </summary>
-        /// <param name="d">The device we are tracing into</param>
-        /// <param name="s">The source of the trace</param>
-        private void TraceNodeConnectivity(Device d, ModelSource s)
+        /// <param name="s">The source for the trace</param>
+        private void TraceConnectivity(ModelSource s)
         {
+            ModelDevice d = Devices[s.DeviceId];
             if (d == null)
                 return;
 
             long loop = 0;
-            Stack<(Device d, Node n)> stack = new Stack<(Device, Node)>();
+            Stack<(ModelDevice d, ModelNode n)> stack = new Stack<(ModelDevice, ModelNode)>();
             stack.Push((d, d.Node1));
 
             do
@@ -368,7 +403,7 @@ namespace MainPower.Osi.Enricher
                 loop++;
                 var set = stack.Pop();
 
-                Node traceNode;
+                ModelNode traceNode;
                 if (set.d.ConnectivityMark)
                     continue;
                 else
@@ -384,7 +419,7 @@ namespace MainPower.Osi.Enricher
                 }
                 if (traceNode == null)
                     continue;
-                foreach (Device dd in traceNode.Devices)
+                foreach (ModelDevice dd in traceNode.Devices)
                 {
                     if (dd != set.d)
                     {
@@ -397,7 +432,7 @@ namespace MainPower.Osi.Enricher
         }
 
         /// <summary>
-        /// Checks that all devices connected to each node have the same base voltage
+        /// Verifies that all devices connected to each node have the same base voltage
         /// </summary>
         public void ValidateBaseVoltages()
         {
@@ -444,7 +479,7 @@ namespace MainPower.Osi.Enricher
         /// <summary>
         /// Traces outwards from each source
         /// Calculates the likely upstream side of each device
-        /// Checks the phasing of each device to ensure consistency with upstrea devices
+        /// Checks the phasing of each device to ensure consistency with upstream devices
         /// </summary>
         public void ValidatePhasing()
         {
@@ -456,15 +491,15 @@ namespace MainPower.Osi.Enricher
             foreach (var source in Sources.Values)
             {
                 if (Devices.ContainsKey(source.DeviceId))
-                    TraceNodeEnergization(Devices[source.DeviceId], source);
+                    TraceEnergization(source);
             }
-            foreach (Device dd in Devices.Values)
+            foreach (ModelDevice dd in Devices.Values)
             {
                 dd.CalculateUpstreamSide();
             }
             ValidateDevicePhasing();
             TimeSpan runtime = DateTime.Now - start;
-            Info($"Power flow check: {GetDeenergizedCount()} of {Devices.Count} devices deenergized ({runtime.TotalSeconds}s)");
+            Info($"Power flow check: {DeenergizedCount} of {Devices.Count} devices deenergized ({runtime.TotalSeconds}s)");
         }
 
         /// <summary>
@@ -473,8 +508,12 @@ namespace MainPower.Osi.Enricher
         /// <param name="d">The device we are tracing into</param>
         /// <param name="s">The source that is energizing this trace</param>
         /// <param name="distance">The distance thus far from the source</param>
-        private void TraceNodeEnergization(Device d, ModelSource s)
+        private void TraceEnergization(ModelSource s)
         {
+            ModelDevice d = Devices[s.DeviceId];
+            if (d == null)
+                return;
+
             long loop = 0;
             //The stack keeps track of all the branches
             //The tuple items are:
@@ -483,13 +522,13 @@ namespace MainPower.Osi.Enricher
             //ud - the device the trace came from
             //distance - the distance thus far from the source
             //TODO: make this a queue
-            Stack<(Device d, Node n, Device ud, double distance)> stack = new Stack<(Device, Node, Device, double)>();
+            Stack<(ModelDevice d, ModelNode n, ModelDevice ud, double distance)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, double)>();
             stack.Push((d, d.Node1, null, 0));
             do
             {
                 loop++;
                 var set = stack.Pop();
-                Node traceNode;
+                ModelNode traceNode;
                 //if we haven't visited this node from source s, add new PFDetails for this source
                 if (!set.d.SP2S.ContainsKey(s))
                     set.d.SP2S.Add(s, new PFDetail());
@@ -523,7 +562,7 @@ namespace MainPower.Osi.Enricher
                 }
                 if (set.d.SwitchState || set.d.Type != DeviceType.Switch && traceNode != null)
                 {
-                    foreach (Device dd in traceNode.Devices)
+                    foreach (ModelDevice dd in traceNode.Devices)
                     {
                         if (dd != set.d)
                         {
@@ -541,7 +580,7 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         private void ValidateDevicePhasing()
         {
-            foreach (Device d in Devices.Values)
+            foreach (ModelDevice d in Devices.Values)
             {
                 //don't check disconnected, deenergized devices or head devices
                 if (!d.ConnectivityMark || d.Upstream == 0 || !d.SP2SMark)
@@ -557,11 +596,11 @@ namespace MainPower.Osi.Enricher
                 {
                     if (d.PhaseID[iUp, i] != 0 && d.PhaseID[iUp, i] != i + 1)
                     {
-                        Warn($"Unexpected phase {d.PhaseID[iUp, i]} on index {i+1}.", d);
+                        Warn($"Unexpected phase {d.PhaseID[iUp, i]} on index {i + 1}.", d);
                     }
                     if (d.PhaseID[iDown, i] != 0 && d.PhaseID[iDown, i] != i + 1)
                     {
-                        Warn($"Unexpected phase {d.PhaseID[iDown, i]} on index {i+1}.", d);
+                        Warn($"Unexpected phase {d.PhaseID[iDown, i]} on index {i + 1}.", d);
                     }
                 }
 
@@ -572,7 +611,7 @@ namespace MainPower.Osi.Enricher
                     {
                         if (d.PhaseID[iUp, i] != d.PhaseID[iDown, i])
                         {
-                            Error($"Phasing on index {i+1} is not consistent on both sides of the device", d);
+                            Error($"Phasing on index {i + 1} is not consistent on both sides of the device", d);
                         }
                     }
                 }
@@ -606,7 +645,7 @@ namespace MainPower.Osi.Enricher
                         {
                             if (d.PhaseID[iUp, i] != d.PhaseID[iDown, i])
                             {
-                                Error($"Phasing on index {i+1} is not consistent on both sides of the device", d);
+                                Error($"Phasing on index {i + 1} is not consistent on both sides of the device", d);
                             }
                         }
                         else
@@ -614,14 +653,14 @@ namespace MainPower.Osi.Enricher
                             if (d.PhaseID[iUp, i] == 0 && d.PhaseID[iDown, i] != 0)
                             {
                                 //this is an error because it will cause DPF to crash
-                                Error($"Phasing on upstream side of transformer on index {i+1} is unset, but downstream side is {d.PhaseID[iDown, i]}", d);
+                                Error($"Phasing on upstream side of transformer on index {i + 1} is unset, but downstream side is {d.PhaseID[iDown, i]}", d);
                             }
                         }
                     }
                 }
 
                 //check that the phase IDs on this device match the phase IDs on all upstream devices
-                foreach (Device us in d.GetUpstreamDevices())
+                foreach (ModelDevice us in d.GetUpstreamDevices())
                 {
                     //get the 0 based side index of the upstream devices connecting node with this device
                     int usUp = (d.UpstreamNode == us.Node1) ? 0 : 1;
@@ -637,37 +676,96 @@ namespace MainPower.Osi.Enricher
         }
 
         /// <summary>
-        /// Calculate the number of disconnected devices
+        /// Calculates the nominal feeder for all devices
         /// </summary>
-        /// <returns>Number of disconnected devices</returns>
-        public int GetDisconnectedCount()
+        public void CalculateNominalFeeders()
         {
-            var devices = from d in Devices.Values where !d.ConnectivityMark select d;
-            return devices.Count();
+            Info("Calculating nominal feeders...");
+            DateTime start = DateTime.Now;
+            ClearTrace();
+
+            foreach (var source in Sources.Values)
+            {
+                if (Devices.ContainsKey(source.DeviceId))
+                    TraceNominalFeeders(Devices[source.DeviceId], source);
+            }
+            TimeSpan runtime = DateTime.Now - start;
+            Info($"Feeder tracing runtime: {runtime.TotalSeconds}s");
         }
 
         /// <summary>
-        /// Calculate the number of deenergized devices
+        /// Trace though the network starting at this device, and propagating feeders down the network
         /// </summary>
-        /// <returns>Number of deenergized devices</returns>
-        public int GetDeenergizedCount()
+        /// <param name="d">The device we are tracing into</param>
+        /// <param name="s">The source that is energizing this trace</param>
+        private void TraceNominalFeeders(ModelDevice d, ModelSource s)
         {
-            var devices = from d in Devices.Values where !d.SP2SMark select d;
-            return devices.Count();
-        }
+            long loop = 0;
+            //The stack keeps track of all the branches
+            //The tuple items are:
+            //d - the device we are tracing into
+            //n - the node we are tracing in from
+            //ud - the device the trace came from
+            //TODO: make this a queue
+            Stack<(ModelDevice d, ModelNode n, ModelDevice ud, ModelFeeder feeder)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, ModelFeeder)>();
+            stack.Push((d, d.Node1, null, null));
+            do
+            {
+                loop++;
+                var set = stack.Pop();
+                ModelNode traceNode = null;
+                ModelFeeder currentFeeder = set.feeder;
 
-        /// <summary>
-        /// Returns the upstream side of a device, by the device name
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns>0 if the device is not found, 1 for Side1, 2 for Side2</returns>
-        public int GetUpstreamSideByName(string name)
-        {
-            var d = (from i in Devices.Values where i.Name == name select i).FirstOrDefault();
-            if (d == null)
-                return 0;
-            else
-                return d.Upstream;
+                //if we have been here before then continue
+                if (set.d.Trace)
+                    continue;
+                else
+                    set.d.Trace = true;
+
+                var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
+
+                //check if there is a feeder attached to this device
+                var feeder = (from f in Feeders.Values where f.DeviceId == set.d.Id select f).FirstOrDefault();
+                if (feeder != null)
+                {
+                    currentFeeder = feeder;
+                }
+
+                //set device feeder
+                set.d.NominalFeeder = currentFeeder;
+
+                if (set.d.NominalFeeder != null && set.d.IdfDevice != null)
+                {
+                    set.d.IdfDevice.Node.SetAttributeValue("nominalFeeder", d.NominalFeeder.FeederId);
+                }
+
+                if (openSwitch)
+                    continue;
+
+                //we are coming in from side 1
+                if (set.d.Node1 == set.n)
+                {
+                    traceNode = set.d.Node2;
+                }
+                else if (set.d.Node2 == set.n)//we are coming in from side 2
+                {
+                    traceNode = set.d.Node1;
+                }
+                //else single sided device
+
+                if (traceNode != null)
+                {
+                    foreach (ModelDevice dd in traceNode.Devices)
+                    {
+                        if (dd != set.d && dd.UpstreamNode == traceNode)
+                        {
+                            stack.Push((dd, traceNode, set.d, currentFeeder));
+                        }
+                    }
+                }
+            }
+            while (stack.Count > 0);
+            Info($"Feeder trace took {loop} loops for source {s.Name}");
         }
 
         /// <summary>
@@ -688,7 +786,10 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        public void ExportExtraDeviceInfo()
+        /// <summary>
+        /// Export the Lat\Long for all switches and loads.  Used by OMS to add locations to devices.
+        /// </summary>
+        public void ExportDeviceCoordinates()
         {
             XDocument doc = new XDocument();
             XElement data = new XElement("data", new XAttribute("type", "Electric Distribution Extra"), new XAttribute("timestamp", "TODO"), new XAttribute("format", "1.0"));
@@ -832,7 +933,7 @@ namespace MainPower.Osi.Enricher
             ExportWebMercatorProjectionFile(Path.Combine(dir, "Lines.prj"));
             try
             {
-                foreach (Device d in Devices.Values)
+                foreach (ModelDevice d in Devices.Values)
                 {
                     string[] fieldData = new string[15];
                     fieldData[0] = d.Node1?.Id ?? "-";
@@ -887,26 +988,17 @@ namespace MainPower.Osi.Enricher
         /// Writes a .prj file to disk with the projection string for Web Mercator
         /// </summary>
         /// <param name="file">The file to write to</param>
-        private void ExportWebMercatorProjectionFile(string file)
+        private static void ExportWebMercatorProjectionFile(string file)
         {
-            //File.WriteAllText(file, "PROJCS[\"WGS_1984_Web_Mercator_Auxiliary_Sphere\",GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.017453292519943295]],PROJECTION[\"Mercator_Auxiliary_Sphere\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"Standard_Parallel_1\",0.0],PARAMETER[\"Auxiliary_Sphere_Type\",0.0],UNIT[\"Meter\",1.0]]");
             File.WriteAllText(file, "GEOGCS[\"GCS_WGS_1984\", DATUM[\"D_WGS_1984\", SPHEROID[\"WGS_1984\", 6378137, 298.257223563]], PRIMEM[\"Greenwich\", 0], UNIT[\"Degree\", 0.017453292519943295]]");
         }
 
-        public void OverrideSinglePhasing()
-        {
-            foreach (Device d in Devices.Values)
-            {
-                if (d.Type == DeviceType.Transformer && CountPhases(d.PhaseID, 1) == 1)
-                {
-                    //TraceSinglePhasing(d);
-                }
-            }
-        }
-
+        /// <summary>
+        /// Clear the trace flag from all devices
+        /// </summary>
         private void ClearTrace()
         {
-            foreach (Device d in Devices.Values)
+            foreach (ModelDevice d in Devices.Values)
             {
                 d.Trace = false;
             }
@@ -923,235 +1015,29 @@ namespace MainPower.Osi.Enricher
             return result;
         }
 
-        /// <summary>
-        /// Traces downstream of a single phse transformer and overwrites all phasing along the way
-        /// </summary>
-        /// <param name="d"></param>
-        private void TraceSinglePhasing(Device d)
-        {
-            if (CountPhases(d.PhaseID, 1) != 1 || d.Type != DeviceType.Transformer)
-            {
-                Warn("Not a single phase transformer", d.Id, d.Name);
-                return;
-            }
 
-            ///RW transformer
-            if (d.PhaseID[0,0] == 1 && d.PhaseID[0, 1] == 2 && d.PhaseID[0, 2] == 0)
-            {
-                d.PhaseID[1, 0] = 1;
-                d.PhaseID[1, 1] = 0;
-                d.PhaseID[1, 2] = 0;
-            }
-
-            ///WB transformer
-            else if (d.PhaseID[0, 0] == 0 && d.PhaseID[0, 1] == 2 && d.PhaseID[0, 2] == 3)
-            {
-                d.PhaseID[1, 0] = 0;
-                d.PhaseID[1, 1] = 2;
-                d.PhaseID[1, 2] = 0;
-            }
-
-            ///BR transformer
-            else if (d.PhaseID[0, 0] == 1 && d.PhaseID[0, 1] == 0 && d.PhaseID[0, 2] == 3)
-            {
-                d.PhaseID[1, 0] = 0;
-                d.PhaseID[1, 1] = 0;
-                d.PhaseID[1, 2] = 3;
-            }
-            ///R SWER
-            else if (d.PhaseID[0, 0] == 1 && d.PhaseID[0, 1] == 0 && d.PhaseID[0, 2] == 0)
-            {
-                d.PhaseID[1, 0] = 1;
-                d.PhaseID[1, 1] = 0;
-                d.PhaseID[1, 2] = 0;
-            }
-            ///W SWER
-            else if (d.PhaseID[0, 0] == 0 && d.PhaseID[0, 1] == 2 && d.PhaseID[0, 2] == 0)
-            {
-                d.PhaseID[1, 0] = 0;
-                d.PhaseID[1, 1] = 2;
-                d.PhaseID[1, 2] = 0;
-            }
-            ///B SWER
-            else if (d.PhaseID[0, 0] == 0 && d.PhaseID[0, 1] == 0 && d.PhaseID[0, 2] == 3)
-            {
-                d.PhaseID[1, 0] = 0;
-                d.PhaseID[1, 1] = 0;
-                d.PhaseID[1, 2] = 3;
-            }
-            else
-            {
-                Error("Unknown HV phasing", d.Id, d.Name);
-                return;
-            }
-
-            long loop = 0;
-
-            //each stack item is (device to trace through, node that 
-            Stack<(Device d, Node n, Device ud)> stack = new Stack<(Device, Node, Device)>();
-            stack.Push((d, d.Node1, null));
-            do
-            {
-
-                loop++;
-                var set = stack.Pop();
-                Node traceNode = null;
-                //if we haven't visited this node from source s, add new PFDetails for this source
-                if (set.d.Trace)
-                    continue;
-                else
-                    set.d.Trace = true;
-
-                var dontprocess = (!set.d.SwitchState && set.d.Type == DeviceType.Switch) || (set.d.Type == DeviceType.Transformer && d != set.d);
-                if (dontprocess)
-                    return;
-
-                if (!d.PhaseID.Equals(set.d.PhaseID))
-                {
-                    set.d.PhaseID[0, 0] = set.d.PhaseID[1, 0] = d.PhaseID[1, 0];
-                    set.d.PhaseID[0, 1] = set.d.PhaseID[1, 1] = d.PhaseID[1, 1];
-                    set.d.PhaseID[0, 2] = set.d.PhaseID[1, 2] = d.PhaseID[1, 2];                    
-                    Warn("Overwriting phasing", set.d.Id, set.d.Name);
-                }
-
-                //we are coming in from side 1
-                if (set.d?.Node1 == set.n)
-                {
-                    traceNode = set.d.Node2;
-                }
-                else if (set.d?.Node2 == set.n)
-                {
-                    traceNode = set.d.Node1;
-                }
-                
-                foreach (Device dd in traceNode?.Devices ?? Enumerable.Empty<Device>())
-                {
-                    if (dd != set.d)
-                    {
-                        stack.Push((dd, traceNode, set.d));
-                    }
-                }
-            }
-            while (stack.Count > 0);
-            Debug($"Trace took {loop} loops", d.Id, d.Name);
-        }
-
-        /// <summary>
-        /// Calculates the nominal feeder for all devices
-        /// </summary>
-        public void CalculateNominalFeeders()
-        {
-            Info("Calculating nominal feeders...");
-            DateTime start = DateTime.Now;
-            ClearTrace();
-
-            foreach (var source in Sources.Values)
-            {
-                if (Devices.ContainsKey(source.DeviceId))
-                    TraceNominalFeeders(Devices[source.DeviceId], source);
-            }
-            TimeSpan runtime = DateTime.Now - start;
-            Info($"Feeder tracing runtime: {runtime.TotalSeconds}s");
-        }
-
-        /// <summary>
-        /// Trace though the network starting at this device, and propagating feeders down the network
-        /// </summary>
-        /// <param name="d">The device we are tracing into</param>
-        /// <param name="s">The source that is energizing this trace</param>
-        private void TraceNominalFeeders(Device d, ModelSource s)
-        {
-            long loop = 0;
-            //The stack keeps track of all the branches
-            //The tuple items are:
-            //d - the device we are tracing into
-            //n - the node we are tracing in from
-            //ud - the device the trace came from
-            //TODO: make this a queue
-            Stack<(Device d, Node n, Device ud, ModelFeeder feeder)> stack = new Stack<(Device, Node, Device, ModelFeeder)>();
-            stack.Push((d, d.Node1, null, null));
-            do
-            {
-                loop++;
-                var set = stack.Pop();
-                Node traceNode = null;
-                ModelFeeder currentFeeder = set.feeder;
-
-                //if we have been here before then continue
-                if (set.d.Trace)
-                    continue;
-                else
-                    set.d.Trace = true;
-
-                var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
-
-                //check if there is a feeder attached to this device
-                var feeder = (from f in Feeders.Values where f.DeviceId == set.d.Id select f).FirstOrDefault();
-                if (feeder != null)
-                {
-                    currentFeeder = feeder;
-                }
-                //set device feeder
-                set.d.NominalFeeder = currentFeeder;
-                SetElementNominalFeeder(set.d);
-
-                if (openSwitch)
-                    continue;
-
-                //we are coming in from side 1
-                if (set.d.Node1 == set.n)
-                {
-                    traceNode = set.d.Node2;
-                }
-                else if (set.d.Node2 == set.n)//we are coming in from side 2
-                {
-                    traceNode = set.d.Node1;
-                }
-                //else single sided device
-                
-                if (traceNode != null)
-                {
-                    foreach (Device dd in traceNode.Devices)
-                    {
-                        if (dd != set.d && dd.UpstreamNode == traceNode)
-                        {
-                            stack.Push((dd, traceNode, set.d, currentFeeder));
-                        }
-                    }
-                }
-            }
-            while (stack.Count > 0);
-            Info($"Feeder trace took {loop} loops for source {s.Name}");
-        }
-
-        private void SetElementNominalFeeder(Device d)
-        {
-            if (d.NominalFeeder == null || d.IdfDevice == null)
-                return;
-
-            d.IdfDevice.Node.SetAttributeValue("nominalFeeder", d.NominalFeeder.FeederId);
-        }
-
-        private void Debug(string message, Device d, [CallerMemberName]string caller = "")
+        #region Log Functions
+        private void Debug(string message, ModelDevice d, [CallerMemberName]string caller = "")
         {
             Debug(message, d.Id, d.Name, caller);
         }
-        private void Info(string message, Device d, [CallerMemberName]string caller = "")
+        private void Info(string message, ModelDevice d, [CallerMemberName]string caller = "")
         {
             Info(message, d.Id, d.Name, caller);
         }
-        private void Warn(string message, Device d, [CallerMemberName]string caller = "")
+        private void Warn(string message, ModelDevice d, [CallerMemberName]string caller = "")
         {
             Warn(message, d.Id, d.Name, caller);
         }
-        private void Error(string message, Device d, [CallerMemberName]string caller = "")
+        private void Error(string message, ModelDevice d, [CallerMemberName]string caller = "")
         {
             Error(message, d.Id, d.Name, caller);
         }
-        private void Fatal(string message, Device d, [CallerMemberName]string caller = "")
+        private void Fatal(string message, ModelDevice d, [CallerMemberName]string caller = "")
         {
             Fatal(message, d.Id, d.Name, caller);
         }
+        #endregion
 
     }
 }

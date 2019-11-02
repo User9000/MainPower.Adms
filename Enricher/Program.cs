@@ -72,7 +72,7 @@ namespace MainPower.Osi.Enricher
                        retCode = 1;
                    else
                        retCode = 0;
-                   if (Enricher.I.Options.PauseBeforeQuit)
+                   if (o.PauseBeforeQuit)
                        Console.ReadKey();
                });
             return retCode;

@@ -5,7 +5,7 @@ using System.Xml.Linq;
 namespace MainPower.Osi.Enricher
 {
 
-    public class Load : Element
+    public class IdfLoad : IdfElement
     {
         private const string SYMBOL_LOAD_SL = "Symbol 24";
         private const string SYMBOL_LOAD_RESIDENTIAL = "Symbol 13";
@@ -20,7 +20,7 @@ namespace MainPower.Osi.Enricher
         private const string LOAD_ICP_LOAD = "Consumption";
         private const string LOAD_ICP_TYPE = "Type";
 
-        public Load(XElement node, Group processor) : base(node, processor) { }
+        public IdfLoad(XElement node, IdfGroup processor) : base(node, processor) { }
 
         public override void Process()
         {

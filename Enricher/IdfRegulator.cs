@@ -8,13 +8,13 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Regulator : Element
+    public class IdfRegulator : IdfElement
     {
         private const string IDF_REGULATOR_SYMBOL = "Symbol 7";
         private const string REGULATOR_DEFAULT_TYPE = "transformerType_regulator_default";
         private const string IDF_TRANSFORMER_TYPE = "transformerType";
 
-        public Regulator(XElement node, Group processor) : base(node, processor) { }
+        public IdfRegulator(XElement node, IdfGroup processor) : base(node, processor) { }
 
 
         public override void Process()

@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class Capacitor : Element
+    public class IdfCapacitor : IdfElement
     {
         private const string SYMBOL_CAPACITOR = "Symbol 12";
 
@@ -12,7 +12,7 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         /// <param name="node">The XElement node from the IDF</param>
         /// <param name="parent">The Group that this element belongs to</param>
-        public Capacitor(XElement node, Group parent) : base(node, parent) { }
+        public IdfCapacitor(XElement node, IdfGroup parent) : base(node, parent) { }
 
         /// <summary>
         /// Process the Capacitor object
