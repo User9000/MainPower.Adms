@@ -92,7 +92,6 @@ namespace MainPower.Osi.Enricher
 
         /// <summary>
         /// Loads the DataManager configuration
-        /// TODO: The parameters of this function are weird.  Fix it.
         /// </summary>
         /// <param name="file">The file to load from</param>
         /// <param name="loadDefaults">Load the default parameters rather than loading from file</param>
@@ -262,7 +261,6 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "AdmsSwitch",
                     FileName = "AdmsSwitch.csv",
-                    //TODO: figure this out
                     IndexColumn = "Switch Number",
                     InitializeFailIsFatal = true
                 };

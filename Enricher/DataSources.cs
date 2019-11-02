@@ -59,7 +59,7 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                //TODO have a bunch of match types               
+                //TODO: have a bunch of match types               
                 var s = Data.Columns[columnName].DataType == typeof(string) ? "'" : "";
                 //only string searches can be not exact
                 if (s == "" && !exact)

@@ -107,7 +107,7 @@ namespace MainPower.Osi.Enricher
                     {
                         Model.ExportDeviceCoordinates();
                     }
-                    //TODO
+
                     IdfLine.ExportConductors();
                 }    
                 else

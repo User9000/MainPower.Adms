@@ -30,39 +30,10 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                #region TODO: Backport to GIS Extractor
-                //CheckPhases();
+                //change this to check
                 SetAllNominalStates();
-                ParentGroup.AddDataAndFlowlink(Id);
-                /*
-                //assume that unset lv busses are for streetlights
-                if (Name.StartsWith("LV Bus") && S1Phases == 0)
-                {
-                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "");
-                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "2");
-                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "");
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, "");
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, "2");
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, "");
-                    S1Phases = S2Phases = 1;
-                }              
-
-                //overwrite streetlight phasing
-                if (Name.StartsWith("SL"))
-                {
-                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "");
-                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "2");
-                    Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "");
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, "");
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, "2");
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, "");
-                    S1Phases = S2Phases = 1;
-                }*/
-
+                ParentGroup.AddDataAndFlowlink(Id);             
                 CheckPhases();
-
-
-                #endregion
 
                 var geo = ParentGroup.GetLineGeometry(Id);
                 if (!Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line, geo))

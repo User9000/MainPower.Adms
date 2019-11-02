@@ -59,7 +59,7 @@ namespace MainPower.Osi.Enricher
         {
             get
             {
-                var devices = from d in Devices.Values where !d.SP2SMark select d;
+                var devices = from d in Devices.Values where d.SP2S.Count == 0 select d;
                 return devices.Count();
             }
         }
@@ -521,7 +521,6 @@ namespace MainPower.Osi.Enricher
             //n - the node we are tracing in from
             //ud - the device the trace came from
             //distance - the distance thus far from the source
-            //TODO: make this a queue
             Stack<(ModelDevice d, ModelNode n, ModelDevice ud, double distance)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, double)>();
             stack.Push((d, d.Node1, null, 0));
             do
@@ -532,9 +531,6 @@ namespace MainPower.Osi.Enricher
                 //if we haven't visited this node from source s, add new PFDetails for this source
                 if (!set.d.SP2S.ContainsKey(s))
                     set.d.SP2S.Add(s, new PFDetail());
-                //mark that we have been here from any source
-                //TODO: this is basically !s.SPS2S.Empty()
-                set.d.SP2SMark = true;
 
                 var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
 
@@ -583,7 +579,7 @@ namespace MainPower.Osi.Enricher
             foreach (ModelDevice d in Devices.Values)
             {
                 //don't check disconnected, deenergized devices or head devices
-                if (!d.ConnectivityMark || d.Upstream == 0 || !d.SP2SMark)
+                if (!d.ConnectivityMark || d.Upstream == 0 || d.SP2S.Count == 0)
                     continue;
 
                 //convert from upstream side (1 or 2) to array indexes (0 or 1)
@@ -706,7 +702,6 @@ namespace MainPower.Osi.Enricher
             //d - the device we are tracing into
             //n - the node we are tracing in from
             //ud - the device the trace came from
-            //TODO: make this a queue
             Stack<(ModelDevice d, ModelNode n, ModelDevice ud, ModelFeeder feeder)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, ModelFeeder)>();
             stack.Push((d, d.Node1, null, null));
             do
@@ -942,7 +937,7 @@ namespace MainPower.Osi.Enricher
                     fieldData[3] = d.Name;
                     fieldData[4] = d.GroupId;
                     fieldData[5] = d.ConnectivityMark ? "1" : "0";
-                    fieldData[6] = d.SP2SMark ? "1" : "0";
+                    fieldData[6] = d.SP2S.Any() ? "1" : "0";
                     fieldData[7] = d.Upstream.ToString();
                     fieldData[8] = d.Type.ToString();
                     fieldData[9] = d.Base1kV.ToString("N3");

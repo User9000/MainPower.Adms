@@ -89,12 +89,7 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        Error("Data group is not in the import configuration, it will be added.", id, idf.FileName);
-                        //TODO: we probably shouldn't do this in prod
-                        //XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
-                        //ImportConfig.Groups.Add(g);
-                        //var gr = new Group(g, null);
-                        //Groups.Add(gr.Id, gr);
+                        Error("Data group is not in the import configuration.", id, idf.FileName);
                     }
                 }
             }
@@ -118,12 +113,12 @@ namespace MainPower.Osi.Enricher
                     }
                     if (!Groups.ContainsKey(id))
                     {
-                        Error("Display group is not in the import configuration, it will be added.", id, idf.FileName);
+                        Error("Display group is not in the import configuration", id, idf.FileName);
                         //TODO: we probably shouldn't do this in prod
-                        XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
-                        ImportConfig.Groups.Add(g);
-                        var gr = new IdfGroup(g, null);
-                        Groups.Add(gr.Id, gr);
+                        //XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
+                        //ImportConfig.Groups.Add(g);
+                        //var gr = new IdfGroup(g, null);
+                        //Groups.Add(gr.Id, gr);
                     }
                     Groups[id].AddDisplayGroup(display, group);
                 }

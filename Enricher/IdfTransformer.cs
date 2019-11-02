@@ -198,8 +198,6 @@ namespace MainPower.Osi.Enricher
                         //_minTapLimit = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //_parallelSet = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         //_regulationType = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //_s1BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //_s2BaseKv = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
                         string parallelSet = _admsAsset[ADMS_TX_PARALLEL_SET] as string;
                         if (!string.IsNullOrWhiteSpace(parallelSet))
                         {

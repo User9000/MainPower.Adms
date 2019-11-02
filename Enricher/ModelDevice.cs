@@ -32,10 +32,6 @@ namespace MainPower.Osi.Enricher
 
         [JsonIgnore]
         [IgnoreMember]
-        public bool SP2SMark { get; set; }
-
-        [JsonIgnore]
-        [IgnoreMember]
         public int Upstream { get; set; }
 
         [JsonIgnore]
