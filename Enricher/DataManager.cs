@@ -195,6 +195,22 @@ namespace MainPower.Osi.Enricher
 
                 source = new CsvSource()
                 {
+                    Name = "TranspowerTransformers",
+                    FileName = "TranspowerTransformers.csv",
+                    IndexColumn = "id",
+                    InitializeFailIsFatal = true
+                };
+                dataset = new Dataset()
+                {
+                    IndexColumn = "id",
+                    Name = "TranspowerTransformers",
+                    Datasource = source,
+                    Table = null
+                };
+                Datasets.Add(nameof(TranspowerTransformer), dataset);
+
+                source = new CsvSource()
+                {
                     Name = "ScadaStatus",
                     FileName = "ScadaStatus.csv",
                     IndexColumn = "Key",

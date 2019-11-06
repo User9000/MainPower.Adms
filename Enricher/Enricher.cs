@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,7 +66,10 @@ namespace MainPower.Osi.Enricher
                 Fatal("Failed to process Import configuration, skipping everything else");
                 return;
             }
-            
+
+            IdfTransformer.GenerateParallelSets(Path.Combine(Options.OutputPath, "Parallel Sets.xml"));
+            FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
+
             if (o.ProcessTopology)
             {
                 Model.ValidateConnectivity();

@@ -25,6 +25,12 @@ namespace MainPower.Osi.Enricher
     {
 
     }
+
+    public class TranspowerTransformer : DataType
+    {
+
+    }
+
     public class OsiScadaPoint : DataType
     {
         public const string SCADA_KEY = "Key";

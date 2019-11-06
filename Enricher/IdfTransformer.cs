@@ -20,7 +20,7 @@ namespace MainPower.Osi.Enricher
         private const string SYMBOL_TX_II0 = "Symbol 1";
 
         private const double SYMBOL_TX_SCALE = 0.3;
-        private const double SYMBOL_TX_SCALE_publicS = 0.3;
+        private const double SYMBOL_TX_SCALE_INTERNALS = 0.3;
         private const double SYMBOL_TX_ROTATION = 0;
         
         private const string T1_TX_PRI_OPERATINGKV = "Op#Volt-Tx Power";            //the primary operating voltage
@@ -136,6 +136,7 @@ namespace MainPower.Osi.Enricher
 
         private DataType _t1Asset = null;
         private DataType _admsAsset = null;
+        private DataType _tpAsset = null;
 
         #endregion
 
@@ -167,25 +168,77 @@ namespace MainPower.Osi.Enricher
 
                 if (string.IsNullOrEmpty(T1Id))
                 {
-                    Warn( $"T1 asset number is unset");
+                    Warn($"T1 asset number is unset");
+                    _tpAsset = DataManager.I.RequestRecordById<TranspowerTransformer>(Id);
+                    if (_tpAsset != null)
+                    {
+                        ParseT1kVA(_tpAsset);
+                        ParseT1VectorGroup(_tpAsset);
+
+                        //TODO this is broke, _vGroup is never set
+                        if (_vGroup != "ZN")
+                        {
+                            CalculateStepSize(_tpAsset);
+                            CalculateTransformerImpedances(_tpAsset);
+                        }
+                        else
+                        {
+                            _percreactance = "7.0";
+                            _percresistance = "0.5";
+                        }
+                        
+
+
+                        string parallelSet = _tpAsset[ADMS_TX_PARALLEL_SET] as string;
+                        if (!string.IsNullOrWhiteSpace(parallelSet))
+                        {
+                            if (!ParallelSets.Contains(parallelSet))
+                            {
+                                ParallelSets.Add(parallelSet);
+                            }
+                        }
+                        string scadaPrefix = _tpAsset[ADMS_TX_SCADAID] as string;
+                        if (!string.IsNullOrWhiteSpace(scadaPrefix))
+                        {
+                            UpdateName(scadaPrefix);
+                            GenerateScadaLinking(scadaPrefix);
+                        }
+
+                        //If we don't even have the kva, then no point generating a type as it will just generate errors in maestro
+                        if (string.IsNullOrWhiteSpace(_kva))
+                        {
+                            //TODO: assume 1MVA or something
+                            Error("Using generic transformer type as kva was unset");
+                        }
+                        else
+                        {
+                            _transformerType = $"{Id}_type";
+                            ParentGroup.AddGroupElement(GenerateTransformerType());
+                        }
+                    }
                 }
                 else
                 {
                     _t1Asset = DataManager.I.RequestRecordById<T1Transformer>(T1Id);
                     if (_t1Asset == null)
-                    {                        
-                        Warn( $"T1 asset number [{T1Id}] was not in T1");
+                    {
+                        Warn($"T1 asset number [{T1Id}] was not in T1");
                     }
                     else
                     {
-                        ParseT1kVA();
-                        ParseT1VectorGroup();
-                        
+                        ParseT1kVA(_t1Asset);
+                        ParseT1VectorGroup(_t1Asset);
+
                         if (_vGroup != "ZN")
                         {
-                            CalculateStepSize();
-                            CalculateTransformerImpedances();
-                        }                        
+                            CalculateStepSize(_t1Asset);
+                            CalculateTransformerImpedances(_t1Asset);
+                        }
+                        else
+                        {
+                            _percreactance = "7.0";
+                            _percresistance = "0.5";
+                        }
                     }
 
                     _admsAsset = DataManager.I.RequestRecordById<AdmsTransformer>(T1Id);
@@ -203,12 +256,13 @@ namespace MainPower.Osi.Enricher
                         {
                             if (!ParallelSets.Contains(parallelSet))
                             {
-                                GenerateParallelSet(parallelSet);
+                                ParallelSets.Add(parallelSet);
                             }
                         }
                         string scadaPrefix = _admsAsset[ADMS_TX_SCADAID] as string;
                         if (!string.IsNullOrWhiteSpace(scadaPrefix))
                         {
+                            UpdateName(scadaPrefix);
                             GenerateScadaLinking(scadaPrefix);
                         }
                     }
@@ -219,7 +273,7 @@ namespace MainPower.Osi.Enricher
                         Error("Using generic transformer type as kva was unset");
                     }
                     else
-                    { 
+                    {
                         _transformerType = $"{Id}_type";
                         ParentGroup.AddGroupElement(GenerateTransformerType());
                     }
@@ -260,11 +314,16 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue(IDF_TX_S2RATEDKV, "1");
                 }
 
-                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_publicS, SYMBOL_TX_ROTATION);
+                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_INTERNALS, SYMBOL_TX_ROTATION);
                 GenerateDeviceInfo();
                 RemoveExtraAttributes();
-
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo, _phaseshift);
+                
+                //TODO: fix this
+                if (_vGroup != "ZN")
+                {
+                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo, _phaseshift);
+                }
+                
             }
             catch (Exception ex)
             {
@@ -272,31 +331,40 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        private void GenerateParallelSet(string setId)
+        public static void GenerateParallelSets(string file)
         {
-            XElement x = new XElement("element");
-            XAttribute id = new XAttribute("id", $"parallelSet_{setId}");
-            XAttribute name = new XAttribute("name", setId);
-            XAttribute type = new XAttribute("type", "Transformer Parallel Set");
-            XAttribute pmode = new XAttribute("parallelMode", "Enabled");
-            XAttribute ptype = new XAttribute("parallelType", "Solo/Parallel");
+            XDocument doc = new XDocument();
+            XElement data = new XElement("data", new XAttribute("type", "Electric Distribution"), new XAttribute("timestamp", DateTime.UtcNow.ToString("s")), new XAttribute("format", "1.0"));
+            XElement groups = new XElement("groups");
+            doc.Add(data);
+            data.Add(groups);
+            XElement xgroup = new XElement("group", new XAttribute("id", "Transformer Parallel Sets"));
+            groups.Add(xgroup);
 
-            x.Add(id);
-            x.Add(type);
-            x.Add(name);
-            x.Add(pmode);
-            x.Add(ptype);
+            foreach (var set in ParallelSets)
+            {
+                XElement x = new XElement("element");
+                XAttribute id = new XAttribute("id", $"parallelSet_{set}");
+                XAttribute name = new XAttribute("name", set);
+                XAttribute type = new XAttribute("type", "Transformer Parallel Set");
+                XAttribute pmode = new XAttribute("parallelMode", "Enabled");
+                XAttribute ptype = new XAttribute("parallelType", "Solo/Parallel");
 
-            ParentGroup.AddGroupElement(x);
-            ParallelSets.Add(setId);
+                x.Add(id);
+                x.Add(type);
+                x.Add(name);
+                x.Add(pmode);
+                x.Add(ptype);
+                xgroup.Add(x);
+            }
+            doc.Save(file);
         }
-
 
         #region Tech1 Validation
 
-        private void ParseT1kVA()
+        private void ParseT1kVA(DataType asset)
         {
-            double? v = _t1Asset?.AsDouble(T1_TX_KVA);
+            double? v = asset.AsDouble(T1_TX_KVA);
             if (v != null && v != 0)
             {
                 _dkva = v.Value;
@@ -309,9 +377,9 @@ namespace MainPower.Osi.Enricher
                 Warn("kVA is unset");
         }
 
-        private void ParseT1VectorGroup()
+        private void ParseT1VectorGroup(DataType asset)
         {
-            string v = _t1Asset?[T1_TX_VECTORGROUP];
+            string v = _vGroup = asset[T1_TX_VECTORGROUP];
             if (string.IsNullOrWhiteSpace(v))
             {
                 if (S2Phases == 3)
@@ -406,10 +474,10 @@ namespace MainPower.Osi.Enricher
         }
         #endregion
        
-        private void CalculateTransformerImpedances()
+        private void CalculateTransformerImpedances(DataType asset)
         {
-            double? zpu = _t1Asset.AsDouble(T1_TX_IMPEDANCE);
-            double? loadlossW = _t1Asset.AsInt(T1_TX_LOADLOSS);
+            double? zpu = asset.AsDouble(T1_TX_IMPEDANCE);
+            double? loadlossW = asset.AsInt(T1_TX_LOADLOSS);
             double baseIHV, baseILV, baseZHV, baseZLV, loadlossV, loadlossIHV, zohmHV, xohmHV, rohmHV, xpu, rpu;
             if (zpu == null || loadlossW == null || loadlossW == 0 || _dkva.Equals(double.NaN) || _s1kV.Equals(double.NaN) || _s2kV.Equals(double.NaN))
             {
@@ -456,15 +524,16 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        private void CalculateStepSize()
+        private void CalculateStepSize(DataType asset)
         {
-            double? v1 = _t1Asset.AsDouble(T1_TX_MINTAP);
-            double? v2 = _t1Asset.AsDouble(T1_TX_MAXTAP);
+            double? v1 = asset.AsDouble(T1_TX_MINTAP);
+            double? v2 = asset.AsDouble(T1_TX_MAXTAP);
 
             double tapLow, tapHigh, kva;
 
-            if (_kva == "") {
-                Warn( "Can't calculate tap steps as kva is unknown");
+            if (_kva == "")
+            {
+                Warn("Can't calculate tap steps as kva is unknown");
                 return;
             }
             else
@@ -472,18 +541,18 @@ namespace MainPower.Osi.Enricher
                 //guaranteed as we validated previously
                 kva = double.Parse(_kva);
             }
-            
+
             if (v1 == null)
             {
-                Warn( "Can't calculate tap steps as tapLow wasn't a valid int");
+                Warn("Can't calculate tap steps as tapLow wasn't a valid double");
                 return;
             }
             if (v2 == null)
             {
-                Warn( "Can't calculate tap steps as tapHigh wasn't a valid int");
+                Warn("Can't calculate tap steps as tapHigh wasn't a valid double");
                 return;
             }
-            tapLow = v1.Value ;
+            tapLow = v1.Value;
             tapHigh = v2.Value;
             if (kva > 3000)
             {
@@ -493,7 +562,7 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Warn( $"Was expecting tapLow {tapLow} and tapHigh {tapHigh} to be multiples of 1.25");
+                    Warn($"Was expecting tapLow {tapLow} and tapHigh {tapHigh} to be multiples of 1.25");
                     return;
                 }
             }
@@ -513,16 +582,16 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Warn( $"Could not determine tap size, it wasn't 2.5, 2 or 1.25");
+                    Warn($"Could not determine tap size, it wasn't 2.5, 2 or 1.25");
                 }
-                _numTaps = (int)((tapLow - tapHigh) / 1.25 + 1);
-                _tapSteps = _numTaps.ToString();
-                double maxTap = (1 + tapLow / 100);
-                double minTap = (1 + tapHigh / 100);
-                _maxTap = maxTap.ToString();
-                _minTap = minTap.ToString();
-                _initialTap1 = _initialTap2 = _initialTap3 = ((maxTap - 1) / ((maxTap - minTap) / (_numTaps - 1)) + 1).ToString();
             }
+            _numTaps = (int)((tapLow - tapHigh) / 1.25 + 1);
+            _tapSteps = _numTaps.ToString();
+            double maxTap = (1 + tapLow / 100);
+            double minTap = (1 + tapHigh / 100);
+            _maxTap = maxTap.ToString();
+            _minTap = minTap.ToString();
+            _initialTap1 = _initialTap2 = _initialTap3 = ((maxTap - 1) / ((maxTap - minTap) / (_numTaps - 1)) + 1).ToString();
         }
 
         private void RemoveExtraAttributes()
@@ -567,6 +636,9 @@ namespace MainPower.Osi.Enricher
 
             var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{scadaId} Volts RY", true);
             if (voltage != null)
+                x.SetAttributeValue("controlVoltageReference", voltage.Key);
+            //TODO: this is a workaround for bad data
+            else if ((voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{scadaId} Volts", true)) != null)
                 x.SetAttributeValue("controlVoltageReference", voltage.Key);
 
             ParentGroup.AddGroupElement(x);

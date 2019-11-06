@@ -278,6 +278,9 @@ namespace MainPower.Osi.Enricher
             x.SetAttributeValue("type", "SCADA");
             x.SetAttributeValue("id", Id);
 
+            if (status["Type"] == "T_I&C")
+                x.SetAttributeValue("gangedControlPoint", status.Key);
+
             bool phase1, phase2, phase3;
 
             phase1 = !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value);
@@ -414,8 +417,8 @@ namespace MainPower.Osi.Enricher
                 }
 
                 var lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Lockout");
-
-
+                if (lockout == null)
+                    lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip4 OC");
                 if (lockout != null)
                 {
                     if (phase1)
@@ -426,6 +429,22 @@ namespace MainPower.Osi.Enricher
                         x.SetAttributeValue("p3TripFaultSignal", lockout.Key);
                 }
 
+                var ampsr = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Prot Trip Amps RØ");
+                if (ampsr != null && phase1)
+                {
+                    x.SetAttributeValue("p1FaultCurrent", ampsr.Key);
+                }
+                var ampsy = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Prot Trip Amps YØ");
+                if (ampsy != null && phase3)
+                {
+                    x.SetAttributeValue("p2FaultCurrent", ampsy.Key);
+                }
+                var ampsb = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Prot Trip Amps BØ");
+                if (ampsb != null && phase3)
+                {
+                    x.SetAttributeValue("p3FaultCurrent", ampsb.Key);
+                }
+
                 //TODO: handle cases where there are two relays?
                 var watchdog = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Relay Watchdog");
 
@@ -433,10 +452,67 @@ namespace MainPower.Osi.Enricher
                 //OCPModeNormal = 1
                 //p1OCPMode = Watchdog 
                 //p1FaultCurrent = fault current
-                //p1FaultInd = for directional devices is the side 1 fault indication, otherwise non directional
-                //p1FaultInd2 = for directional devices is the side 2 fault indication, otherwise non directional
                 //p1TripFaultSignal = lockout
 
+                //p1FaultInd = for directional devices is the side 1 fault indication, otherwise non directional
+                //p1FaultInd2 = for directional devices is the side 2 fault indication, otherwise non directional
+
+                var p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot RØ Fault");
+                if (p1Fault != null)
+                {
+                    x.SetAttributeValue("p1FaultInd", p1Fault.Key);
+                }
+                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot OC RØ Trip")) != null)
+                {
+                    x.SetAttributeValue("p1FaultInd", p1Fault.Key);
+                }
+                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip1 OC")) != null)
+                {
+                    x.SetAttributeValue("p1FaultInd", p1Fault.Key);
+                }
+
+                var p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot YØ Fault");
+                if (p2Fault != null)
+                {
+                    x.SetAttributeValue("p2FaultInd", p2Fault.Key);
+                }
+                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot OC YØ Trip")) != null)
+                {
+                    x.SetAttributeValue("p2FaultInd", p2Fault.Key);
+                }
+                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip2 OC")) != null)
+                {
+                    x.SetAttributeValue("p2FaultInd", p2Fault.Key);
+                }
+
+                var p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot RØ Fault");
+                if (p3Fault != null)
+                {
+                    x.SetAttributeValue("p3FaultInd", p3Fault.Key);
+                }
+                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot OC RØ Trip")) != null)
+                {
+                    x.SetAttributeValue("p3FaultInd", p3Fault.Key);
+                }
+                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip3 OC")) != null)
+                {
+                    x.SetAttributeValue("p3FaultInd", p3Fault.Key);
+                }
+
+
+                var hlt = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} WorkTag");
+                if (hlt != null)
+                    x.SetAttributeValue("hotLineTag", hlt.Key);
+
+                var groundTripBlock = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot SEF");
+                if (groundTripBlock != null)
+                    x.SetAttributeValue("groundTripBlock", groundTripBlock.Key);
+
+                var acr = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Auto Reclose");
+                if (acr != null)
+                    x.SetAttributeValue("reclosing", acr.Key);
+
+                x.SetAttributeValue("faultIndType", "Directionless");
 
 
             }

@@ -103,13 +103,21 @@ namespace MainPower.Osi.Enricher
             Id = id;
         }
 
+        protected void UpdateName(string name)
+        {
+            Node.SetAttributeValue(IDF_ELEMENT_NAME, name);
+            Name = name;
+        }
+
         protected void GenerateDeviceInfo()
         {
             XElement dinfo = new XElement("element");
             dinfo.SetAttributeValue("type", "Device Info");
             dinfo.SetAttributeValue("id", $"{Id}_deviceInfo");
-            dinfo.SetAttributeValue("key1", "T1 Asset Id");
-            dinfo.SetAttributeValue("value1", T1Id ?? "unknown");
+            dinfo.SetAttributeValue("key1", "Id");
+            dinfo.SetAttributeValue("value1", Id);
+            dinfo.SetAttributeValue("key2", "T1 Asset Id");
+            dinfo.SetAttributeValue("value2", T1Id ?? "unknown");
 
             ParentGroup.AddGroupElement(dinfo);
 

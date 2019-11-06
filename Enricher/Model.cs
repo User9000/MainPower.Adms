@@ -683,7 +683,7 @@ namespace MainPower.Osi.Enricher
             foreach (var source in Sources.Values)
             {
                 if (Devices.ContainsKey(source.DeviceId))
-                    TraceNominalFeeders(Devices[source.DeviceId], source);
+                    TraceNominalFeeders(source);
             }
             TimeSpan runtime = DateTime.Now - start;
             Info($"Feeder tracing runtime: {runtime.TotalSeconds}s");
@@ -694,8 +694,10 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         /// <param name="d">The device we are tracing into</param>
         /// <param name="s">The source that is energizing this trace</param>
-        private void TraceNominalFeeders(ModelDevice d, ModelSource s)
+        private void TraceNominalFeeders(ModelSource s)
         {
+            ModelDevice d = Devices[s.DeviceId];
+
             long loop = 0;
             //The stack keeps track of all the branches
             //The tuple items are:
@@ -731,7 +733,7 @@ namespace MainPower.Osi.Enricher
 
                 if (set.d.NominalFeeder != null && set.d.IdfDevice != null)
                 {
-                    set.d.IdfDevice.Node.SetAttributeValue("nominalFeeder", d.NominalFeeder.FeederId);
+                    set.d.IdfDevice.Node.SetAttributeValue("nominalFeeder", set.d.NominalFeeder.FeederId);
                 }
 
                 if (openSwitch)
@@ -787,7 +789,7 @@ namespace MainPower.Osi.Enricher
         public void ExportDeviceCoordinates()
         {
             XDocument doc = new XDocument();
-            XElement data = new XElement("data", new XAttribute("type", "Electric Distribution Extra"), new XAttribute("timestamp", "TODO"), new XAttribute("format", "1.0"));
+            XElement data = new XElement("data", new XAttribute("type", "Electric Distribution Extra"), new XAttribute("timestamp", DateTime.UtcNow.ToString("s")), new XAttribute("format", "1.0"));
             XElement groups = new XElement("groups");
             doc.Add(data);
             data.Add(groups);
