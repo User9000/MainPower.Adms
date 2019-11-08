@@ -49,6 +49,7 @@ namespace MainPower.Osi.Enricher
         private const string ADMS_TX_MINTAPLIMIT = "minTapControlLimit";     // 
         private const string ADMS_TX_SCADAID = "scadaId";                    //the prefix used for SCADA e.g.BHL T1
         private const string ADMS_TX_PARALLEL_SET = "parallelSet";
+        private const string ADMS_TX_NER = "nerResistance";
 
         private const string IDF_TX_BANDWIDTH = "bandwidth";
         private const string IDF_TX_BIDIRECTIONAL = "bidirectional";
@@ -155,7 +156,7 @@ namespace MainPower.Osi.Enricher
                 _transformerType = IDF_TX_DEFAULT_TYPE;
                 _s1BaseKv = Node.Attribute(IDF_TX_S1BASEKV)?.Value;
                 _s2BaseKv = Node.Attribute(IDF_TX_S2BASEKV)?.Value;
-                
+
                 //TODO: need to check these arent empty, e.g. earthing transformer
                 _s1kV = double.Parse(_s1BaseKv) * 1000;
                 _s2kV = double.Parse(_s2BaseKv) * 1000;
@@ -166,59 +167,18 @@ namespace MainPower.Osi.Enricher
                 _standardRotation = IDF_TRUE;
                 _tapSide = "1";
 
+                DataType asset1, asset2 = null;
+
+                //if there is no T1Id, look it up in the transpower dataset
                 if (string.IsNullOrEmpty(T1Id))
                 {
                     Warn($"T1 asset number is unset");
                     _tpAsset = DataManager.I.RequestRecordById<TranspowerTransformer>(Id);
-                    if (_tpAsset != null)
-                    {
-                        ParseT1kVA(_tpAsset);
-                        ParseT1VectorGroup(_tpAsset);
-
-                        //TODO this is broke, _vGroup is never set
-                        if (_vGroup != "ZN")
-                        {
-                            CalculateStepSize(_tpAsset);
-                            CalculateTransformerImpedances(_tpAsset);
-                        }
-                        else
-                        {
-                            _percreactance = "7.0";
-                            _percresistance = "0.5";
-                        }
-                        
-
-
-                        string parallelSet = _tpAsset[ADMS_TX_PARALLEL_SET] as string;
-                        if (!string.IsNullOrWhiteSpace(parallelSet))
-                        {
-                            if (!ParallelSets.Contains(parallelSet))
-                            {
-                                ParallelSets.Add(parallelSet);
-                            }
-                        }
-                        string scadaPrefix = _tpAsset[ADMS_TX_SCADAID] as string;
-                        if (!string.IsNullOrWhiteSpace(scadaPrefix))
-                        {
-                            UpdateName(scadaPrefix);
-                            GenerateScadaLinking(scadaPrefix);
-                        }
-
-                        //If we don't even have the kva, then no point generating a type as it will just generate errors in maestro
-                        if (string.IsNullOrWhiteSpace(_kva))
-                        {
-                            //TODO: assume 1MVA or something
-                            Error("Using generic transformer type as kva was unset");
-                        }
-                        else
-                        {
-                            _transformerType = $"{Id}_type";
-                            ParentGroup.AddGroupElement(GenerateTransformerType());
-                        }
-                    }
+                    asset1 = asset2 = _tpAsset;
                 }
                 else
                 {
+                    //try and find a matching t1 and adms asset
                     _t1Asset = DataManager.I.RequestRecordById<T1Transformer>(T1Id);
                     if (_t1Asset == null)
                     {
@@ -226,32 +186,37 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        ParseT1kVA(_t1Asset);
-                        ParseT1VectorGroup(_t1Asset);
+                        _admsAsset = DataManager.I.RequestRecordById<AdmsTransformer>(T1Id);
 
-                        if (_vGroup != "ZN")
-                        {
-                            CalculateStepSize(_t1Asset);
-                            CalculateTransformerImpedances(_t1Asset);
-                        }
-                        else
-                        {
-                            _percreactance = "7.0";
-                            _percresistance = "0.5";
-                        }
+                    }
+                    asset1 = _t1Asset;
+                    asset2 = _admsAsset;
+                }
+
+                if (asset1 != null)
+                {
+                    ParseT1kVA(asset1);
+                    ParseT1VectorGroup(asset1);
+
+                    if (_vGroup != "ZN")
+                    {
+                        CalculateStepSize(asset1);
+                        CalculateTransformerImpedances(asset1);
+                    }
+                    else
+                    {
+                        _percreactance = "7.0";
+                        _percresistance = "0.5";
                     }
 
-                    _admsAsset = DataManager.I.RequestRecordById<AdmsTransformer>(T1Id);
-                    if (_admsAsset != null)//not being in the adms database is not an error
+                    if (asset2 != null)
                     {
-                        //TODO process data from adms database
-                        //_bandwidth = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //_desiredVoltage = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //_maxTapLimit = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //_minTapLimit = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //_parallelSet = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        //_regulationType = ValidateBandwidth(asset[ADMS_TX_BANDWIDTH] as double?);
-                        string parallelSet = _admsAsset[ADMS_TX_PARALLEL_SET] as string;
+                        double? ner = asset2.AsDouble(ADMS_TX_NER);
+                        if (ner != null)
+                        {
+                            _nerResistance = asset2[ADMS_TX_NER];
+                        }
+                        string parallelSet = asset2[ADMS_TX_PARALLEL_SET];
                         if (!string.IsNullOrWhiteSpace(parallelSet))
                         {
                             if (!ParallelSets.Contains(parallelSet))
@@ -259,35 +224,39 @@ namespace MainPower.Osi.Enricher
                                 ParallelSets.Add(parallelSet);
                             }
                         }
-                        string scadaPrefix = _admsAsset[ADMS_TX_SCADAID] as string;
+                        string scadaPrefix = asset2[ADMS_TX_SCADAID];
                         if (!string.IsNullOrWhiteSpace(scadaPrefix))
                         {
                             UpdateName(scadaPrefix);
                             GenerateScadaLinking(scadaPrefix);
                         }
                     }
-                    //If we don't even have the kva, then no point generating a type as it will just generate errors in maestro
-                    if (string.IsNullOrWhiteSpace(_kva))
-                    {
-                        //TODO: assume 1MVA or something
-                        Error("Using generic transformer type as kva was unset");
-                    }
-                    else
-                    {
-                        _transformerType = $"{Id}_type";
-                        ParentGroup.AddGroupElement(GenerateTransformerType());
-                    }
                 }
 
+
+                //If we don't even have the kva, then no point generating a type as it will just generate errors in maestro
+                if (string.IsNullOrWhiteSpace(_kva))
+                {
+                    //TODO: assume 1MVA or something
+                    Error("Using generic transformer type as kva was unset");
+                }
+                else
+                {
+                    _transformerType = $"{Id}_type";
+                    ParentGroup.AddGroupElement(GenerateTransformerType());
+                }
+
+                //TODO: only set asset2 attributes
                 Node.SetAttributeValue(IDF_TX_BANDWIDTH, _bandwidth);
                 Node.SetAttributeValue(IDF_TX_BIDIRECTIONAL, _bidirectional);
                 Node.SetAttributeValue(IDF_TX_CONTROLPHASE, _controlPhase);
                 Node.SetAttributeValue(IDF_TX_DESIREDVOLTAGE, _desiredVoltage);
                 Node.SetAttributeValue(IDF_TX_MAXTAPLIMIT, _maxTapLimit);
                 Node.SetAttributeValue(IDF_TX_MINTAPLIMIT, _minTapLimit);
-                Node.SetAttributeValue(IDF_TX_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
                 Node.SetAttributeValue(IDF_TX_PARALLELSET, _parallelSet);
                 Node.SetAttributeValue(IDF_TX_REGULATIONTYPE, _regulationType);
+
+                Node.SetAttributeValue(IDF_TX_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
                 Node.SetAttributeValue(IDF_TX_S1BASEKV, _s1BaseKv);
                 Node.SetAttributeValue(IDF_TX_S1CONNECTIONTYPE, _s1ConnectionType);
                 Node.SetAttributeValue(IDF_TX_S1RATEDKV, _s1BaseKv);
@@ -297,6 +266,7 @@ namespace MainPower.Osi.Enricher
                 Node.SetAttributeValue(IDF_TX_ROTATION, _standardRotation);
                 Node.SetAttributeValue(IDF_TX_TAPSIDE, _tapSide);
                 Node.SetAttributeValue(IDF_TX_TXTYPE, _transformerType);
+
                 //TODO: these are invalid fields according to maestro
                 //Node.SetAttributeValue(IDF_TX_INITIALTAP1, _initialTap1);
                 //Node.SetAttributeValue(IDF_TX_INITIALTAP2, _initialTap2);
@@ -317,17 +287,17 @@ namespace MainPower.Osi.Enricher
                 ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_INTERNALS, SYMBOL_TX_ROTATION);
                 GenerateDeviceInfo();
                 RemoveExtraAttributes();
-                
+
                 //TODO: fix this
                 if (_vGroup != "ZN")
                 {
                     Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo, _phaseshift);
                 }
-                
+
             }
             catch (Exception ex)
             {
-                Fatal( $"Uncaught exception: {ex.Message}");
+                Fatal($"Uncaught exception: {ex.Message}");
             }
         }
 
@@ -662,7 +632,6 @@ namespace MainPower.Osi.Enricher
                 t.Add(new XAttribute("tapSteps", _tapSteps));
             }
             t.Add(new XAttribute("transformerType", _transformerTypeType));
-            //only include for WYG-G secondaries
             t.Add(new XAttribute("lowNeutralResistance", _nerResistance));
             return t;
         }

@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
@@ -8,19 +10,46 @@ namespace MainPower.Osi.Enricher
     /// </summary>
     abstract public class IdfElement : ErrorReporter
     {
+        /// <summary>
+        /// The underlying IDF XElement
+        /// </summary>
         public XElement Node { get; private set; }
+
+        /// <summary>
+        /// The IDF group that this IdfElement belongs to
+        /// </summary>
         public IdfGroup ParentGroup { get; private set; }
+
+        /// <summary>
+        /// The IDF id
+        /// </summary>
         public string Id { get; private set; }
+
+        /// <summary>
+        /// The IDF name
+        /// </summary>
         public string Name { get; protected set; }
+
+        /// <summary>
+        /// The Tech1 asset number
+        /// </summary>
         public string T1Id { get; protected set; }
+
+        /// <summary>
+        /// The number of phases connected on side 1
+        /// </summary>
         public int S1Phases { get; protected set; } = 0;
+
+        /// <summary>
+        /// The number of phases connected on side 2
+        /// </summary>
         public int S2Phases { get; protected set; } = 0;
         
         #region Common IDF attributes
-        protected const string IDF_ELEMENT_NAME = "name";
-        protected const string IDF_ELEMENT_ID = "id";
-        protected const string IDF_ELEMENT_AOR_GROUP = "aorGroup";
-        protected const string IDF_DEVICE_NOMSTATE1 = "nominalState1";
+        protected const string IdfElementName = "name";
+        protected const string IdfElementId = "id";
+        protected const string IdfElementAorGroup = "aorGroup";
+        protected const string IdfDeviceNomState = "nominalState1";
         protected const string IDF_DEVICE_NOMSTATE2 = "nominalState2";
         protected const string IDF_DEVICE_NOMSTATE3 = "nominalState3";
         protected const string IDF_DEVICE_INSUBSTATION = "inSubstation";
@@ -49,12 +78,17 @@ namespace MainPower.Osi.Enricher
 
         #endregion
 
-        public IdfElement(XElement node, IdfGroup processor)
+        /// <summary>
+        /// Extracts attributes common to all idf elements
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="parentGroup"></param>
+        public IdfElement(XElement node, IdfGroup parentGroup)
         {
-            Node = node;
-            ParentGroup = processor;
-            Id = node.Attribute(IDF_ELEMENT_ID).Value;
-            Name = node.Attribute(IDF_ELEMENT_NAME).Value;
+            Node = node ?? throw new ArgumentNullException(nameof(node));
+            ParentGroup = parentGroup;
+            Id = node.Attribute(IdfElementId).Value;
+            Name = node.Attribute(IdfElementName).Value;
             T1Id = Node.Attribute(GIS_T1_ASSET)?.Value;
 
             if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID1)?.Value)) S1Phases++;
@@ -64,9 +98,14 @@ namespace MainPower.Osi.Enricher
             if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID2)?.Value)) S2Phases++;
             if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID3)?.Value)) S2Phases++;
 
-            //TODO
+            //TODO: to be removed
             node.SetAttributeValue("aorGroup", "1");
         }
+
+        /// <summary>
+        /// Check that at least one phase is set on side 1
+        /// TODO: to be removed
+        /// </summary>
         protected void CheckPhasesSide1Only()
         {
             if (S1Phases == 0)
@@ -78,6 +117,10 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        /// <summary>
+        /// Check that all at least one phase is set
+        /// TODO: to be removed
+        /// </summary>
         protected void CheckPhases()
         {
             CheckPhasesSide1Only();
@@ -90,26 +133,42 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        /// <summary>
+        /// Set all the nominal state attribues to True
+        /// TODO: to be removed
+        /// </summary>
         protected void SetAllNominalStates()
         {
-            Node.SetAttributeValue(IDF_DEVICE_NOMSTATE1, "True");
+            Node.SetAttributeValue(IdfDeviceNomState, "True");
             Node.SetAttributeValue(IDF_DEVICE_NOMSTATE2, "True");
             Node.SetAttributeValue(IDF_DEVICE_NOMSTATE3, "True");
         }
 
+        /// <summary>
+        /// Updates the id attribute
+        /// </summary>
+        /// <param name="id"></param>
         protected void UpdateId(string id)
         {
-            Node.SetAttributeValue(IDF_ELEMENT_ID, id);
+            Node.SetAttributeValue(IdfElementId, id);
             Id = id;
         }
 
+        /// <summary>
+        /// Updates the name attribute
+        /// </summary>
+        /// <param name="name"></param>
         protected void UpdateName(string name)
         {
-            Node.SetAttributeValue(IDF_ELEMENT_NAME, name);
+            Node.SetAttributeValue(IdfElementName, name);
             Name = name;
         }
 
-        protected void GenerateDeviceInfo()
+        /// <summary>
+        /// Generates a Device Info idf element for this device
+        /// </summary>
+        /// <param name="items">A list of (string, string) tuples with additional key-value pairs to add.  Up to three additional kvps can be added.</param>
+        protected void GenerateDeviceInfo(List<(string key, string value)> items = null)
         {
             XElement dinfo = new XElement("element");
             dinfo.SetAttributeValue("type", "Device Info");
@@ -118,9 +177,15 @@ namespace MainPower.Osi.Enricher
             dinfo.SetAttributeValue("value1", Id);
             dinfo.SetAttributeValue("key2", "T1 Asset Id");
             dinfo.SetAttributeValue("value2", T1Id ?? "unknown");
-
+            if (items != null)
+            {
+                for (int i = 0; i < items.Count && i < 3; i++)
+                {
+                    dinfo.SetAttributeValue($"key{i+3}", items[i].key);
+                    dinfo.SetAttributeValue($"value{i+3}", items[i].value);
+                }
+            }
             ParentGroup.AddGroupElement(dinfo);
-
             Node.SetAttributeValue("deviceInfo", $"{Id}_deviceInfo");
         }
 
