@@ -16,10 +16,10 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         public static DataManager I { get; } = new DataManager();
 
-        private Dictionary<string, Dataset> Datasets { get; set; } = new Dictionary<string, Dataset>();        
+        private Dictionary<string, DataSource> Datasets { get; set; } = new Dictionary<string, DataSource>();        
 
         /// <summary>
-        /// Request a data record using the default index column
+        /// Request a data record using the index column
         /// </summary>
         /// <typeparam name="T">The datatype of the record being requested</typeparam>
         /// <param name="id">The id of the record</param>
@@ -28,7 +28,7 @@ namespace MainPower.Osi.Enricher
         {
             
             if (Datasets.ContainsKey(typeof(T).Name))
-                return Datasets[typeof(T).Name].RequestRecordByIndex<T>(id);
+                return Datasets[typeof(T).Name].RequestRecord<T>(id);
             else
                 return null;
 
@@ -76,7 +76,7 @@ namespace MainPower.Osi.Enricher
         public T RequestRecordByColumn<T>(string column, string id, bool exact = false) where T : DataType, new()
         {
             if (Datasets.ContainsKey(typeof(T).Name))
-                return Datasets[typeof(T).Name].RequestRecordByColumn<T>(column, id, exact);
+                return Datasets[typeof(T).Name].RequestRecord<T>(column, id, exact);
             else
                 return null;
 
@@ -118,7 +118,7 @@ namespace MainPower.Osi.Enricher
             {
                 try
                 {
-                    Datasets = Util.DeserializeNewtonsoft<Dictionary<string, Dataset>>(file);
+                    Datasets = Util.DeserializeNewtonsoft<Dictionary<string, DataSource>>(file);
                 }
                 catch (Exception ex)
                 {
@@ -128,218 +128,127 @@ namespace MainPower.Osi.Enricher
             }
             else
             {
-                DataSource source = new CsvSource()
+                DataSource source = new CsvDataSource()
                 {
                     Name = "T1Disconnectors",
                     FileName = "T1Disconnectors.csv",
                     IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
-                };
-                var dataset = new Dataset()
-                {
-                    IndexColumn = "Asset Number",
-                    Name = "T1Disconnectors",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(T1Disconnector), dataset);
+                };                
+                Datasets.Add(nameof(T1Disconnector), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "T1Fuses",
                     FileName = "T1Fuses.csv",
                     IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Asset Number",
-                    Name = "T1Fuses",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(T1Fuse), dataset);
+                Datasets.Add(nameof(T1Fuse), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "T1HvCircuitBreakers",
                     IndexColumn = "Asset Number",
                     FileName = "T1HvCircuitBreakers.csv",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Asset Number",
-                    Name = "T1HvCircuitBreakers",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(T1HvCircuitBreaker), dataset);
+                Datasets.Add(nameof(T1HvCircuitBreaker), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "T1RingMainUnits",
                     FileName = "T1RingMainUnits.csv",
                     IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Asset Number",
-                    Name = "T1RingMainUnits",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(T1RingMainUnit), dataset);
+                Datasets.Add(nameof(T1RingMainUnit), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "T1Transformers",
                     FileName = "T1Transformers.csv",
                     IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Asset Number",
-                    Name = "T1Transformers",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(T1Transformer), dataset);
+                Datasets.Add(nameof(T1Transformer), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "TranspowerTransformers",
                     FileName = "TranspowerTransformers.csv",
                     IndexColumn = "id",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "id",
-                    Name = "TranspowerTransformers",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(TranspowerTransformer), dataset);
+                Datasets.Add(nameof(TranspowerTransformer), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "ScadaStatus",
                     FileName = "ScadaStatus.csv",
                     IndexColumn = "Key",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Key",
-                    Name = "ScadaStatus",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(OsiScadaStatus), dataset);
+                Datasets.Add(nameof(OsiScadaStatus), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "ScadaAnalog",
                     FileName = "ScadaAnalog.csv",
                     IndexColumn = "Key",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Key",
-                    Name = "ScadaAnalog",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(OsiScadaAnalog), dataset);
+                Datasets.Add(nameof(OsiScadaAnalog), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "ScadaAccumulator",
                     IndexColumn = "Key",
                     FileName = "ScadaAccumulator.csv",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Key",
-                    Name = "ScadaAccumulator",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(OsiScadaAccumulator), dataset);
+                Datasets.Add(nameof(OsiScadaAccumulator), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "ScadaSetpoint",
                     IndexColumn = "Key",
                     FileName = "ScadaSetpoint.csv",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Key",
-                    Name = "ScadaSetpoint",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(OsiScadaSetpoint), dataset);
+                Datasets.Add(nameof(OsiScadaSetpoint), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "AdmsSwitch",
                     FileName = "AdmsSwitch.csv",
                     IndexColumn = "Switch Number",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Switch Number",
-                    Name = "AdmsSwitch",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(AdmsSwitch), dataset);
+                Datasets.Add(nameof(AdmsSwitch), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "AdmsTransformer",
                     FileName = "AdmsTransformer.csv",
                     IndexColumn = "Asset Number",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "Asset Number",
-                    Name = "AdmsTransformer",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(AdmsTransformer), dataset);
+                Datasets.Add(nameof(AdmsTransformer), source);
 
-                source = new CsvSource()
+                source = new CsvDataSource()
                 {
                     Name = "ICPs",
                     FileName = "ICPs.csv",
                     IndexColumn = "ICP",
                     InitializeFailIsFatal = true
                 };
-                dataset = new Dataset()
-                {
-                    IndexColumn = "ICP",
-                    Name = "ICPs",
-                    Datasource = source,
-                    Table = null
-                };
-                Datasets.Add(nameof(Icp), dataset);
+                Datasets.Add(nameof(Icp), source);
 
             }
             foreach (var d in Datasets.Values)
             {
-                if (!d.Datasource.Initialize() && d.Datasource.InitializeFailIsFatal)
+                if (!d.Initialize() && d.InitializeFailIsFatal)
                 {
                     return false;
                 }

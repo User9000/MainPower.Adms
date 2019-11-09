@@ -110,10 +110,10 @@ namespace MainPower.Osi.Enricher
         
         //fields that should be set and validated by this class
         private string _baseKv = "";//GIS will set this to the operating voltage
-        private string _bidirectional = IDF_TRUE;
+        private string _bidirectional = IdfTrue;
         private string _forwardTripAmps = "";
-        private string _ganged = IDF_TRUE;
-        private string _loadBreakCapable = IDF_TRUE;
+        private string _ganged = IdfTrue;
+        private string _loadBreakCapable = IdfTrue;
         private string _maxInterruptAmps = "";
         private string _ratedAmps = "";
         private string _ratedKv = "";
@@ -136,9 +136,9 @@ namespace MainPower.Osi.Enricher
 
                 var geo = ParentGroup.GetSymbolGeometry(Id);
 
-                T1Id = Node.Attribute(GIS_T1_ASSET)?.Value;
-                _gisswitchtype = Node.Attribute(GIS_SWITCH_TYPE)?.Value ?? "";
-                _fuserating = Node.Attribute(GIS_FUSE_RATING)?.Value;
+                T1Id = Node.Attribute(GisT1Asset)?.Value;
+                _gisswitchtype = Node.Attribute(GisSwitchType)?.Value ?? "";
+                _fuserating = Node.Attribute(GisFuseRating)?.Value;
                 _baseKv = Node.Attribute(IDF_SWITCH_BASEKV).Value;
                 //not sure this is required
                 _switchType = Node.Attribute(IDF_SWITCH_SWITCHTYPE).Value;
@@ -149,7 +149,7 @@ namespace MainPower.Osi.Enricher
                     case @"MV Isolator\Knife Isolator":
                         //basically a non ganged disconnector e.g. links
                         ProcessDisconnector();
-                        _ganged = IDF_FALSE;
+                        _ganged = IdfFalse;
                         //TODO
                         //_loadBreakCapable = IDF_FALSE;
                         break;
@@ -239,9 +239,9 @@ namespace MainPower.Osi.Enricher
                 var scada = GenerateScadaLinking();
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
-                    ParentGroup.CreateDataLinkSymbol(Id);
+                    //ParentGroup.CreateDataLinkSymbol(Id);
                     ParentGroup.AddGroupElement(scada.Item2);
-                    ParentGroup.AddScadaCommand(Id, scada.Item1);
+                    //ParentGroup.AddScadaCommand(Id, scada.Item1);
                 }
                 if (_baseKv != "0.4")
                     GenerateDeviceInfo();
@@ -257,9 +257,9 @@ namespace MainPower.Osi.Enricher
 
         private void RemoveExtraAttributes()
         {
-            Node.SetAttributeValue(GIS_FUSE_RATING, null);
-            Node.SetAttributeValue(GIS_SWITCH_TYPE, null);
-            Node.SetAttributeValue(GIS_T1_ASSET, null);
+            Node.SetAttributeValue(GisFuseRating, null);
+            Node.SetAttributeValue(GisSwitchType, null);
+            Node.SetAttributeValue(GisT1Asset, null);
         }
 
         private (string,XElement) GenerateScadaLinking()
@@ -268,7 +268,7 @@ namespace MainPower.Osi.Enricher
             //    Debugger.Break();
             bool hasVolts = false;
 
-            var status = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
+            var status = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
             
             //if we don't have the switch status, then assume we don't have any other telemtry either
             //TODO this assumption needs to be documented
@@ -303,19 +303,19 @@ namespace MainPower.Osi.Enricher
                 string us = _nominalUpstreamSide;
                 string ds = us == "1" ? "2" : "1";
 
-                var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps RØ");
+                var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Amps RØ");
                 if (rAmps != null && phase1)
                 {                        
                     x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
                     x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
                 }
-                var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps YØ");
+                var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Amps YØ");
                 if (yAmps != null && phase2)
                 {
                     x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
                     x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
                 }
-                var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Amps BØ");
+                var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Amps BØ");
                 if (bAmps != null && phase3)
                 {
                     x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
@@ -325,40 +325,40 @@ namespace MainPower.Osi.Enricher
                 //when it comes to load telemetry, priority goes
                 //1. Metering
                 //2. Local kW/MW
-                var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Met MW");
+                var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Met MW");
                 if (kw != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
                     x.SetAttributeValue($"s{us}AggregateKWUCF", "1000");
                     x.SetAttributeValue($"s{ds}AggregateKW", "");
                 }
-                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kW")) != null)
+                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} kW")) != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
                     x.SetAttributeValue($"s{us}AggregateKWUCF", "1");
                     x.SetAttributeValue($"s{ds}AggregateKW", "");
                 }
-                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} MW")) != null)
+                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} MW")) != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
                     x.SetAttributeValue($"s{us}AggregateKWUCF", "1000");
                     x.SetAttributeValue($"s{ds}AggregateKW", "");
                 }
 
-                var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Met Mvar");
+                var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Met Mvar");
                 if (kvar != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
                     x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
                     x.SetAttributeValue($"s{ds}AggregateKVAR", "");
                 }
-                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} kvar")) != null)
+                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} kvar")) != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
                     x.SetAttributeValue($"s{us}AggregateKVARUCF", "1");
                     x.SetAttributeValue($"s{ds}AggregateKVAR", "");
                 }
-                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Mvar")) != null)
+                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Mvar")) != null)
                 {
                     x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
                     x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
@@ -373,42 +373,42 @@ namespace MainPower.Osi.Enricher
                     x.SetAttributeValue("s1p3AmpsUCF", "1");
                 }
                 */
-                var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R");
+                var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Volts R");
                 if (s1RYVolts != null && phase1)
                 {
                     x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
-                var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y");
+                var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Volts Y");
                 if (s1YBVolts != null && phase2)
                 {
                     x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
-                var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B");
+                var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Volts B");
                 if (s1BRVolts != null && phase3)
                 {
                     x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVolts = true;
                 }
-                var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts R2");
+                var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Volts R2");
                 if (s2RYVolts != null && phase1)
                 {
                     x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
                     hasVolts = true;
                 }
-                var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts Y2");
+                var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Volts Y2");
                 if (s2YBVolts != null && phase2)
                 {
                     x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LG");
                     hasVolts = true;
                 }
-                var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Volts B2");
+                var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Volts B2");
                 if (s2BRVolts != null && phase3)
                 {
                     x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
@@ -416,9 +416,9 @@ namespace MainPower.Osi.Enricher
                     hasVolts = true;
                 }
 
-                var lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Lockout");
+                var lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Lockout");
                 if (lockout == null)
-                    lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip4 OC");
+                    lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot Trip4 OC");
                 if (lockout != null)
                 {
                     if (phase1)
@@ -429,24 +429,24 @@ namespace MainPower.Osi.Enricher
                         x.SetAttributeValue("p3TripFaultSignal", lockout.Key);
                 }
 
-                var ampsr = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Prot Trip Amps RØ");
+                var ampsr = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Prot Trip Amps RØ");
                 if (ampsr != null && phase1)
                 {
                     x.SetAttributeValue("p1FaultCurrent", ampsr.Key);
                 }
-                var ampsy = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Prot Trip Amps YØ");
+                var ampsy = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Prot Trip Amps YØ");
                 if (ampsy != null && phase3)
                 {
                     x.SetAttributeValue("p2FaultCurrent", ampsy.Key);
                 }
-                var ampsb = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{Name} Prot Trip Amps BØ");
+                var ampsb = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{Name} Prot Trip Amps BØ");
                 if (ampsb != null && phase3)
                 {
                     x.SetAttributeValue("p3FaultCurrent", ampsb.Key);
                 }
 
                 //TODO: handle cases where there are two relays?
-                var watchdog = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Relay Watchdog");
+                var watchdog = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Relay Watchdog");
 
                 //p1OCPMode = Watchdog 
                 //OCPModeNormal = 1
@@ -457,58 +457,58 @@ namespace MainPower.Osi.Enricher
                 //p1FaultInd = for directional devices is the side 1 fault indication, otherwise non directional
                 //p1FaultInd2 = for directional devices is the side 2 fault indication, otherwise non directional
 
-                var p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot RØ Fault");
+                var p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot RØ Fault");
                 if (p1Fault != null)
                 {
                     x.SetAttributeValue("p1FaultInd", p1Fault.Key);
                 }
-                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot OC RØ Trip")) != null)
+                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot OC RØ Trip")) != null)
                 {
                     x.SetAttributeValue("p1FaultInd", p1Fault.Key);
                 }
-                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip1 OC")) != null)
+                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot Trip1 OC")) != null)
                 {
                     x.SetAttributeValue("p1FaultInd", p1Fault.Key);
                 }
 
-                var p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot YØ Fault");
+                var p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot YØ Fault");
                 if (p2Fault != null)
                 {
                     x.SetAttributeValue("p2FaultInd", p2Fault.Key);
                 }
-                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot OC YØ Trip")) != null)
+                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot OC YØ Trip")) != null)
                 {
                     x.SetAttributeValue("p2FaultInd", p2Fault.Key);
                 }
-                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip2 OC")) != null)
+                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot Trip2 OC")) != null)
                 {
                     x.SetAttributeValue("p2FaultInd", p2Fault.Key);
                 }
 
-                var p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot RØ Fault");
+                var p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot RØ Fault");
                 if (p3Fault != null)
                 {
                     x.SetAttributeValue("p3FaultInd", p3Fault.Key);
                 }
-                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot OC RØ Trip")) != null)
+                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot OC RØ Trip")) != null)
                 {
                     x.SetAttributeValue("p3FaultInd", p3Fault.Key);
                 }
-                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot Trip3 OC")) != null)
+                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot Trip3 OC")) != null)
                 {
                     x.SetAttributeValue("p3FaultInd", p3Fault.Key);
                 }
 
 
-                var hlt = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} WorkTag");
+                var hlt = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} WorkTag");
                 if (hlt != null)
                     x.SetAttributeValue("hotLineTag", hlt.Key);
 
-                var groundTripBlock = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Prot SEF");
+                var groundTripBlock = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Prot SEF");
                 if (groundTripBlock != null)
                     x.SetAttributeValue("groundTripBlock", groundTripBlock.Key);
 
-                var acr = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{Name} Auto Reclose");
+                var acr = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{Name} Auto Reclose");
                 if (acr != null)
                     x.SetAttributeValue("reclosing", acr.Key);
 
@@ -546,9 +546,9 @@ namespace MainPower.Osi.Enricher
 
         private void ProcessRingMainFuseSwitch()
         {
-            _bidirectional = IDF_TRUE;
-            _ganged = IDF_TRUE;
-            _loadBreakCapable = IDF_TRUE;
+            _bidirectional = IdfTrue;
+            _ganged = IdfTrue;
+            _loadBreakCapable = IdfTrue;
             _switchType = IDF_SWITCH_TYPE_SWITCH; //TODO
 
             DataType asset = null;
@@ -575,15 +575,15 @@ namespace MainPower.Osi.Enricher
 
             }
 
-            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
             SetSymbol(p, SYMBOL_HVFUSESWITCH, SYMBOL_HVFUSESWITCH_QUAD);
         }
 
         private void ProcessRingMainSwitch()
         {
-            _bidirectional = IDF_TRUE;
-            _ganged = IDF_TRUE;
-            _loadBreakCapable = IDF_TRUE;
+            _bidirectional = IdfTrue;
+            _ganged = IdfTrue;
+            _loadBreakCapable = IdfTrue;
             _switchType = IDF_SWITCH_TYPE_SWITCH;
             
             DataType asset = null;
@@ -609,7 +609,7 @@ namespace MainPower.Osi.Enricher
                 }
 
             }
-            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
             SetSymbol(p, SYMBOL_SWITCH, SYMBOL_SWITCH_QUAD);
         }
 
@@ -619,8 +619,8 @@ namespace MainPower.Osi.Enricher
                 Warn($"T1 asset number [{T1Id}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
-            _ganged = IDF_FALSE; //TODO check
-            _loadBreakCapable = IDF_TRUE; //TODO check
+            _ganged = IdfFalse; //TODO check
+            _loadBreakCapable = IdfTrue; //TODO check
             //_maxInterruptAmps = "";
             //_ratedAmps = "";
             //_ratedKv = "";
@@ -635,8 +635,8 @@ namespace MainPower.Osi.Enricher
                 Warn($"T1 asset number [{T1Id}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
-            _ganged = IDF_FALSE; //TODO check
-            _loadBreakCapable = IDF_TRUE; //TODO check
+            _ganged = IdfFalse; //TODO check
+            _loadBreakCapable = IdfTrue; //TODO check
             //_maxInterruptAmps = "";
             //_ratedAmps = "";
             //_ratedKv = "";
@@ -655,9 +655,9 @@ namespace MainPower.Osi.Enricher
             _reverseTripAmps = "";
             */
 
-            _bidirectional = IDF_TRUE;
-            _ganged = IDF_TRUE;
-            _loadBreakCapable = IDF_TRUE;
+            _bidirectional = IdfTrue;
+            _ganged = IdfTrue;
+            _loadBreakCapable = IdfTrue;
 
             //ProcessCircuitBreakerAdms();
 
@@ -692,7 +692,7 @@ namespace MainPower.Osi.Enricher
         {
             //_bidirectional //TODO
             //TODO: need to get sectionliser function from AdmsDatabase
-            _ganged = IDF_TRUE;
+            _ganged = IdfTrue;
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
             DataType asset = null;
@@ -720,13 +720,13 @@ namespace MainPower.Osi.Enricher
                 }
 
             }
-            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
             SetSymbol(p, SYMBOL_ENTEC, SYMBOL_ENTEC_QUAD);
         }
 
         private void ProcessHVLinks()
         {
-            _ganged = IDF_FALSE;
+            _ganged = IdfFalse;
             //TODO
             //_loadBreakCapable = IDF_FALSE;//TODO
             _ratedAmps = "300";//confirmed by robert
@@ -759,7 +759,7 @@ namespace MainPower.Osi.Enricher
 
         private void ProcessDisconnector()
         {
-            _ganged = IDF_TRUE;          
+            _ganged = IdfTrue;          
             _switchType = IDF_SWITCH_TYPE_SWITCH;
 
             DataType asset = null;
@@ -795,15 +795,15 @@ namespace MainPower.Osi.Enricher
 
             }
             
-            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
             SetSymbol(p, SYMBOL_DISCONNECTOR, SYMBOL_DISCONNECTOR_QUAD);
         }
         private void ProcessCircuitBreaker()
         {
 
-            _bidirectional = IDF_TRUE;
-            _ganged = IDF_TRUE;
-            _loadBreakCapable = IDF_TRUE;
+            _bidirectional = IdfTrue;
+            _ganged = IdfTrue;
+            _loadBreakCapable = IdfTrue;
 
             if (!string.IsNullOrEmpty(T1Id))
             {
@@ -832,7 +832,7 @@ namespace MainPower.Osi.Enricher
 
             ProcessCircuitBreakerAdms();
 
-            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, Name);
+            var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
             SetSymbol(p, SYMBOL_CIRCUITBREAKER, SYMBOL_CIRCUITBREAKER_QUAD);
         }
 
@@ -881,9 +881,9 @@ namespace MainPower.Osi.Enricher
         }
         private void ProcessHVFuse()
         {
-            _bidirectional = IDF_TRUE;
+            _bidirectional = IdfTrue;
             _forwardTripAmps = _reverseTripAmps = ValidateFuseTrip(_fuserating);
-            _ganged = IDF_FALSE;
+            _ganged = IdfFalse;
             //TODO
             //_loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "10000";//TODO check with sjw
@@ -903,7 +903,7 @@ namespace MainPower.Osi.Enricher
                 {
                     if (asset[T1_FUSE_GANGED] as string == "2")
                     {
-                        _ganged = IDF_TRUE;
+                        _ganged = IdfTrue;
                     }
                     //TODO: fuse not have rated voltage?
                     //TODO: validate op voltage
@@ -920,9 +920,9 @@ namespace MainPower.Osi.Enricher
         }
         private void ProcessServiceFuse()
         {
-            _bidirectional = IDF_TRUE;
+            _bidirectional = IdfTrue;
             _forwardTripAmps = _reverseTripAmps = "";
-            _ganged = IDF_FALSE;
+            _ganged = IdfFalse;
             //TODO
             //_loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "";//TODO check with sjw

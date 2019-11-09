@@ -32,7 +32,7 @@ namespace MainPower.Osi.Enricher
 
                 if (Name.StartsWith("Streetlight"))
                 {
-                    Error("I'm a streetlight");
+                    Err("I'm a streetlight");
                 }
                 else
                 {
@@ -67,7 +67,7 @@ namespace MainPower.Osi.Enricher
                     if (phases != 0)
                         load /= phases;
                     else
-                        Error("No phase IDs are set");
+                        Err("No phase IDs are set");
                 
                     load = 3;
                     if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
@@ -113,7 +113,7 @@ namespace MainPower.Osi.Enricher
                             ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_LOAD_UNKNOWN, 2.0);
                             break;
                     }
-                    double voltage = double.Parse(Node.Attribute(IDF_DEVICE_BASEKV).Value);
+                    double voltage = double.Parse(Node.Attribute(IdfDeviceBasekV).Value);
                     Node.SetAttributeValue("ratedKV", (voltage * 1.2).ToString());
 
                     var geo = ParentGroup.GetSymbolGeometry(Id);

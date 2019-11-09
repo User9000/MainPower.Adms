@@ -205,7 +205,7 @@ namespace MainPower.Osi.Enricher
                     {
                         //TODO: actually we can't check these without the data...
                         //TODO: we could check the cache.
-                        Error("Datalink ");
+                        Err("Datalink ");
                     }
                 }
             }
@@ -366,7 +366,7 @@ namespace MainPower.Osi.Enricher
             }
             catch (Exception ex)
             {
-                Error($"Uncaught exception in GetSymbolGeometry [{id}]:{ex.Message}");
+                Err($"Uncaught exception in GetSymbolGeometry [{id}]:{ex.Message}");
             }
             Warn("Could not locate symbol geometry", id, "");
             return points;

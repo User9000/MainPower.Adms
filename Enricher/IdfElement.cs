@@ -49,32 +49,30 @@ namespace MainPower.Osi.Enricher
         protected const string IdfElementName = "name";
         protected const string IdfElementId = "id";
         protected const string IdfElementAorGroup = "aorGroup";
-        protected const string IdfDeviceNomState = "nominalState1";
-        protected const string IDF_DEVICE_NOMSTATE2 = "nominalState2";
-        protected const string IDF_DEVICE_NOMSTATE3 = "nominalState3";
-        protected const string IDF_DEVICE_INSUBSTATION = "inSubstation";
-        protected const string IDF_DEVICE_BASEKV = "baseKV";
-        protected const string IDF_DEVICE_RATEDKV = "ratedKV";
+        protected const string IdfDeviceNomState1 = "nominalState1";
+        protected const string IdfDeviceNomState2 = "nominalState2";
+        protected const string IdfDeviceNomState3 = "nominalState3";
+        protected const string IdfDeviceInSubstation = "inSubstation";
+        protected const string IdfDeviceBasekV = "baseKV";
+        protected const string IdfDeviceRatedkV = "ratedKV";
 
-        protected const string IDF_DEVICE_S1_PHASEID1 = "s1phaseID1";
-        protected const string IDF_DEVICE_S1_PHASEID2 = "s1phaseID2";
-        protected const string IDF_DEVICE_S1_PHASEID3 = "s1phaseID3";
-        protected const string IDF_DEVICE_S2_PHASEID1 = "s2phaseID1";
-        protected const string IDF_DEVICE_S2_PHASEID2 = "s2phaseID2";
-        protected const string IDF_DEVICE_S2_PHASEID3 = "s2phaseID3";
-        protected const string IDF_DEVICE_S1_NODE = "s1node";
-        protected const string IDF_DEVICE_S2_NODE = "s2node";
+        protected const string IdfDeviceS1PhaseId1 = "s1phaseID1";
+        protected const string IdfDeviceS1PhaseId2 = "s1phaseID2";
+        protected const string IdfDeviceS1PhaseId3 = "s1phaseID3";
+        protected const string IdfDeviceS2PhaseId1 = "s2phaseID1";
+        protected const string IdfDeviceS2PhaseId2 = "s2phaseID2";
+        protected const string IdfDeviceS2PhaseId3 = "s2phaseID3";
+        protected const string IdfDeviceS1Node = "s1node";
+        protected const string IdfDeviceS2Node = "s2node";
 
-        protected const string GIS_T1_ASSET = "mpwr_t1_asset_nbr";
-        protected const string GIS_SWITCH_TYPE = "mpwr_gis_switch_type";
-        protected const string GIS_FUSE_RATING = "mpwr_fuse_rating";
+        protected const string GisT1Asset = "mpwr_t1_asset_nbr";
+        protected const string GisSwitchType = "mpwr_gis_switch_type";
+        protected const string GisFuseRating = "mpwr_fuse_rating";
 
-        protected const string IDF_TRUE = "True";
-        protected const string IDF_FALSE = "False";
-
-        protected const string AOR_DEFAULT = "1";
-
-        protected const string SCADA_NAME = "Name";
+        protected const string IdfTrue = "True";
+        protected const string IdfFalse = "False";
+        protected const string AorDefault = "1";
+        protected const string ScadaName = "Name";
 
         #endregion
 
@@ -89,17 +87,17 @@ namespace MainPower.Osi.Enricher
             ParentGroup = parentGroup;
             Id = node.Attribute(IdfElementId).Value;
             Name = node.Attribute(IdfElementName).Value;
-            T1Id = Node.Attribute(GIS_T1_ASSET)?.Value;
+            T1Id = Node.Attribute(GisT1Asset)?.Value;
 
-            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID1)?.Value)) S1Phases++;
-            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID2)?.Value)) S1Phases++;
-            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S1_PHASEID3)?.Value)) S1Phases++;
-            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID1)?.Value)) S2Phases++;
-            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID2)?.Value)) S2Phases++;
-            if (!string.IsNullOrWhiteSpace(Node.Attribute(IDF_DEVICE_S2_PHASEID3)?.Value)) S2Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId1)?.Value)) S1Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId2)?.Value)) S1Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId3)?.Value)) S1Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS2PhaseId1)?.Value)) S2Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS2PhaseId2)?.Value)) S2Phases++;
+            if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS2PhaseId3)?.Value)) S2Phases++;
 
             //TODO: to be removed
-            node.SetAttributeValue("aorGroup", "1");
+            node.SetAttributeValue(IdfElementAorGroup, AorDefault);
         }
 
         /// <summary>
@@ -110,10 +108,10 @@ namespace MainPower.Osi.Enricher
         {
             if (S1Phases == 0)
             {
-                Error("All side 1 phases are null, defaulted to 3 phase");
-                Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID1, "1");
-                Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID2, "2");
-                Node.SetAttributeValue(IDF_DEVICE_S1_PHASEID3, "3");
+                Err("All side 1 phases are null, defaulted to 3 phase");
+                Node.SetAttributeValue(IdfDeviceS1PhaseId1, "1");
+                Node.SetAttributeValue(IdfDeviceS1PhaseId2, "2");
+                Node.SetAttributeValue(IdfDeviceS1PhaseId3, "3");
             }
         }
 
@@ -126,10 +124,10 @@ namespace MainPower.Osi.Enricher
             CheckPhasesSide1Only();
             if (S2Phases == 0)
             {
-                Error("All side 2 phases are null, defaulted to 3 phase");
-                Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, "1");
-                Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, "2");
-                Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, "3");
+                Err("All side 2 phases are null, defaulted to 3 phase");
+                Node.SetAttributeValue(IdfDeviceS2PhaseId1, "1");
+                Node.SetAttributeValue(IdfDeviceS2PhaseId2, "2");
+                Node.SetAttributeValue(IdfDeviceS2PhaseId3, "3");
             }
         }
 
@@ -139,9 +137,9 @@ namespace MainPower.Osi.Enricher
         /// </summary>
         protected void SetAllNominalStates()
         {
-            Node.SetAttributeValue(IdfDeviceNomState, "True");
-            Node.SetAttributeValue(IDF_DEVICE_NOMSTATE2, "True");
-            Node.SetAttributeValue(IDF_DEVICE_NOMSTATE3, "True");
+            Node.SetAttributeValue(IdfDeviceNomState1, IdfTrue);
+            Node.SetAttributeValue(IdfDeviceNomState2, IdfTrue);
+            Node.SetAttributeValue(IdfDeviceNomState3, IdfTrue);
         }
 
         /// <summary>
@@ -170,6 +168,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="items">A list of (string, string) tuples with additional key-value pairs to add.  Up to three additional kvps can be added.</param>
         protected void GenerateDeviceInfo(List<(string key, string value)> items = null)
         {
+            //TODO: contantize these strings?
             XElement dinfo = new XElement("element");
             dinfo.SetAttributeValue("type", "Device Info");
             dinfo.SetAttributeValue("id", $"{Id}_deviceInfo");
@@ -204,9 +203,9 @@ namespace MainPower.Osi.Enricher
         {
             Warn(message, Id, $"{Name}:{T1Id}", caller);
         }
-        protected override void Error(string message, [CallerMemberName]string caller = "")
+        protected override void Err(string message, [CallerMemberName]string caller = "")
         {
-            Error(message, Id, $"{Name}:{T1Id}", caller);
+            Err(message, Id, $"{Name}:{T1Id}", caller);
         }
         protected override void Fatal(string message, [CallerMemberName]string caller = "")
         {

@@ -38,7 +38,7 @@ namespace MainPower.Osi.Enricher
                 var geo = ParentGroup.GetLineGeometry(Id);
                 if (!Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line, geo))
                 {
-                    Error("Failed to add line to model -> deleted 😬");
+                    Err("Failed to add line to model -> deleted 😬");
                     Node.Remove();
                 }
                 
@@ -46,7 +46,7 @@ namespace MainPower.Osi.Enricher
                 string lineType = LINE_BUSBAR;
 
                 //TODO: this should be determined by conductor type
-                string voltage = Node.Attribute(IDF_DEVICE_BASEKV).Value;
+                string voltage = Node.Attribute(IdfDeviceBasekV).Value;
                 switch (voltage) 
                 {
                     case "66":
