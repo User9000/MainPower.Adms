@@ -89,7 +89,7 @@ namespace MainPower.Osi.Enricher
                     }
                     else
                     {
-                        Error("Data group is not in the import configuration.", id, idf.FileName);
+                        Err("Data group is not in the import configuration.", id, idf.FileName);
                     }
                 }
             }
@@ -107,13 +107,13 @@ namespace MainPower.Osi.Enricher
                     var id = group.Attribute("id")?.Value;
                     if (id == null)
                     {
-                        Error($"A display group with no id was in file {idf.FileName} and will be deleted");
+                        Err($"A display group with no id was in file {idf.FileName} and will be deleted");
                         group.Remove();
                         continue;
                     }
                     if (!Groups.ContainsKey(id))
                     {
-                        Error("Display group is not in the import configuration", id, idf.FileName);
+                        Err("Display group is not in the import configuration", id, idf.FileName);
                         //TODO: we probably shouldn't do this in prod
                         //XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
                         //ImportConfig.Groups.Add(g);

@@ -161,10 +161,10 @@ namespace MainPower.Osi.Enricher
                 _s1kV = double.Parse(_s1BaseKv) * 1000;
                 _s2kV = double.Parse(_s2BaseKv) * 1000;
 
-                _bidirectional = IDF_TRUE;
+                _bidirectional = IdfTrue;
                 _controlPhase = "12";
                 _nominalUpstreamSide = "1";
-                _standardRotation = IDF_TRUE;
+                _standardRotation = IdfTrue;
                 _tapSide = "1";
 
                 DataType asset1, asset2 = null;
@@ -238,7 +238,7 @@ namespace MainPower.Osi.Enricher
                 if (string.IsNullOrWhiteSpace(_kva))
                 {
                     //TODO: assume 1MVA or something
-                    Error("Using generic transformer type as kva was unset");
+                    Err("Using generic transformer type as kva was unset");
                 }
                 else
                 {
@@ -277,10 +277,10 @@ namespace MainPower.Osi.Enricher
                 {
                     Node.SetAttributeValue(IDF_TX_S2BASEKV, null);
                     Node.SetAttributeValue(IDF_TX_S2CONNECTIONTYPE, null);
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID1, null);
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID2, null);
-                    Node.SetAttributeValue(IDF_DEVICE_S2_PHASEID3, null);
-                    Node.SetAttributeValue(IDF_DEVICE_S2_NODE, null);
+                    Node.SetAttributeValue(IdfDeviceS2PhaseId1, null);
+                    Node.SetAttributeValue(IdfDeviceS2PhaseId2, null);
+                    Node.SetAttributeValue(IdfDeviceS2PhaseId3, null);
+                    Node.SetAttributeValue(IdfDeviceS2Node, null);
                     Node.SetAttributeValue(IDF_TX_S2RATEDKV, "1");
                 }
 
@@ -364,7 +364,7 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
-                    Error("Vector group is unset, unable to guess vector group");
+                    Err("Vector group is unset, unable to guess vector group");
                 }
 
             }
@@ -566,13 +566,13 @@ namespace MainPower.Osi.Enricher
 
         private void RemoveExtraAttributes()
         {
-            Node.SetAttributeValue(GIS_T1_ASSET, null);
+            Node.SetAttributeValue(GisT1Asset, null);
             Node.SetAttributeValue(GIS_TAP, null);
         }
 
         private void GenerateScadaLinking(string scadaId)
         {
-            var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{scadaId} Tap Position", true);
+            var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Tap Position", true);
 
             //if we don't have the tap position, then assume we don't have any other telemtry either
             //TODO this assumption needs to be documented
@@ -584,7 +584,7 @@ namespace MainPower.Osi.Enricher
 
             x.SetAttributeValue("tapPosition", tap.Key);
 
-            var remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{scadaId} Supervisory", true);
+            var remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} Supervisory", true);
             if (remote != null)
             {
                 x.SetAttributeValue("remoteLocalPoint", remote.Key);
@@ -592,7 +592,7 @@ namespace MainPower.Osi.Enricher
             }
             else
             {
-                remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(SCADA_NAME, $"{scadaId} AVR Supervisory", true);
+                remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} AVR Supervisory", true);
                 if (remote != null)
                 {
                     x.SetAttributeValue("remoteLocalPoint", remote.Key);
@@ -600,15 +600,15 @@ namespace MainPower.Osi.Enricher
                 }
             }
 
-            var setpoint = DataManager.I.RequestRecordByColumn<OsiScadaSetpoint>(SCADA_NAME, $"{scadaId} AVR SP1 Value", true);
+            var setpoint = DataManager.I.RequestRecordByColumn<OsiScadaSetpoint>(ScadaName, $"{scadaId} AVR SP1 Value", true);
             if (setpoint != null)
                 x.SetAttributeValue("controlPoint", setpoint.Key);
 
-            var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{scadaId} Volts RY", true);
+            var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts RY", true);
             if (voltage != null)
                 x.SetAttributeValue("controlVoltageReference", voltage.Key);
             //TODO: this is a workaround for bad data
-            else if ((voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(SCADA_NAME, $"{scadaId} Volts", true)) != null)
+            else if ((voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts", true)) != null)
                 x.SetAttributeValue("controlVoltageReference", voltage.Key);
 
             ParentGroup.AddGroupElement(x);

@@ -25,7 +25,7 @@ namespace MainPower.Osi.Enricher
                 SetAllNominalStates();
 
 
-                Node.SetAttributeValue(IDF_DEVICE_RATEDKV, Node.Attribute(IDF_DEVICE_BASEKV).Value);
+                Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV).Value);
                 Node.SetAttributeValue(IDF_TRANSFORMER_TYPE, REGULATOR_DEFAULT_TYPE);
                 ParentGroup.SetSymbolNameByDataLink(Id, IDF_REGULATOR_SYMBOL, double.NaN, double.NaN, 2);
                 var geo = ParentGroup.GetSymbolGeometry(Id);
@@ -40,7 +40,7 @@ namespace MainPower.Osi.Enricher
 
         private void RemoveExtraAttributes()
         {
-            Node.SetAttributeValue(GIS_T1_ASSET, null);
+            Node.SetAttributeValue(GisT1Asset, null);
         }
     }
 }

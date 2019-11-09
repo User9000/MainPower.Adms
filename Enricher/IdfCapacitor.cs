@@ -25,7 +25,7 @@ namespace MainPower.Osi.Enricher
                 var geo = ParentGroup.GetSymbolGeometry(Id);
                 Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.ShuntCapacitor, geo);
                 ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CAPACITOR);
-                Node.SetAttributeValue(IDF_DEVICE_RATEDKV, Node.Attribute(IDF_DEVICE_BASEKV)?.Value);
+                Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV)?.Value);
             }
             catch (Exception ex)
             {

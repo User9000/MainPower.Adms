@@ -84,10 +84,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CsvSource.cs" />
     <Compile Include="IdfArea.cs" />
     <Compile Include="IdfCircuit.cs" />
     <Compile Include="IdfCapacitor.cs" />
-    <Compile Include="DataSet.cs" />
     <Compile Include="DataSources.cs" />
     <Compile Include="DataType.cs" />
     <Compile Include="DataTypes.cs" />

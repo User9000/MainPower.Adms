@@ -162,7 +162,7 @@ namespace MainPower.Osi.Enricher
         {
             if (Devices.ContainsKey(d.Id))
             {
-                Error($"Device Id already exists.", d.Id, d.Name);
+                Err($"Device Id already exists.", d.Id, d.Name);
                 return false;
             }
             //in case someone does another operation at the same time
@@ -236,7 +236,7 @@ namespace MainPower.Osi.Enricher
         {
             if (Sources.ContainsKey(s.Id))
             {
-                Error($"Source with id [{s.Id}] already exists");
+                Err($"Source with id [{s.Id}] already exists");
                 return false;
             }
             lock (Sources)
@@ -468,7 +468,7 @@ namespace MainPower.Osi.Enricher
             {
                 foreach (var device in node.Devices)
                 {
-                    Error($"Device is connected to a dirty node [{node.Id}]", device.Id, device.Name);
+                    Err($"Device is connected to a dirty node [{node.Id}]", device.Id, device.Name);
                 }
             }
             TimeSpan runtime = DateTime.Now - start;
@@ -620,7 +620,7 @@ namespace MainPower.Osi.Enricher
                     //TODO: remove
                     if (CountPhases(d.PhaseID, 0) == 1)
                     {
-                        Error("Was not expecting SWER transformer in VS", d.Id, d.Name);
+                        Err("Was not expecting SWER transformer in VS", d.Id, d.Name);
                         return;
                     }
 
@@ -1028,7 +1028,7 @@ namespace MainPower.Osi.Enricher
         }
         private void Error(string message, ModelDevice d, [CallerMemberName]string caller = "")
         {
-            Error(message, d.Id, d.Name, caller);
+            Err(message, d.Id, d.Name, caller);
         }
         private void Fatal(string message, ModelDevice d, [CallerMemberName]string caller = "")
         {
