@@ -34,6 +34,15 @@ namespace MainPower.Osi.Enricher
 
         }
 
+        /// <summary>
+        /// Sets a value on an object
+        /// TODO: move this to the DataType class?
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="indexValue">The index value of the object</param>
+        /// <param name="columnName">The name of the column to set</param>
+        /// <param name="val">The column value </param>
+        /// <returns></returns>
         public bool SetVale<T>(object indexValue, string columnName, object val) where T : DataType, new()
         {
             if (Datasets.ContainsKey(typeof(T).Name))
@@ -42,6 +51,12 @@ namespace MainPower.Osi.Enricher
                 return false;
         }
 
+        /// <summary>
+        /// Saves any changes to a DataSet for a DataType
+        /// TODO: move this to the DataType class?
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public bool Save<T>() where T : DataType, new()
         {
             if (Datasets.ContainsKey(typeof(T).Name))
