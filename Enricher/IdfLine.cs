@@ -44,6 +44,8 @@ namespace MainPower.Osi.Enricher
                 
                 bool isBusbar = Node.Attribute("lineType")?.Value.Contains("BUSBAR") ?? false;
                 string lineType = LINE_BUSBAR;
+                string phase_conductor = Node.Attribute(GIS_PHASE_CONDUCTOR)?.Value ?? "";
+                string neutral_conductor = Node.Attribute(GIS_NEUTRAL_CONDUCTOR)?.Value ?? "";
 
                 //TODO: this should be determined by conductor type
                 string voltage = Node.Attribute(IdfDeviceBasekV).Value;
@@ -108,6 +110,13 @@ namespace MainPower.Osi.Enricher
                         conductors.Add(conductor, (1, length));
                     }
                 }
+
+                var kvps = new List<KeyValuePair<string, string>>();
+                kvps.Add(new KeyValuePair<string, string>("Phase Cond.", phase_conductor));
+                kvps.Add(new KeyValuePair<string, string>("Neutral Cond.", neutral_conductor ));
+
+                GenerateDeviceInfo(kvps);
+
                 Node.SetAttributeValue(IDF_LINE_TYPE, lineType);
 
                 Node.SetAttributeValue(GIS_NEUTRAL_CONDUCTOR, null);

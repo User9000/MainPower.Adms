@@ -239,9 +239,10 @@ namespace MainPower.Osi.Enricher
                 var scada = GenerateScadaLinking();
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
-                    //ParentGroup.CreateDataLinkSymbol(Id);
+                    ParentGroup.CreateDataLinkSymbol(Id);
                     ParentGroup.AddGroupElement(scada.Item2);
-                    //ParentGroup.AddScadaCommand(Id, scada.Item1);
+                    ParentGroup.AddDatalinkToText(Id);
+                    ParentGroup.AddScadaDatalink(Id, scada.Item1);
                 }
                 if (_baseKv != "0.4")
                     GenerateDeviceInfo();

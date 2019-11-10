@@ -166,7 +166,7 @@ namespace MainPower.Osi.Enricher
         /// Generates a Device Info idf element for this device
         /// </summary>
         /// <param name="items">A list of (string, string) tuples with additional key-value pairs to add.  Up to three additional kvps can be added.</param>
-        protected void GenerateDeviceInfo(List<(string key, string value)> items = null)
+        protected void GenerateDeviceInfo(List<KeyValuePair<string, string>> items = null)
         {
             //TODO: contantize these strings?
             XElement dinfo = new XElement("element");
@@ -174,14 +174,16 @@ namespace MainPower.Osi.Enricher
             dinfo.SetAttributeValue("id", $"{Id}_deviceInfo");
             dinfo.SetAttributeValue("key1", "Id");
             dinfo.SetAttributeValue("value1", Id);
-            dinfo.SetAttributeValue("key2", "T1 Asset Id");
-            dinfo.SetAttributeValue("value2", T1Id ?? "unknown");
+            dinfo.SetAttributeValue("key2", "Group Id");
+            dinfo.SetAttributeValue("value2", ParentGroup.Id);
+            dinfo.SetAttributeValue("key3", "T1 Asset Id");
+            dinfo.SetAttributeValue("value3", T1Id ?? "unknown");
             if (items != null)
             {
-                for (int i = 0; i < items.Count && i < 3; i++)
+                for (int i = 0; i < items.Count && i < 2; i++)
                 {
-                    dinfo.SetAttributeValue($"key{i+3}", items[i].key);
-                    dinfo.SetAttributeValue($"value{i+3}", items[i].value);
+                    dinfo.SetAttributeValue($"key{i+4}", items[i].Key);
+                    dinfo.SetAttributeValue($"value{i+4}", items[i].Value);
                 }
             }
             ParentGroup.AddGroupElement(dinfo);

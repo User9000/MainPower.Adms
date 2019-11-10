@@ -126,9 +126,11 @@ namespace MainPower.Osi.Enricher
 
         public void CreateDataLinkSymbol(string id)
         {
-            foreach (var group in _displayGroups.Values)
+            foreach (var group in _displayGroups)
             {
-                var dataLinks = group.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id).ToList();
+                if (group.Key != "MainPower")
+                    continue;
+                var dataLinks = group.Value.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id).ToList();
                 foreach (var dataLink in dataLinks)
                 {
                     var parent = dataLink.Parent;
@@ -141,13 +143,13 @@ namespace MainPower.Osi.Enricher
                     symbol.Add(new XAttribute("type", "Symbol"));
                     symbol.Add(new XAttribute("x", x.ToString()));
                     symbol.Add(new XAttribute("y", y.ToString()));
-                    //symbol.Add(new XAttribute("overlay", parent.Attribute("overlay")?.Value??""));
-                    symbol.Add(new XAttribute("layer", parent.Attribute("layer")?.Value??""));
+                    symbol.Add(new XAttribute("overlay", parent.Attribute("overlay")?.Value?? "Overlay_MainPower_Default"));
+                    symbol.Add(new XAttribute("layer", parent.Attribute("layer")?.Value?? "Layer_MainPower_Internals"));
                     symbol.Add(new XAttribute("library", "MPNZ.LIB2"));
                     symbol.Add(new XAttribute("z", "4"));
                     symbol.Add(new XAttribute("name", SYMBOL_DATALINK));
-                    symbol.Add(new XAttribute("scale", "0.5"));
-                    //symbol.Add(new XAttribute("maxSize", ""));
+                    symbol.Add(new XAttribute("scale", "0.2"));
+                    symbol.Add(new XAttribute("maxSize", "30"));
 
                     XElement command = new XElement("command");
                     command.Add(new XAttribute("topic", "Jump to Tabular"));
@@ -188,7 +190,7 @@ namespace MainPower.Osi.Enricher
                     link.Add(new XAttribute("identityType", "Key"));
                     datalink.Add(link);
 
-                    group.Add(symbol);
+                    group.Value.Add(symbol);
 
                 }
             }
@@ -221,7 +223,7 @@ namespace MainPower.Osi.Enricher
                 {
                     var parent = symbol.Parent;
 
-                    if (parent.Descendants("flowLink").Any())
+                    if (!parent.Descendants("flowLink").Any())
                     {
 
                         XElement x = new XElement("flowLink",
@@ -416,7 +418,7 @@ namespace MainPower.Osi.Enricher
             return p;
         }
 
-        public void AddScadaCommand(string id, string key)
+        public void AddScadaDatalink(string id, string key)
         {
             try
             {
@@ -438,6 +440,38 @@ namespace MainPower.Osi.Enricher
                             )
                         );
                         parent.Add(x);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Fatal($"Uncaught exception: {ex.Message}");
+            }
+        }
+
+        public void AddDatalinkToText(string id)
+        {
+            try
+            {
+                foreach (var group in _displayGroups.Values)
+                {
+                    var symbols = group.Descendants("element").Where(x => x.Attribute("type")?.Value == "Text" && x.Attribute("id").Value == $"d_t_{id}");
+                    foreach (var symbol in symbols.ToList())
+                    {
+                        if (!symbol.Descendants("dataLink").Any())
+                        {
+                            XElement x = new XElement("dataLink",
+                                new XAttribute("id", id),
+                                new XElement("link",
+                                    new XAttribute("d", "EMAP"),
+                                    new XAttribute("f", "AggregateState"),
+                                    new XAttribute("i", "0"),
+                                    new XAttribute("identityType", "Key"),
+                                    new XAttribute("o", "EMAP_DEVICE")
+                                )
+                            );
+                            symbol.Add(x);
+                        }
                     }
                 }
             }

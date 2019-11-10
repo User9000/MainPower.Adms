@@ -169,6 +169,9 @@ namespace MainPower.Osi.Enricher
 
                 DataType asset1, asset2 = null;
 
+                //if (Id == "m_st_hs_ms_zwei_wickl_trafo11269116")
+               //     Debugger.Break();
+
                 //if there is no T1Id, look it up in the transpower dataset
                 if (string.IsNullOrEmpty(T1Id))
                 {
@@ -285,7 +288,11 @@ namespace MainPower.Osi.Enricher
                 }
 
                 ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_INTERNALS, SYMBOL_TX_ROTATION);
-                GenerateDeviceInfo();
+
+                List<KeyValuePair<string, string>> kvps = new List<KeyValuePair<string, string>>();
+                kvps.Add(new KeyValuePair<string, string>("Vector Group", _vGroup));
+                
+                GenerateDeviceInfo(kvps);
                 RemoveExtraAttributes();
 
                 //TODO: fix this
@@ -447,7 +454,7 @@ namespace MainPower.Osi.Enricher
         private void CalculateTransformerImpedances(DataType asset)
         {
             double? zpu = asset.AsDouble(T1_TX_IMPEDANCE);
-            double? loadlossW = asset.AsInt(T1_TX_LOADLOSS);
+            double? loadlossW = asset.AsDouble(T1_TX_LOADLOSS);
             double baseIHV, baseILV, baseZHV, baseZLV, loadlossV, loadlossIHV, zohmHV, xohmHV, rohmHV, xpu, rpu;
             if (zpu == null || loadlossW == null || loadlossW == 0 || _dkva.Equals(double.NaN) || _s1kV.Equals(double.NaN) || _s2kV.Equals(double.NaN))
             {
