@@ -124,6 +124,35 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        public void SetLineWidth(string id, int width)
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                var links = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Line").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var link in links)
+                {
+
+                    link.Parent.SetAttributeValue("width", width.ToString());
+                }
+
+            }
+        }
+
+        public void SetLineColor(string id, Color c)
+        {
+            foreach (var group in _displayGroups.Values)
+            {
+                var links = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Line").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
+                foreach (var link in links)
+                {
+                    link.Parent.Descendants("color").Remove();
+                    var col = new XElement("color", new XAttribute("red", c.R.ToString()), new XAttribute("green", c.G.ToString()), new XAttribute("blue", c.B.ToString()));
+                    link.Parent.Add(col);
+                }
+
+            }
+        }
+
         public void CreateDataLinkSymbol(string id)
         {
             foreach (var group in _displayGroups)
@@ -222,18 +251,22 @@ namespace MainPower.Osi.Enricher
                 foreach (var symbol in symbols)
                 {
                     var parent = symbol.Parent;
-
+                    
                     if (!parent.Descendants("flowLink").Any())
                     {
+                        parent.SetAttributeValue("flowDirection", "Forward");
+                        parent.SetAttributeValue("flowStyle", "Arrow");
+                        parent.SetAttributeValue("flowSubStyle", "Solid");
 
                         XElement x = new XElement("flowLink",
                             new XAttribute("id", id),
                             new XElement("link",
                                 new XAttribute("d", "EMAP"),
+                                new XAttribute("o", "EMAP_LINE"),
                                 new XAttribute("f", "AggregateFlow"),
                                 new XAttribute("i", "0"),
-                                new XAttribute("identityType", "Key"),
-                                new XAttribute("o", "EMAP_LINE")
+                                new XAttribute("identityType", "Key")
+                                
                             )
                         );
                         parent.Add(x);
@@ -342,7 +375,7 @@ namespace MainPower.Osi.Enricher
         /// Returns the point for a symbol with datalink
         /// </summary>
         /// <param name="id">The datalink id</param>
-        public List<Point> GetSymbolGeometry(string id)
+        public (bool internals, List<Point> geometry) GetSymbolGeometry(string id)
         {
             var points = new List<Point>();
             try
@@ -356,12 +389,13 @@ namespace MainPower.Osi.Enricher
                         var res = elements.Descendants("dataLink").Where(x => x.Attribute("id")?.Value == id).FirstOrDefault();
                         if (res != null)
                         {
+                            bool internals = res.Parent.Attribute("mpwr_internals")?.Value == "True";
                             Point p = new Point();
                             p.X = double.Parse(res.Parent.Attribute("x").Value);
                             p.Y = double.Parse(res.Parent.Attribute("y").Value);
                             p = TranslatePoint(p);
                             points.Add(p);
-                            return points;
+                            return (internals, points);
                         }
                     }
                 }
@@ -371,14 +405,14 @@ namespace MainPower.Osi.Enricher
                 Err($"Uncaught exception in GetSymbolGeometry [{id}]:{ex.Message}");
             }
             Warn("Could not locate symbol geometry", id, "");
-            return points;
+            return (false, points);
         }
 
         /// <summary>
         /// Returns the point for a symbol with datalink
         /// </summary>
         /// <param name="id">The datalink id</param>
-        public List<Point> GetLineGeometry(string id)
+        public (bool internals, List<Point> geometry) GetLineGeometry(string id)
         {
             var points = new List<Point>();
             foreach (var kvp in _displayGroups)
@@ -389,6 +423,7 @@ namespace MainPower.Osi.Enricher
                 var res = group.Descendants("element").Where(x => x.Attribute("type").Value == "Line").Descendants("dataLink").Where(x => x.Attribute("id").Value == id).FirstOrDefault();
                 if (res != null)
                 {
+                    bool internals = res.Parent.Attribute("mpwr_internals")?.Value == "True";
                     foreach (var xy in res.Parent.Descendants("xy"))
                     {
                         Point p = new Point();
@@ -397,11 +432,11 @@ namespace MainPower.Osi.Enricher
                         p = TranslatePoint(p);
                         points.Add(p);
                     }
-                    return points;
+                    return (internals, points);
                 }
             }
             Warn("Could not locate line geometry", id, "");
-            return points;
+            return (false, points);
         }
 
         private Point TranslatePoint(Point p)

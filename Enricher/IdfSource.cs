@@ -16,8 +16,8 @@ namespace MainPower.Osi.Enricher
                 {
                     case "SBK_52":
                     case "SBK_92":
-                        Node.SetAttributeValue("positiveSequenceReactance", "9.8"); //4.9
-                        Node.SetAttributeValue("positiveSequenceResistance", "5.6"); //2.8
+                        Node.SetAttributeValue("positiveSequenceReactance", "11");//13.4(sincal*2), 9.8 (tp*2), 4.9(tp)
+                        Node.SetAttributeValue("positiveSequenceResistance", "8.3");//"5.6"); //2.8
                         Node.SetAttributeValue("zeroSequenceReactance", "36.2"); //18.1
                         Node.SetAttributeValue("zeroSequenceResistance", "5.2"); //2.6
                         Node.SetAttributeValue("phase1Angle", "0");
@@ -26,8 +26,8 @@ namespace MainPower.Osi.Enricher
                         break;
                     case "WPR_172":
                     case "WPR_92":
-                        Node.SetAttributeValue("positiveSequenceReactance", "10.06");//5.030061
-                        Node.SetAttributeValue("positiveSequenceResistance", "1.32");//0.659208
+                        Node.SetAttributeValue("positiveSequenceReactance", "16");//11.7, 10.06, 5.030061
+                        Node.SetAttributeValue("positiveSequenceResistance", "2.3");// "1.32");//0.659208
                         Node.SetAttributeValue("zeroSequenceReactance", "12.906348");//6.453174
                         Node.SetAttributeValue("zeroSequenceResistance", "1.17");//0.585
                         Node.SetAttributeValue("phase1Angle", "0");

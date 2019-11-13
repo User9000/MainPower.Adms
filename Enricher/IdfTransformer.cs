@@ -9,81 +9,81 @@ namespace MainPower.Osi.Enricher
     public  class IdfTransformer : IdfElement
     {
         #region Constants
-        private const string SYMBOL_TX_UNK = "Symbol 34";
-        private const string SYMBOL_TX_DYN = "Symbol 21";
-        private const string SYMBOL_TX_DYN_OLTC = "Symbol 19";
-        private const string SYMBOL_TX_DZN_OLTC = "Symbol 32";
-        private const string SYMBOL_TX_ZN = "Symbol 8";
-        private const string SYMBOL_TX_YYN = "Symbol 33";
-        private const string SYMBOL_TX_YNYN = "Symbol 38";
-        private const string SYMBOL_TX_YNA = "Symbol 39";
-        private const string SYMBOL_TX_II0 = "Symbol 1";
+        private const string SymbolTxUnknown = "Symbol 34";
+        private const string SymbolTxDyn = "Symbol 21";
+        private const string SymbolTxDynOltc = "Symbol 19";
+        private const string SymbolTxDznOltc = "Symbol 32";
+        private const string SymbolTxZn = "Symbol 8";
+        private const string SymbolTxYyn = "Symbol 33";
+        private const string SymbolTxYnyn = "Symbol 38";
+        private const string SymbolTxYna = "Symbol 39";
+        private const string SymbolTxIi0 = "Symbol 1";
 
-        private const double SYMBOL_TX_SCALE = 0.3;
-        private const double SYMBOL_TX_SCALE_INTERNALS = 0.3;
-        private const double SYMBOL_TX_ROTATION = 0;
+        private const double SymbolTxScale = 0.3;
+        private const double SymbolTxScaleInternals = 0.3;
+        private const double SymbolTxRotation = 0;
         
-        private const string T1_TX_PRI_OPERATINGKV = "Op#Volt-Tx Power";            //the primary operating voltage
-        private const string T1_TX_PRI_RATEDKV = "Rat#Volt-Tx Power";             //the rated primary voltage
-        private const string T1_TX_IMPEDANCE = "Z @ Nom Tap & ONAN";          //the impedance at the base kva and base HV voltage(NOT THE ONAN rating)
-        private const string T1_TX_LOADLOSS = "Load Loss @ Nom Tap";          //the load loss in W
-        private const string T1_TX_NOLOADLOSS = "NoLoad Loss @ NomTap";       //the no load loss in W
-        private const string T1_TX_MAXTAP= "Max Tap";                         //the % increase in nom.voltage on the highest tap setting
-        private const string T1_TX_MINTAP= "Min Tap";                         //the % decrease in nom.voltage on the lowest tap setting
-        private const string T1_TX_VECTORGROUP= "Vector Grouping";            //Dyn11, Dyn3, Yya0, Yyan0, Ii0, Ii6, single, 1PH
-        private const string T1_TX_PHASES= "No# of Phases";                    //
-        private const string T1_TX_KVA = "Rated Power kVA";                   //maximum rated power
-        private const string T1_TX_PRI_AMPS = "Rated Current (Prim)";         //
-        private const string T1_TX_SEC_AMPS = "Rated Current (Sec)";          //
-        private const string T1_TX_SEC_RATEDKV = "Rated Voltage (Sec)";          //the secondary operating voltage
-        private const string T1_TX_SEC_OPERATINGKV = "Op Voltage (Sec)";   //the base secondary voltage
+        private const string T1TxPrimaryOperatingkV = "Op#Volt-Tx Power";            //the primary operating voltage
+        private const string T1TxPrimaryRatedkV = "Rat#Volt-Tx Power";             //the rated primary voltage
+        private const string T1TxImpedance = "Z @ Nom Tap & ONAN";          //the impedance at the base kva and base HV voltage(NOT THE ONAN rating)
+        private const string T1TxLoadLoss = "Load Loss @ Nom Tap";          //the load loss in W
+        private const string T1TxNoLoadLoss = "NoLoad Loss @ NomTap";       //the no load loss in W
+        private const string T1TxMaxTap = "Max Tap";                         //the % increase in nom.voltage on the highest tap setting
+        private const string T1TxMinTap = "Min Tap";                         //the % decrease in nom.voltage on the lowest tap setting
+        private const string T1TxVectorGroup = "Vector Grouping";            //Dyn11, Dyn3, Yya0, Yyan0, Ii0, Ii6, single, 1PH
+        private const string T1TxPhases = "No# of Phases";                   //
+        private const string T1TxkVA = "Rated Power kVA";                   //maximum rated power
+        private const string T1TxPrimaryAmps = "Rated Current (Prim)";         //
+        private const string T1TxSecondaryAmps = "Rated Current (Sec)";          //
+        private const string T1TxSecondaryRatedkV = "Rated Voltage (Sec)";          //the secondary operating voltage
+        private const string T1TxSecondaryOperatingkV = "Op Voltage (Sec)";   //the base secondary voltage
         
-        private const string ADMS_TX_BASEKVA = "basekVA";                    //the base kVA to be used for calculation
-        private const string ADMS_TX_S1BASEKV = "s1basekV";                  //the primary side base kV used for calculation
-        private const string ADMS_TX_S2BASEKV = "s2basekV";                  //the secondary side base kV used for calculation
-        private const string ADMS_TX_BANDWIDTH = "bandwidth";                // 
-        private const string ADMS_TX_DESIREDVOLTAGE = "desiredVoltage";      // 
-        private const string ADMS_TX_REGULATIONTYPE = "regulationType";      // 
-        private const string ADMS_TX_TAPSIDE = "tapSide";                    // 
-        private const string ADMS_TX_MAXTAPLIMIT = "maxTapControlLimit";     // 
-        private const string ADMS_TX_MINTAPLIMIT = "minTapControlLimit";     // 
-        private const string ADMS_TX_SCADAID = "scadaId";                    //the prefix used for SCADA e.g.BHL T1
-        private const string ADMS_TX_PARALLEL_SET = "parallelSet";
-        private const string ADMS_TX_NER = "nerResistance";
+        private const string AdmsTxBasekVA = "basekVA";                    //the base kVA to be used for calculation
+        private const string AdmsTxS1BasekV = "s1basekV";                  //the primary side base kV used for calculation
+        private const string AdmsTxS2BasekV = "s2basekV";                  //the secondary side base kV used for calculation
+        private const string AdmsTxBandwidth = "bandwidth";                // 
+        private const string AdmsTxDesiredVoltage = "desiredVoltage";      // 
+        private const string AdmsTxRegulationType = "regulationType";      // 
+        private const string AdmsTxTapSide = "tapSide";                    // 
+        private const string AdmsTxMaxTapLimit = "maxTapControlLimit";     // 
+        private const string AdmsTxMinTapLimit = "minTapControlLimit";     // 
+        private const string AdmsTxScadaId = "scadaId";                    //the prefix used for SCADA e.g.BHL T1
+        private const string AdmsTxParallelSet = "parallelSet";
+        private const string AdmsTxNerResistance = "nerResistance";
 
-        private const string IDF_TX_BANDWIDTH = "bandwidth";
-        private const string IDF_TX_BIDIRECTIONAL = "bidirectional";
-        private const string IDF_TX_CONTROLPHASE = "controlPhase";
-        private const string IDF_TX_DESIREDVOLTAGE = "desiredVoltage";
-        private const string IDF_TX_INITIALTAP1 = "initialTap1";
-        private const string IDF_TX_INITIALTAP2 = "initialTap2";
-        private const string IDF_TX_INITIALTAP3 = "initialTap3";
-        private const string IDF_TX_MAXTAPLIMIT = "maxTapControlLimit";
-        private const string IDF_TX_MINTAPLIMIT = "minTapControlLimit";
-        private const string IDF_TX_NOMINALUPSTREAMSIDE = "nominalUpstreamSide";
-        private const string IDF_TX_PARALLELSET = "parallelSet";
-        private const string IDF_TX_REGULATIONTYPE = "regulationType";
+        private const string IdfTxBandwidth = "bandwidth";
+        private const string IdfTxBidirectional = "bidirectional";
+        private const string IdfTxControlPhase = "controlPhase";
+        private const string IdfTxDesiredVoltage = "desiredVoltage";
+        private const string IdfTxInitialTap1 = "initialTap1";
+        private const string IdfTxInitialTap2 = "initialTap2";
+        private const string IdfTxInitialTap3 = "initialTap3";
+        private const string IdfTxMaxTapLimit = "maxTapControlLimit";
+        private const string IdfTxMinTapLimit = "minTapControlLimit";
+        private const string IdfTxNominalUpstreamSide = "nominalUpstreamSide";
+        private const string IdfTxParallelSet = "parallelSet";
+        private const string IdfTxRegulationType = "regulationType";
         private const string IDF_TX_S1BASEKV = "s1baseKV";
-        private const string IDF_TX_S1CONNECTIONTYPE = "s1connectionType";
-        private const string IDF_TX_S1RATEDKV = "s1ratedKV";
-        private const string IDF_TX_S2BASEKV = "s2baseKV";
-        private const string IDF_TX_S2CONNECTIONTYPE = "s2connectionType";
-        private const string IDF_TX_S2RATEDKV = "s2ratedKV";
-        private const string IDF_TX_ROTATION = "standardRotation";
-        private const string IDF_TX_TAPSIDE = "tapSide";
-        private const string IDF_TX_TXTYPE = "transformerType";
+        private const string IdfTxS1ConnectionType = "s1connectionType";
+        private const string IdfTxS1RatedkV = "s1ratedKV";
+        private const string IdfTxS2BasekV = "s2baseKV";
+        private const string IdfTxS2ConnectionType = "s2connectionType";
+        private const string IdfTxS2RatedkV = "s2ratedKV";
+        private const string IdfTxRotation = "standardRotation";
+        private const string IdfTxTapSide = "tapSide";
+        private const string IdfTxType = "transformerType";
 
-        private const string IDF_TX_WINDING_WYE = "Wye";
-        private const string IDF_TX_WINDING_ZIGZAG = "Zig-Zag";
+        private const string IdfTxWindingWye = "Wye";
+        private const string IdfTxWindingZigZag = "Zig-Zag";
         //TODO: update later
-        //private const string IDF_TX_WINDING_ZIGZAGG = "Zig-Zag-G";
-        private const string IDF_TX_WINDING_ZIGZAGG = "Wye-G";
-        private const string IDF_TX_WINDING_WYEG = "Wye-G";
-        private const string IDF_TX_WINDING_DELTA = "Delta";
+        //private const string IdfTxWindingZigZagG = "Zig-Zag-G";
+        private const string IdfTxWindingZigZagG = "Wye-G";
+        private const string IdfTxWindingWyeG = "Wye-G";
+        private const string IdfTxWindingDelta = "Delta";
 
-        private const string IDF_TX_DEFAULT_TYPE = "transformerType_default";
+        private const string IdfTxDefaultType = "transformerType_default";
 
-        private const string GIS_TAP = "mpwr_tap_position";
+        private const string GisTxTap = "mpwr_tap_position";
         #endregion
 
         #region Private fields
@@ -120,7 +120,7 @@ namespace MainPower.Osi.Enricher
         private double _dkva = double.NaN;
         private double _s1kV = double.NaN;
         private double _s2kV = double.NaN;
-        private string _symbolName = SYMBOL_TX_UNK;
+        private string _symbolName = SymbolTxUnknown;
         private bool _hasOltc = false;
 
         //transformer type fields
@@ -153,9 +153,9 @@ namespace MainPower.Osi.Enricher
                 SetAllNominalStates();
                 var geo = ParentGroup.GetSymbolGeometry(Id);
                 //default transformer type
-                _transformerType = IDF_TX_DEFAULT_TYPE;
+                _transformerType = IdfTxDefaultType;
                 _s1BaseKv = Node.Attribute(IDF_TX_S1BASEKV)?.Value;
-                _s2BaseKv = Node.Attribute(IDF_TX_S2BASEKV)?.Value;
+                _s2BaseKv = Node.Attribute(IdfTxS2BasekV)?.Value;
 
                 //TODO: need to check these arent empty, e.g. earthing transformer
                 _s1kV = double.Parse(_s1BaseKv) * 1000;
@@ -214,12 +214,12 @@ namespace MainPower.Osi.Enricher
 
                     if (asset2 != null)
                     {
-                        double? ner = asset2.AsDouble(ADMS_TX_NER);
+                        double? ner = asset2.AsDouble(AdmsTxNerResistance);
                         if (ner != null)
                         {
-                            _nerResistance = asset2[ADMS_TX_NER];
+                            _nerResistance = asset2[AdmsTxNerResistance];
                         }
-                        string parallelSet = asset2[ADMS_TX_PARALLEL_SET];
+                        string parallelSet = asset2[AdmsTxParallelSet];
                         if (!string.IsNullOrWhiteSpace(parallelSet))
                         {
                             if (!ParallelSets.Contains(parallelSet))
@@ -227,7 +227,7 @@ namespace MainPower.Osi.Enricher
                                 ParallelSets.Add(parallelSet);
                             }
                         }
-                        string scadaPrefix = asset2[ADMS_TX_SCADAID];
+                        string scadaPrefix = asset2[AdmsTxScadaId];
                         if (!string.IsNullOrWhiteSpace(scadaPrefix))
                         {
                             UpdateName(scadaPrefix);
@@ -250,25 +250,25 @@ namespace MainPower.Osi.Enricher
                 }
 
                 //TODO: only set asset2 attributes
-                Node.SetAttributeValue(IDF_TX_BANDWIDTH, _bandwidth);
-                Node.SetAttributeValue(IDF_TX_BIDIRECTIONAL, _bidirectional);
-                Node.SetAttributeValue(IDF_TX_CONTROLPHASE, _controlPhase);
-                Node.SetAttributeValue(IDF_TX_DESIREDVOLTAGE, _desiredVoltage);
-                Node.SetAttributeValue(IDF_TX_MAXTAPLIMIT, _maxTapLimit);
-                Node.SetAttributeValue(IDF_TX_MINTAPLIMIT, _minTapLimit);
-                Node.SetAttributeValue(IDF_TX_PARALLELSET, _parallelSet);
-                Node.SetAttributeValue(IDF_TX_REGULATIONTYPE, _regulationType);
+                Node.SetAttributeValue(IdfTxBandwidth, _bandwidth);
+                Node.SetAttributeValue(IdfTxBidirectional, _bidirectional);
+                Node.SetAttributeValue(IdfTxControlPhase, _controlPhase);
+                Node.SetAttributeValue(IdfTxDesiredVoltage, _desiredVoltage);
+                Node.SetAttributeValue(IdfTxMaxTapLimit, _maxTapLimit);
+                Node.SetAttributeValue(IdfTxMinTapLimit, _minTapLimit);
+                Node.SetAttributeValue(IdfTxParallelSet, _parallelSet);
+                Node.SetAttributeValue(IdfTxRegulationType, _regulationType);
 
-                Node.SetAttributeValue(IDF_TX_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
+                Node.SetAttributeValue(IdfTxNominalUpstreamSide, _nominalUpstreamSide);
                 Node.SetAttributeValue(IDF_TX_S1BASEKV, _s1BaseKv);
-                Node.SetAttributeValue(IDF_TX_S1CONNECTIONTYPE, _s1ConnectionType);
-                Node.SetAttributeValue(IDF_TX_S1RATEDKV, _s1BaseKv);
-                Node.SetAttributeValue(IDF_TX_S2BASEKV, _s2BaseKv);
-                Node.SetAttributeValue(IDF_TX_S2CONNECTIONTYPE, _s2ConnectionType);
-                Node.SetAttributeValue(IDF_TX_S2RATEDKV, _s2BaseKv);
-                Node.SetAttributeValue(IDF_TX_ROTATION, _standardRotation);
-                Node.SetAttributeValue(IDF_TX_TAPSIDE, _tapSide);
-                Node.SetAttributeValue(IDF_TX_TXTYPE, _transformerType);
+                Node.SetAttributeValue(IdfTxS1ConnectionType, _s1ConnectionType);
+                Node.SetAttributeValue(IdfTxS1RatedkV, _s1BaseKv);
+                Node.SetAttributeValue(IdfTxS2BasekV, _s2BaseKv);
+                Node.SetAttributeValue(IdfTxS2ConnectionType, _s2ConnectionType);
+                Node.SetAttributeValue(IdfTxS2RatedkV, _s2BaseKv);
+                Node.SetAttributeValue(IdfTxRotation, _standardRotation);
+                Node.SetAttributeValue(IdfTxTapSide, _tapSide);
+                Node.SetAttributeValue(IdfTxType, _transformerType);
 
                 //TODO: these are invalid fields according to maestro
                 //Node.SetAttributeValue(IDF_TX_INITIALTAP1, _initialTap1);
@@ -278,16 +278,16 @@ namespace MainPower.Osi.Enricher
                 //we can remove a bunch of s2 parameters for Zig-Zag transformers
                 if (_vGroup == "ZN")
                 {
-                    Node.SetAttributeValue(IDF_TX_S2BASEKV, null);
-                    Node.SetAttributeValue(IDF_TX_S2CONNECTIONTYPE, null);
+                    Node.SetAttributeValue(IdfTxS2BasekV, null);
+                    Node.SetAttributeValue(IdfTxS2ConnectionType, null);
                     Node.SetAttributeValue(IdfDeviceS2PhaseId1, null);
                     Node.SetAttributeValue(IdfDeviceS2PhaseId2, null);
                     Node.SetAttributeValue(IdfDeviceS2PhaseId3, null);
                     Node.SetAttributeValue(IdfDeviceS2Node, null);
-                    Node.SetAttributeValue(IDF_TX_S2RATEDKV, "1");
+                    Node.SetAttributeValue(IdfTxS2RatedkV, "1");
                 }
 
-                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SYMBOL_TX_SCALE, SYMBOL_TX_SCALE_INTERNALS, SYMBOL_TX_ROTATION);
+                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SymbolTxScale, SymbolTxScaleInternals, SymbolTxRotation);
 
                 List<KeyValuePair<string, string>> kvps = new List<KeyValuePair<string, string>>();
                 kvps.Add(new KeyValuePair<string, string>("Vector Group", _vGroup));
@@ -298,7 +298,7 @@ namespace MainPower.Osi.Enricher
                 //TODO: fix this
                 if (_vGroup != "ZN")
                 {
-                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo, _phaseshift);
+                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo.geometry, geo.internals, _phaseshift);
                 }
 
             }
@@ -341,7 +341,7 @@ namespace MainPower.Osi.Enricher
 
         private void ParseT1kVA(DataType asset)
         {
-            double? v = asset.AsDouble(T1_TX_KVA);
+            double? v = asset.AsDouble(T1TxkVA);
             if (v != null && v != 0)
             {
                 _dkva = v.Value;
@@ -356,7 +356,7 @@ namespace MainPower.Osi.Enricher
 
         private void ParseT1VectorGroup(DataType asset)
         {
-            string v = _vGroup = asset[T1_TX_VECTORGROUP];
+            string v = _vGroup = asset[T1TxVectorGroup];
             if (string.IsNullOrWhiteSpace(v))
             {
                 if (S2Phases == 3)
@@ -379,46 +379,46 @@ namespace MainPower.Osi.Enricher
             switch (v)
             {
                 case "Dyn3":
-                    _s1ConnectionType = IDF_TX_WINDING_DELTA;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = _hasOltc ? SYMBOL_TX_DYN_OLTC : SYMBOL_TX_DYN;
+                    _s1ConnectionType = IdfTxWindingDelta;
+                    _s2ConnectionType = IdfTxWindingWyeG;
+                    _symbolName = _hasOltc ? SymbolTxDynOltc : SymbolTxDyn;
                     _phaseshift = 3;
                     return;
                 case "Dyn11":
-                    _s1ConnectionType = IDF_TX_WINDING_DELTA;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = _hasOltc ? SYMBOL_TX_DYN_OLTC : SYMBOL_TX_DYN;
+                    _s1ConnectionType = IdfTxWindingDelta;
+                    _s2ConnectionType = IdfTxWindingWyeG;
+                    _symbolName = _hasOltc ? SymbolTxDynOltc : SymbolTxDyn;
                     _phaseshift = 11;
                     return;
                 case "Dzn2":
-                    _s1ConnectionType = IDF_TX_WINDING_DELTA;
-                    _s2ConnectionType = IDF_TX_WINDING_ZIGZAGG;
-                    _symbolName = SYMBOL_TX_DZN_OLTC;
+                    _s1ConnectionType = IdfTxWindingDelta;
+                    _s2ConnectionType = IdfTxWindingZigZagG;
+                    _symbolName = SymbolTxDznOltc;
                     _phaseshift = 2;
                     return;
                 case "Yyn0":
-                    _s1ConnectionType = IDF_TX_WINDING_WYE;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = SYMBOL_TX_YYN;
+                    _s1ConnectionType = IdfTxWindingWye;
+                    _s2ConnectionType = IdfTxWindingWyeG;
+                    _symbolName = SymbolTxYyn;
                     _phaseshift = 0;
                     return;
                 case "Yna0":
-                    _s1ConnectionType = IDF_TX_WINDING_WYEG;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = SYMBOL_TX_YNA;
+                    _s1ConnectionType = IdfTxWindingWyeG;
+                    _s2ConnectionType = IdfTxWindingWyeG;
+                    _symbolName = SymbolTxYna;
                     _phaseshift = 0;
                     return;
                 case "YNyn0":
-                    _s1ConnectionType = IDF_TX_WINDING_WYEG;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = SYMBOL_TX_YNYN;
+                    _s1ConnectionType = IdfTxWindingWyeG;
+                    _s2ConnectionType = IdfTxWindingWyeG;
+                    _symbolName = SymbolTxYnyn;
                     _phaseshift = 0;
                     return;
                 case "Single":
                 case "Ii0":
-                    _s1ConnectionType = IDF_TX_WINDING_DELTA;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = SYMBOL_TX_II0;
+                    _s1ConnectionType = IdfTxWindingDelta;
+                    _s2ConnectionType = IdfTxWindingWyeG;
+                    _symbolName = SymbolTxIi0;
                     //phase shift is -30 for non SWER, but 0 for SWER.
                     if (S1Phases == 1)
                         _phaseshift = 0;
@@ -426,9 +426,9 @@ namespace MainPower.Osi.Enricher
                         _phaseshift = 11;
                     return;
                 case "Ii6":
-                    _s1ConnectionType = IDF_TX_WINDING_DELTA;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
-                    _symbolName = SYMBOL_TX_II0;
+                    _s1ConnectionType = IdfTxWindingDelta;
+                    _s2ConnectionType = IdfTxWindingWyeG;
+                    _symbolName = SymbolTxIi0;
                     //phase shift is +150 for non SWER, but 180 for SWER
                     if (S1Phases == 1)
                         _phaseshift = 6;
@@ -436,15 +436,15 @@ namespace MainPower.Osi.Enricher
                         _phaseshift = 5;
                     return;
                 case "ZN":
-                    _s1ConnectionType = IDF_TX_WINDING_ZIGZAG;
+                    _s1ConnectionType = IdfTxWindingZigZag;
                     _s2ConnectionType = "";
-                    _symbolName = SYMBOL_TX_ZN;
+                    _symbolName = SymbolTxZn;
                     _phaseshift = 0;
                     break;
                 default:
                     Warn($"Couldn't parse vector group [{v}], assuming Dyn11");
-                    _s1ConnectionType = IDF_TX_WINDING_DELTA;
-                    _s2ConnectionType = IDF_TX_WINDING_WYEG;
+                    _s1ConnectionType = IdfTxWindingDelta;
+                    _s2ConnectionType = IdfTxWindingWyeG;
                     break;
             }
 
@@ -453,8 +453,8 @@ namespace MainPower.Osi.Enricher
        
         private void CalculateTransformerImpedances(DataType asset)
         {
-            double? zpu = asset.AsDouble(T1_TX_IMPEDANCE);
-            double? loadlossW = asset.AsDouble(T1_TX_LOADLOSS);
+            double? zpu = asset.AsDouble(T1TxImpedance);
+            double? loadlossW = asset.AsDouble(T1TxLoadLoss);
             double baseIHV, baseILV, baseZHV, baseZLV, loadlossV, loadlossIHV, zohmHV, xohmHV, rohmHV, xpu, rpu;
             if (zpu == null || loadlossW == null || loadlossW == 0 || _dkva.Equals(double.NaN) || _s1kV.Equals(double.NaN) || _s2kV.Equals(double.NaN))
             {
@@ -503,8 +503,8 @@ namespace MainPower.Osi.Enricher
 
         private void CalculateStepSize(DataType asset)
         {
-            double? v1 = asset.AsDouble(T1_TX_MINTAP);
-            double? v2 = asset.AsDouble(T1_TX_MAXTAP);
+            double? v1 = asset.AsDouble(T1TxMinTap);
+            double? v2 = asset.AsDouble(T1TxMaxTap);
 
             double tapLow, tapHigh, kva;
 
@@ -574,7 +574,7 @@ namespace MainPower.Osi.Enricher
         private void RemoveExtraAttributes()
         {
             Node.SetAttributeValue(GisT1Asset, null);
-            Node.SetAttributeValue(GIS_TAP, null);
+            Node.SetAttributeValue(GisTxTap, null);
         }
 
         private void GenerateScadaLinking(string scadaId)
@@ -611,12 +611,12 @@ namespace MainPower.Osi.Enricher
             if (setpoint != null)
                 x.SetAttributeValue("controlPoint", setpoint.Key);
 
-            var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts RY", true);
-            if (voltage != null)
-                x.SetAttributeValue("controlVoltageReference", voltage.Key);
+            //var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts RY", true);
+            //if (voltage != null)
+                x.SetAttributeValue("controlVoltageReference", _s2BaseKv);
             //TODO: this is a workaround for bad data
-            else if ((voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts", true)) != null)
-                x.SetAttributeValue("controlVoltageReference", voltage.Key);
+            //else if ((voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts", true)) != null)
+                //x.SetAttributeValue("controlVoltageReference", voltage.Key);
 
             ParentGroup.AddGroupElement(x);
         }

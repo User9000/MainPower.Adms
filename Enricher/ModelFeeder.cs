@@ -1,5 +1,6 @@
 ﻿using MessagePack;
 using System;
+using System.Drawing;
 using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
@@ -15,6 +16,10 @@ namespace MainPower.Osi.Enricher
         public string FeederName { get; set; }
         [Key(3)]
         public string GroupId { get; set; }
+       /* TODO: sort this
+        [Key(4)]
+        public Color Color { get; set; }
+        */
         public ModelFeeder() { }
 
     }

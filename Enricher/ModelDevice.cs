@@ -95,6 +95,12 @@ namespace MainPower.Osi.Enricher
         [Key(14)]
         public string ScadaKey { get; set; }
 
+        [Key(15)]
+        public bool Internals { get; set; }
+
+        [Key(16)]
+        public string Color { get; set; }
+
         [IgnoreMember]
         public bool Trace { get; set;} = false;
 

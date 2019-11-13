@@ -2,6 +2,8 @@
 using MessagePack;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -64,6 +66,8 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        private readonly Random _rnd = new Random();
+
 
         /// <summary>
         /// Add a feeder to the model
@@ -100,7 +104,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(IdfElement node, string gid, DeviceType type, List<Point> geo, int phaseshift = 0)
+        public bool AddDevice(IdfElement node, string gid, DeviceType type, List<Point> geo, bool internals, int phaseshift = 0)
         {
             var s1nodeid = node.Node.Attribute("s1node")?.Value;
             var s2nodeid = node.Node.Attribute("s2node")?.Value;
@@ -112,7 +116,8 @@ namespace MainPower.Osi.Enricher
                 GroupId = gid,
                 Type = type,
                 Geometry = geo,
-                IdfDevice = node
+                IdfDevice = node,
+                Internals = internals
             };
 
             string t = node.Node.Attribute("s1phaseID1").Value;
@@ -704,14 +709,22 @@ namespace MainPower.Osi.Enricher
             //d - the device we are tracing into
             //n - the node we are tracing in from
             //ud - the device the trace came from
-            Stack<(ModelDevice d, ModelNode n, ModelDevice ud, ModelFeeder feeder)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, ModelFeeder)>();
-            stack.Push((d, d.Node1, null, null));
+            //feeder - the current feeder
+            //tx - if we have been through a 400V tx and are looking for a feeder switch
+            //c - the current feeder colour
+            Stack<(ModelDevice d, ModelNode n, ModelDevice ud, ModelFeeder feeder, bool tx, Color c)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, ModelFeeder, bool, Color)>();
+            stack.Push((d, d.Node1, null, null, false, Color.Green)) ;
             do
             {
                 loop++;
                 var set = stack.Pop();
                 ModelNode traceNode = null;
                 ModelFeeder currentFeeder = set.feeder;
+                Color currentColor = set.c;
+                bool tx = set.tx;
+
+                if (set.d.Id == "link132374872_1206634375_1759526")
+                    Debugger.Break();
 
                 //if we have been here before then continue
                 if (set.d.Trace)
@@ -726,14 +739,42 @@ namespace MainPower.Osi.Enricher
                 if (feeder != null)
                 {
                     currentFeeder = feeder;
+                    currentColor = RandomColor();
+                    //currentColor = feeder.Color;
+                }
+
+                //if we are going through a distribution transformer, then set the tx flag to true
+                if (set.d.Type == DeviceType.Transformer && set.d.Base2kV == 0.4)
+                {
+                    tx = true;
+                    //Debugger.Break();
+                }
+
+                //if we are not in internals, then reset the tx flag
+                if (!set.d.Internals)
+                {
+                    tx = false;
+                }
+
+                if (set.d.Type == DeviceType.Switch && tx)
+                {
+                    currentColor = RandomColor();
+                    tx = false;
+                    //Debugger.Break();
                 }
 
                 //set device feeder
                 set.d.NominalFeeder = currentFeeder;
+                //TODO
+                set.d.Color = currentColor.Name;
 
                 if (set.d.NominalFeeder != null && set.d.IdfDevice != null)
                 {
                     set.d.IdfDevice.Node.SetAttributeValue("nominalFeeder", set.d.NominalFeeder.FeederId);
+                }
+                if (set.d.Type == DeviceType.Line && set.d.IdfDevice != null)
+                {
+                    set.d.IdfDevice.ParentGroup.SetLineColor(set.d.Id, currentColor);
                 }
 
                 if (openSwitch)
@@ -756,13 +797,18 @@ namespace MainPower.Osi.Enricher
                     {
                         if (dd != set.d && dd.UpstreamNode == traceNode)
                         {
-                            stack.Push((dd, traceNode, set.d, currentFeeder));
+                            stack.Push((dd, traceNode, set.d, currentFeeder, tx, currentColor));
                         }
                     }
                 }
             }
             while (stack.Count > 0);
             Info($"Feeder trace took {loop} loops for source {s.Name}");
+        }
+
+        private Color RandomColor()
+        {
+            return Color.FromArgb(_rnd.Next(256), _rnd.Next(256), _rnd.Next(256));
         }
 
         /// <summary>
@@ -816,7 +862,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="dir">The directory to export to</param>
         public void ExportToShapeFile(string dir)
         {
-            DbfFieldDesc[] deviceFields = new DbfFieldDesc[15];
+            DbfFieldDesc[] deviceFields = new DbfFieldDesc[16];
             deviceFields[0] = new DbfFieldDesc
             {
                 FieldName = "Node1Id",
@@ -923,7 +969,13 @@ namespace MainPower.Osi.Enricher
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
-
+            deviceFields[15] = new DbfFieldDesc
+            {
+                FieldName = "Color",
+                FieldLength = 10,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
             ShapeFileWriter sfwDevices = ShapeFileWriter.CreateWriter(dir, "Devices", ShapeType.Point, deviceFields);
             ExportWebMercatorProjectionFile(Path.Combine(dir, "Devices.prj"));
             ShapeFileWriter sfwLines = ShapeFileWriter.CreateWriter(dir, "Lines", ShapeType.PolyLine, deviceFields);
@@ -932,7 +984,7 @@ namespace MainPower.Osi.Enricher
             {
                 foreach (ModelDevice d in Devices.Values)
                 {
-                    string[] fieldData = new string[15];
+                    string[] fieldData = new string[16];
                     fieldData[0] = d.Node1?.Id ?? "-";
                     fieldData[1] = d.Node2?.Id ?? "-";
                     fieldData[2] = d.Id;
@@ -948,6 +1000,7 @@ namespace MainPower.Osi.Enricher
                     fieldData[12] = $"{d.PhaseID[1, 0]}{d.PhaseID[1, 1]}{d.PhaseID[1, 2]}";
                     fieldData[13] = d.PhaseShift.ToString("N2");
                     fieldData[14] = d.NominalFeeder?.FeederName ?? "-";
+                    fieldData[15] = d.Color ?? "";
 
                     if (d.Geometry == null)
                     {

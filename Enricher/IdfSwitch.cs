@@ -248,7 +248,7 @@ namespace MainPower.Osi.Enricher
                     GenerateDeviceInfo();
                 RemoveExtraAttributes();
 
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, geo);
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, geo.geometry, geo.internals);
             }
             catch (Exception ex)
             {

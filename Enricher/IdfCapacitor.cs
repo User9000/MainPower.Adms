@@ -23,7 +23,7 @@ namespace MainPower.Osi.Enricher
             {
                 SetAllNominalStates();
                 var geo = ParentGroup.GetSymbolGeometry(Id);
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.ShuntCapacitor, geo);
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.ShuntCapacitor, geo.geometry, geo.internals);
                 ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CAPACITOR);
                 Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV)?.Value);
             }
