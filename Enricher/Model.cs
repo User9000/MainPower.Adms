@@ -697,7 +697,6 @@ namespace MainPower.Osi.Enricher
         /// <summary>
         /// Trace though the network starting at this device, and propagating feeders down the network
         /// </summary>
-        /// <param name="d">The device we are tracing into</param>
         /// <param name="s">The source that is energizing this trace</param>
         private void TraceNominalFeeders(ModelSource s)
         {
@@ -710,7 +709,7 @@ namespace MainPower.Osi.Enricher
             //n - the node we are tracing in from
             //ud - the device the trace came from
             //feeder - the current feeder
-            //tx - if we have been through a 400V tx and are looking for a feeder switch
+            //tx - set when the trace goes through a 400V transformer, and reset when leaving internals
             //c - the current feeder colour
             Stack<(ModelDevice d, ModelNode n, ModelDevice ud, ModelFeeder feeder, bool tx, Color c)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, ModelFeeder, bool, Color)>();
             stack.Push((d, d.Node1, null, null, false, Color.Green)) ;
@@ -723,9 +722,6 @@ namespace MainPower.Osi.Enricher
                 Color currentColor = set.c;
                 bool tx = set.tx;
 
-                if (set.d.Id == "link132374872_1206634375_1759526")
-                    Debugger.Break();
-
                 //if we have been here before then continue
                 if (set.d.Trace)
                     continue;
@@ -735,47 +731,37 @@ namespace MainPower.Osi.Enricher
                 var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
 
                 //check if there is a feeder attached to this device
+                //TODO: this is an expensive operation...
                 var feeder = (from f in Feeders.Values where f.DeviceId == set.d.Id select f).FirstOrDefault();
                 if (feeder != null)
                 {
                     currentFeeder = feeder;
                     currentColor = RandomColor();
-                    //currentColor = feeder.Color;
                 }
 
                 //if we are going through a distribution transformer, then set the tx flag to true
                 if (set.d.Type == DeviceType.Transformer && set.d.Base2kV == 0.4)
-                {
                     tx = true;
-                    //Debugger.Break();
-                }
 
-                //if we are not in internals, then reset the tx flag
+                //if we are not in internals, then clear the tx flag
                 if (!set.d.Internals)
-                {
                     tx = false;
-                }
 
+                //if the tx flag is set, then we are still in internals, and every
+                //switch we go through should change the line color
+                //this is required for the case where there are incomer switches
                 if (set.d.Type == DeviceType.Switch && tx)
-                {
                     currentColor = RandomColor();
-                    tx = false;
-                    //Debugger.Break();
-                }
 
-                //set device feeder
+                //set device feeder and color
                 set.d.NominalFeeder = currentFeeder;
-                //TODO
                 set.d.Color = currentColor.Name;
 
                 if (set.d.NominalFeeder != null && set.d.IdfDevice != null)
-                {
                     set.d.IdfDevice.Node.SetAttributeValue("nominalFeeder", set.d.NominalFeeder.FeederId);
-                }
+
                 if (set.d.Type == DeviceType.Line && set.d.IdfDevice != null)
-                {
                     set.d.IdfDevice.ParentGroup.SetLineColor(set.d.Id, currentColor);
-                }
 
                 if (openSwitch)
                     continue;
@@ -806,6 +792,10 @@ namespace MainPower.Osi.Enricher
             Info($"Feeder trace took {loop} loops for source {s.Name}");
         }
 
+        /// <summary>
+        /// Generates a random color
+        /// </summary>
+        /// <returns></returns>
         private Color RandomColor()
         {
             return Color.FromArgb(_rnd.Next(256), _rnd.Next(256), _rnd.Next(256));

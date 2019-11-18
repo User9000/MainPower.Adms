@@ -41,15 +41,17 @@ namespace MainPower.Osi.Enricher
         private const string AdmsTxBasekVA = "basekVA";                    //the base kVA to be used for calculation
         private const string AdmsTxS1BasekV = "s1basekV";                  //the primary side base kV used for calculation
         private const string AdmsTxS2BasekV = "s2basekV";                  //the secondary side base kV used for calculation
-        private const string AdmsTxBandwidth = "bandwidth";                // 
-        private const string AdmsTxDesiredVoltage = "desiredVoltage";      // 
-        private const string AdmsTxRegulationType = "regulationType";      // 
-        private const string AdmsTxTapSide = "tapSide";                    // 
-        private const string AdmsTxMaxTapLimit = "maxTapControlLimit";     // 
-        private const string AdmsTxMinTapLimit = "minTapControlLimit";     // 
-        private const string AdmsTxScadaId = "scadaId";                    //the prefix used for SCADA e.g.BHL T1
-        private const string AdmsTxParallelSet = "parallelSet";
-        private const string AdmsTxNerResistance = "nerResistance";
+        private const string AdmsTxBandwidth = "Bandwidth";                // 
+        private const string AdmsTxDesiredVoltage = "DesiredVoltage";      // 
+        private const string AdmsTxRegulationType = "RegulationType";      // 
+        private const string AdmsTxTapSide = "TapSide";                    // 
+        private const string AdmsTxMaxTapLimit = "MaxTapControlLimit";     // 
+        private const string AdmsTxMinTapLimit = "MinTapControlLimit";     // 
+        private const string AdmsTxScadaId = "ScadaId";                    //the prefix used for SCADA e.g.BHL T1
+        private const string AdmsTxParallelSet = "ParallelSet";
+        private const string AdmsTxNerResistance = "NerResistance";
+        private const string AdmsTxRegulatedSide = "RegulatedSide";
+        private const string AdmsTxTransformerType = "TransformerType";
 
         private const string IdfTxBandwidth = "bandwidth";
         private const string IdfTxBidirectional = "bidirectional";
@@ -63,7 +65,7 @@ namespace MainPower.Osi.Enricher
         private const string IdfTxNominalUpstreamSide = "nominalUpstreamSide";
         private const string IdfTxParallelSet = "parallelSet";
         private const string IdfTxRegulationType = "regulationType";
-        private const string IDF_TX_S1BASEKV = "s1baseKV";
+        private const string IdfTxS1BasekV = "s1baseKV";
         private const string IdfTxS1ConnectionType = "s1connectionType";
         private const string IdfTxS1RatedkV = "s1ratedKV";
         private const string IdfTxS2BasekV = "s2baseKV";
@@ -103,6 +105,7 @@ namespace MainPower.Osi.Enricher
         private string _nominalUpstreamSide = "";
         private string _parallelSet = "";
         private string _regulationType= "";
+        private string _regulatedNode = "";
         private string _s1BaseKv= "";
         private string _s1ConnectionType = "";
         private string _s1RatedKv= "";
@@ -131,7 +134,7 @@ namespace MainPower.Osi.Enricher
         private string _percreactance = "";
         private string _tapSteps = "";
         private string _nerResistance = "";
-        private string _transformerTypeType = "Fixed";
+        private string _transformerTypeType = "";
         private short _phaseshift = 11;
         private string _vGroup;
 
@@ -154,7 +157,7 @@ namespace MainPower.Osi.Enricher
                 var geo = ParentGroup.GetSymbolGeometry(Id);
                 //default transformer type
                 _transformerType = IdfTxDefaultType;
-                _s1BaseKv = Node.Attribute(IDF_TX_S1BASEKV)?.Value;
+                _s1BaseKv = Node.Attribute(IdfTxS1BasekV)?.Value;
                 _s2BaseKv = Node.Attribute(IdfTxS2BasekV)?.Value;
 
                 //TODO: need to check these arent empty, e.g. earthing transformer
@@ -166,11 +169,9 @@ namespace MainPower.Osi.Enricher
                 _nominalUpstreamSide = "1";
                 _standardRotation = IdfTrue;
                 _tapSide = "1";
+                _transformerTypeType = "Fixed";
 
                 DataType asset1, asset2 = null;
-
-                //if (Id == "m_st_hs_ms_zwei_wickl_trafo11269116")
-               //     Debugger.Break();
 
                 //if there is no T1Id, look it up in the transpower dataset
                 if (string.IsNullOrEmpty(T1Id))
@@ -214,18 +215,65 @@ namespace MainPower.Osi.Enricher
 
                     if (asset2 != null)
                     {
+                        var bw = asset2[AdmsTxBandwidth];
+                        if (!string.IsNullOrWhiteSpace(bw))
+                            _bandwidth = bw;
+                        var desiredVoltage = asset2[AdmsTxDesiredVoltage];
+                        if (!string.IsNullOrWhiteSpace(desiredVoltage))
+                            _desiredVoltage = desiredVoltage;
+                        var tapside = asset2[AdmsTxTapSide];
+                        if (!string.IsNullOrWhiteSpace(tapside))
+                            _tapSide = tapside;
+                        var maxtap = asset2[AdmsTxMaxTapLimit];
+                        if (!string.IsNullOrWhiteSpace(maxtap))
+                            _maxTapLimit= maxtap;
+                        var mintap = asset2[AdmsTxMinTapLimit];
+                        if (!string.IsNullOrWhiteSpace(mintap))
+                            _minTapLimit = mintap;
+
+
+                        var txtype = asset2[AdmsTxTransformerType];
+                        if (!string.IsNullOrWhiteSpace(txtype))
+                        {
+                            _transformerTypeType = txtype;
+                        }
+                        else
+                        {
+                            _transformerTypeType = "LTC";
+                        }
+                        var regtype = asset2[AdmsTxRegulationType];
+                        if (!string.IsNullOrWhiteSpace(regtype))
+                        {
+                            _regulationType = regtype;
+                        }
+                        else
+                        {
+                            _regulationType = "Automatic";
+                        }
+                        var regnode = asset2[AdmsTxRegulatedSide];
+                        if (regnode == "1")
+                        {
+                            _regulatedNode = Node1Id;
+                        }
+                        else
+                        {
+                            _regulatedNode = Node2Id;
+                        }
+                        
+
                         double? ner = asset2.AsDouble(AdmsTxNerResistance);
                         if (ner != null)
                         {
                             _nerResistance = asset2[AdmsTxNerResistance];
                         }
-                        string parallelSet = asset2[AdmsTxParallelSet];
-                        if (!string.IsNullOrWhiteSpace(parallelSet))
+                        _parallelSet = asset2[AdmsTxParallelSet];
+                        if (!string.IsNullOrWhiteSpace(_parallelSet))
                         {
-                            if (!ParallelSets.Contains(parallelSet))
+                            if (!ParallelSets.Contains(_parallelSet))
                             {
-                                ParallelSets.Add(parallelSet);
+                                ParallelSets.Add(_parallelSet);
                             }
+                            _parallelSet = $"parallelSet_{_parallelSet}";
                         }
                         string scadaPrefix = asset2[AdmsTxScadaId];
                         if (!string.IsNullOrWhiteSpace(scadaPrefix))
@@ -250,17 +298,19 @@ namespace MainPower.Osi.Enricher
                 }
 
                 //TODO: only set asset2 attributes
-                Node.SetAttributeValue(IdfTxBandwidth, _bandwidth);
+                if (!string.IsNullOrWhiteSpace(_bandwidth))
+                    Node.SetAttributeValue(IdfTxBandwidth, _bandwidth);
                 Node.SetAttributeValue(IdfTxBidirectional, _bidirectional);
                 Node.SetAttributeValue(IdfTxControlPhase, _controlPhase);
-                Node.SetAttributeValue(IdfTxDesiredVoltage, _desiredVoltage);
+                if (!string.IsNullOrWhiteSpace(_desiredVoltage))
+                    Node.SetAttributeValue(IdfTxDesiredVoltage, _desiredVoltage);
                 Node.SetAttributeValue(IdfTxMaxTapLimit, _maxTapLimit);
                 Node.SetAttributeValue(IdfTxMinTapLimit, _minTapLimit);
                 Node.SetAttributeValue(IdfTxParallelSet, _parallelSet);
                 Node.SetAttributeValue(IdfTxRegulationType, _regulationType);
 
                 Node.SetAttributeValue(IdfTxNominalUpstreamSide, _nominalUpstreamSide);
-                Node.SetAttributeValue(IDF_TX_S1BASEKV, _s1BaseKv);
+                Node.SetAttributeValue(IdfTxS1BasekV, _s1BaseKv);
                 Node.SetAttributeValue(IdfTxS1ConnectionType, _s1ConnectionType);
                 Node.SetAttributeValue(IdfTxS1RatedkV, _s1BaseKv);
                 Node.SetAttributeValue(IdfTxS2BasekV, _s2BaseKv);
@@ -503,6 +553,8 @@ namespace MainPower.Osi.Enricher
 
         private void CalculateStepSize(DataType asset)
         {
+            //if (Id == "m_st_hs_ms_zwei_wickl_trafo11323724")
+                //Debugger.Break();
             double? v1 = asset.AsDouble(T1TxMinTap);
             double? v2 = asset.AsDouble(T1TxMaxTap);
 
@@ -564,8 +616,10 @@ namespace MainPower.Osi.Enricher
             }
             _numTaps = (int)((tapLow - tapHigh) / 1.25 + 1);
             _tapSteps = _numTaps.ToString();
-            double maxTap = (1 + tapLow / 100);
-            double minTap = (1 + tapHigh / 100);
+            //tech1 stores the ratio difference, not the voltage difference (which is the opposite)
+            //hence the minus sign in these calculations
+            double minTap = (1 - tapLow / 100);
+            double maxTap = (1 - tapHigh / 100);
             _maxTap = maxTap.ToString();
             _minTap = minTap.ToString();
             _initialTap1 = _initialTap2 = _initialTap3 = ((maxTap - 1) / ((maxTap - minTap) / (_numTaps - 1)) + 1).ToString();
@@ -591,20 +645,16 @@ namespace MainPower.Osi.Enricher
 
             x.SetAttributeValue("tapPosition", tap.Key);
 
-            var remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} Supervisory", true);
+            //this is actually auto/manual not remote/local
+            var remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} AVR Control Mode", true);
             if (remote != null)
             {
                 x.SetAttributeValue("remoteLocalPoint", remote.Key);
-                x.SetAttributeValue("controlAllowState", "1");
+                x.SetAttributeValue("controlAllowState", "0");
             }
             else
             {
-                remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} AVR Supervisory", true);
-                if (remote != null)
-                {
-                    x.SetAttributeValue("remoteLocalPoint", remote.Key);
-                    x.SetAttributeValue("controlAllowState", "1");
-                }
+                x.SetAttributeValue("remoteLocalPoint", "");
             }
 
             var setpoint = DataManager.I.RequestRecordByColumn<OsiScadaSetpoint>(ScadaName, $"{scadaId} AVR SP1 Value", true);

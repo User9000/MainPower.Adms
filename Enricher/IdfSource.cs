@@ -5,48 +5,43 @@ namespace MainPower.Osi.Enricher
 {
     public class IdfSource : IdfElement
     {
+        private const string IdfSourcePosSeqX = "positiveSequenceReactance";
+        private const string IdfSourcePosSeqR = "positiveSequenceResistance";
+        private const string IdfSourceZeroSeqX = "zeroSequenceReactance";
+        private const string IdfSourceZeroSeqR = "zeroSequenceResistance";
+        private const string IdfSourcePhase1Angle = "phase1Angle";
+        private const string IdfSourcePhase2Angle = "phase2Angle";
+        private const string IdfSourcePhase3Angle = "phase3Angle";
+
+        private const string AdmsSourcePosSeqX = "PositiveSequenceReactance";
+        private const string AdmsSourcePosSeqR = "PositiveSequenceResistance";
+        private const string AdmsSourceZeroSeqX = "ZeroSequenceReactance";
+        private const string AdmsSourceZeroSeqR = "ZeroSequenceResistance";
+        private const string AdmsSourcePhase1Angle = "Phase1Angle";
+        private const string AdmsSourcePhase2Angle = "Phase2Angle";
+        private const string AdmsSourcePhase3Angle = "Phase3Angle";
+
         public IdfSource(XElement node, IdfGroup processor) : base(node, processor) { }
 
         public override void Process()
         {
             try
             {
-                //TODO: this ought to be in a database somewhere
-                switch (Name)
+                var source = DataManager.I.RequestRecordById<AdmsSource>(Name);
+                if (source == null)
                 {
-                    case "SBK_52":
-                    case "SBK_92":
-                        Node.SetAttributeValue("positiveSequenceReactance", "11");//13.4(sincal*2), 9.8 (tp*2), 4.9(tp)
-                        Node.SetAttributeValue("positiveSequenceResistance", "8.3");//"5.6"); //2.8
-                        Node.SetAttributeValue("zeroSequenceReactance", "36.2"); //18.1
-                        Node.SetAttributeValue("zeroSequenceResistance", "5.2"); //2.6
-                        Node.SetAttributeValue("phase1Angle", "0");
-                        Node.SetAttributeValue("phase2Angle", "120");
-                        Node.SetAttributeValue("phase3Angle", "-120");
-                        break;
-                    case "WPR_172":
-                    case "WPR_92":
-                        Node.SetAttributeValue("positiveSequenceReactance", "16");//11.7, 10.06, 5.030061
-                        Node.SetAttributeValue("positiveSequenceResistance", "2.3");// "1.32");//0.659208
-                        Node.SetAttributeValue("zeroSequenceReactance", "12.906348");//6.453174
-                        Node.SetAttributeValue("zeroSequenceResistance", "1.17");//0.585
-                        Node.SetAttributeValue("phase1Angle", "0");
-                        Node.SetAttributeValue("phase2Angle", "120");
-                        Node.SetAttributeValue("phase3Angle", "-120");
-                        break;
-                    case "CUL_1252":
-                    case "CUL_1212":
-                        Node.SetAttributeValue("positiveSequenceReactance", "5.89");//2.943421
-                        Node.SetAttributeValue("positiveSequenceResistance", "0.391");//0.195689
-                        Node.SetAttributeValue("zeroSequenceReactance", "4.348704");//2.174352
-                        Node.SetAttributeValue("zeroSequenceResistance", "114.17");//57.08497
-                        Node.SetAttributeValue("phase1Angle", "90");
-                        Node.SetAttributeValue("phase2Angle", "-150");
-                        Node.SetAttributeValue("phase3Angle", "-30");
-                        break;
+                    Warn("Source does not exist in ADMS db");
                 }
-
-
+                else
+                {
+                    Node.SetAttributeValue(IdfSourcePosSeqX, source[AdmsSourcePosSeqX]);
+                    Node.SetAttributeValue(IdfSourcePosSeqR, source[AdmsSourcePosSeqR]);
+                    Node.SetAttributeValue(IdfSourceZeroSeqX, source[AdmsSourceZeroSeqX]);
+                    Node.SetAttributeValue(IdfSourceZeroSeqR, source[AdmsSourceZeroSeqR]);
+                    Node.SetAttributeValue(IdfSourcePhase1Angle, source[AdmsSourcePhase1Angle]);
+                    Node.SetAttributeValue(IdfSourcePhase2Angle, source[AdmsSourcePhase2Angle]);
+                    Node.SetAttributeValue(IdfSourcePhase3Angle, source[AdmsSourcePhase3Angle]);
+                }
             }
             catch (Exception ex)
             {

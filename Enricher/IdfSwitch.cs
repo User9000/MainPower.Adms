@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -10,101 +11,98 @@ namespace MainPower.Osi.Enricher
     {
 
         #region Constants
-        private const string SYMBOL_CIRCUITBREAKER = "Symbol 0";
-        private const string SYMBOL_CIRCUITBREAKER_QUAD = "Symbol 14";
-        private const string SYMBOL_SWITCH = "Symbol 3";
-        private const string SYMBOL_SWITCH_QUAD = "Symbol 15";
-        private const string SYMBOL_LBS = "Symbol 6";
-        private const string SYMBOL_LBS_QUAD = "Symbol 16";
-        private const string SYMBOL_FUSE = "Symbol 2";
-        private const string SYMBOL_SERVICE_FUSE = "Symbol 2";
-        private const string SYMBOL_LINKS = "Symbol 9";
-        private const string SYMBOL_DISCONNECTOR = "Symbol 3";
-        private const string SYMBOL_DISCONNECTOR_QUAD = "Symbol 15";
-        private const string SYMBOL_ENTEC_QUAD = "Symbol 16";
-        private const string SYMBOL_ENTEC = "Symbol 6";
-        private const string SYMBOL_FUSESAVER = "Symbol 10";
-        private const string SYMBOL_LVSWITCH = "Symbol 3";
-        private const string SYMBOL_LVFUSE = "Symbol 17";
-        private const string SYMBOL_HVFUSESWITCH = "Symbol 17";
-        private const string SYMBOL_HVFUSESWITCH_QUAD = "Symbol 17";
-        private const string SYMBOL_EARTH_SWITCH = "Symbol 4";
+        private const string SymbolCircuitBreaker = "Symbol 0";
+        private const string SymbolCircuitBreakerQuad = "Symbol 14";
+        private const string SymbolSwitch = "Symbol 3";
+        private const string SymbolSwitchQuad = "Symbol 15";
+        private const string SymbolFuse = "Symbol 2";
+        private const string SymbolServiceFuse = "Symbol 2";
+        private const string SymbolLinks = "Symbol 9";
+        private const string SymbolDisconnector = "Symbol 3";
+        private const string SymbolDisconnectorQuad = "Symbol 15";
+        private const string SymbolEntecQuad = "Symbol 16";
+        private const string SymbolEntec = "Symbol 6";
+        private const string SymbolFuseSaver = "Symbol 10";
+        private const string SymbolLVSwitch = "Symbol 3";
+        private const string SymbolLVFuse = "Symbol 17";
+        private const string SymbolHVFuseSwitch = "Symbol 17";
+        private const string SymbolHVFuseSwitchQuad = "Symbol 17";
+        private const string SymbolEarthSwitch = "Symbol 4";
 
-        private const string T1_FUSE_GANGED = "Is Tri Fuse";
-        private const string T1_SWITCH_SWNUMBER = "Switch Number";
-        private const string T1_SWITCH_RATED_VOLTAGE = "Rated Voltage";
-        private const string T1_SWITCH_RATED_AMPS = "Rated Current";
-        private const string T1_SWITCH_MAX_INTERRUPT_AMPS = "Fault kA/sec";
-        private const string T1_SWITCH_LOAD_BREAK_RATING = "Load Break Rating";
-        private const string T1_SWITCH_SW1 = "SW 1";
-        private const string T1_SWITCH_SW2 = "SW 2";
-        private const string T1_SWITCH_SW3 = "SW 3";
-        private const string T1_SWITCH_SW4 = "SW4";
+        private const string T1FuseGanged = "Is Tri Fuse";
+        private const string T1SwitchNumber = "Switch Number";
+        private const string T1SwitchRatedAmps = "Rated Current";
+        private const string T1SwitchMaxInterruptAmps = "Fault kA/sec";
+        private const string T1SwitchLoadBreakRating = "Load Break Rating";
+        private const string T1RmuSwitchSw1 = "SW 1";
+        private const string T1RmuSwitchSw2 = "SW 2";
+        private const string T1RmuSwitchSw3 = "SW 3";
+        private const string T1RmuSwitchSw4 = "SW4";
 
-        private const string T1_SWITCH_FUSE_RATED_VOLTAGE = "Rat#Volt-Do Fuse";
-        private const string T1_SWITCH_FUSE_OP_VOLTAGE = "Op#Volt-Do Fuse";
+        private const string T1FuseRatedVoltage = "Rat#Volt-Do Fuse";
+        //private const string T1FuseOperatingVoltage = "Op#Volt-Do Fuse";
 
-        private const string T1_SWITCH_HVCB_RATED_VOLTAGE = "Op#Volt-HV CircuitBr";
-        private const string T1_SWITCH_HVCB_OP_VOLTAGE = "Rat#Volt-HV Circuit";
+        private const string T1HvcbRatedVoltage = "Op#Volt-HV CircuitBr";
+        //private const string T1HvcbOperatingVoltage = "Rat#Volt-HV Circuit";
 
-        private const string T1_SWITCH_RMU_RATED_VOLTAGE = "Op#Volt-RMU";
-        private const string T1_SWITCH_RMU_OP_VOLTAGE = "Rate#Volt-RMU";
+        private const string T1RmuRatedVoltage = "Op#Volt-RMU";
+        //private const string T1RmuOperatingVoltage = "Rate#Volt-RMU";
 
-        private const string T1_SWITCH_DISCO_RATED_VOLTAGE = "Op#Volt-Disconnector";
-        private const string T1_SWITCH_DISCO_OP_VOLTAGE = "Rat#Volt-Disconnector";
+        private const string T1DisconnectorRatedVoltage = "Op#Volt-Disconnector";
+        //private const string T1DisconnectorOperatingVoltage = "Rat#Volt-Disconnector";
 
-        private const string IDF_SWITCH_BIDIRECTIONAL = "bidirectional";
-        private const string IDF_SWITCH_FORWARDTRIPAMPS = "forwardTripAmps";
-        private const string IDF_SWITCH_REVERSETRIPAMPS = "reverseTripAmps";
-        private const string IDF_SWITCH_GANGED = "ganged";
-        private const string IDF_SWITCH_LOADBREAKCAPABLE = "loadBreakCapable";
-        private const string IDF_SWITCH_MAXINTERRUPTAMPS = "maxInterruptAmps";
-        private const string IDF_SWITCH_RATEDAMPS = "ratedAmps";
-        private const string IDF_SWITCH_RATEDKV = "ratedKV";
-        private const string IDF_SWITCH_BASEKV = "baseKV";
-        private const string IDF_SWITCH_SWITCHTYPE = "switchType";
-        private const string IDF_SWITCH_NOMINALUPSTREAMSIDE = "nominalUpstreamSide";
+        private const string IdfSwitchBidirectional = "bidirectional";
+        private const string IdfSwitchForwardTripAmps = "forwardTripAmps";
+        private const string IdfSwitchReverseTripAmps = "reverseTripAmps";
+        private const string IdfSwitchGanged = "ganged";
+        private const string IdfSwitchLoadBreakCapable = "loadBreakCapable";
+        private const string IdfSwitchMaxInterruptAmps = "maxInterruptAmps";
+        private const string IdfSwitchRatedAmps = "ratedAmps";
+        private const string IdfSwitchRatedkV = "ratedKV";
+        private const string IdfSwitchBasekV = "baseKV";
+        private const string IdfSwitchType= "switchType";
+        private const string IdfSwitchNominalUpstreamSide = "nominalUpstreamSide";
 
-        private const string IDF_SWITCH_TYPE_FUSE = "Fuse";
-        private const string IDF_SWITCH_TYPE_BREAKER = "Breaker";
-        private const string IDF_SWITCH_TYPE_SWITCH = "Switch";
-        private const string IDF_SWITCH_TYPE_RECLOSER = "Recloser";
-        private const string IDF_SWITCH_TYPE_SECTIONALISER = "Sectionaliser";
+        private const string IdfSwitchTypeFuse = "Fuse";
+        private const string IdfSwitchTypeBreaker = "Breaker";
+        private const string IdfSwitchTypeSwitch = "Switch";
+        private const string IdfSwitchTypeRecloser = "Recloser";
+        private const string IdfSwitchTypeSectionaliser = "Sectionaliser";
+        private const string IdfSwitchFaultProtectionAttrs = "faultProtectionAttributes";
+        private const string AdmsSwitchForwardTripAmps = "ForwardTripAmps";
+        private const string AdmsSwitchReverseTripAmps = "ReverseTripAmps";
+        private const string AdmsSwitchRecloserEnabled = "Recloser";
+        private const string AdmsSwitchNominalUpstreamSide = "NominalUpstreamSide";
+        private const string AdmsSwitchNotifyUpstreamSide = "NotifyUpstreamSide";
+        private const string AdmsSwitchBlockFeederPropagation = "BlockFeederPropagation";
 
-        private const string ADMS_SWITCH_FORWARDTRIPAMPS = "forwardTripAmps";
-        private const string ADMS_SWITCH_REVERSETRIPAMPS = "reverseTripAmps";
-        private const string ADMS_SWITCH_RECLOSER_ENABLED = "Recloser";
-        private const string ADMS_SWITCH_NOMINALUPSTREAMSIDE = "NominalUpstreamSide";
-        private const string ADMS_SWITCH_NOTIFYUPSTREAMSIDE = "NotofyUpstreamSide";
+        private const string IdfSwitchScadaP1State = "p1State";
+        private const string IdfSwitchScadaP2State = "p2State";
+        private const string IdfSwitchScadaP3State = "p3State";
+        private const string IdfSwitchScadaS1P1Amps = "s1p1Amps";
+        private const string IdfSwitchScadaS1P2Amps = "s1p2Amps";
+        private const string IdfSwitchScadaS1P3Amps = "s1p3Amps";
+        private const string IdfSwitchScadaS2P1Amps = "s2p1Amps";
+        private const string IdfSwitchScadaS2P2Amps = "s2p2Amps";
+        private const string IdfSwitchScadaS2P3Amps = "s2p3Amps";
+        private const string IdfSwitchScadaS1Vref = "s1VoltageReference";
+        private const string IdfSwitchScadaS1Vtype = "s1VoltageType";
+        private const string IdfSwitchScadaS2Vref = "s2VoltageReference";
+        private const string IdfSwitchScadaS2Vtype = "s2VoltageType";
 
-        private const string IDF_SWITCH_SCADA_P1_STATE = "p1State";
-        private const string IDF_SWITCH_SCADA_P2_STATE = "p2State";
-        private const string IDF_SWITCH_SCADA_P3_STATE = "p3State";
-        private const string IDF_SWITCH_SCADA_S1_R_AMPS = "s1p1Amps";
-        private const string IDF_SWITCH_SCADA_S1_Y_AMPS = "s1p2Amps";
-        private const string IDF_SWITCH_SCADA_S1_B_AMPS = "s1p3Amps";
-        private const string IDF_SWITCH_SCADA_S2_R_AMPS = "s2p1Amps";
-        private const string IDF_SWITCH_SCADA_S2_Y_AMPS = "s2p2Amps";
-        private const string IDF_SWITCH_SCADA_S2_B_AMPS = "s2p3Amps";
-        private const string IDF_SWITCH_SCADA_S1_VREF = "s1VoltageReference";
-        private const string IDF_SWITCH_SCADA_S1_VTYPE = "s1VoltageType";
-        private const string IDF_SWITCH_SCADA_S2_VREF = "s2VoltageReference";
-        private const string IDF_SWITCH_SCADA_S2_VTYPE = "s2VoltageType";
+        private const string IdfSwitchScadaS1P1kV = "s1p1KV";
+        private const string IdfSwitchScadaS1P2kV = "s1p2KV";
+        private const string IdfSwitchScadaS1P3kV = "s1p3KV";
+        private const string IdfSwitchScadaS2P1kV = "s2p1KV";
+        private const string IdfSwitchScadaS2P2kV = "s2p2KV";
+        private const string IdfSwitchScadaS2P3kV = "s2p3KV";
 
-        private const string IDF_SWITCH_SCADA_S1_RY_VOLTS = "s1p1KV";
-        private const string IDF_SWITCH_SCADA_S1_YB_VOLTS = "s1p2KV";
-        private const string IDF_SWITCH_SCADA_S1_BR_VOLTS = "s1p3KV";
-        private const string IDF_SWITCH_SCADA_S2_RY_VOLTS = "s2p1KV";
-        private const string IDF_SWITCH_SCADA_S2_YB_VOLTS = "s2p2KV";
-        private const string IDF_SWITCH_SCADA_S2_BR_VOLTS = "s2p3KV";
-
-        private const double IDF_SCALE_GEOGRAPHIC = 2.0;
-        private const double IDF_SCALE_INTERNALS = 0.2;
-        private const double IDF_SWITCH_Z = double.NaN;
+        private const double IdfScaleGeographic = 2.0;
+        private const double IdfScaleInternals = 0.2;
+        private const double IdfSwitchZ = double.NaN;
         #endregion
      
         //temporary fields from GIS
-        //private string T1Id = "";
         private string _gisswitchtype = "";
         private string _fuserating = "";
         
@@ -120,9 +118,10 @@ namespace MainPower.Osi.Enricher
         private string _reverseTripAmps = "";
         private string _switchType = "";
         private string _nominalUpstreamSide = "";
+        private string _faultProtectionAttrs = "";
 
         //others
-        private string _symbol = SYMBOL_SWITCH;
+        private string _symbol = SymbolSwitch;
         private DataType _t1Asset = null;
         private DataType _admsAsset = null;
 
@@ -139,9 +138,9 @@ namespace MainPower.Osi.Enricher
                 T1Id = Node.Attribute(GisT1Asset)?.Value;
                 _gisswitchtype = Node.Attribute(GisSwitchType)?.Value ?? "";
                 _fuserating = Node.Attribute(GisFuseRating)?.Value;
-                _baseKv = Node.Attribute(IDF_SWITCH_BASEKV).Value;
+                _baseKv = Node.Attribute(IdfSwitchBasekV).Value;
                 //not sure this is required
-                _switchType = Node.Attribute(IDF_SWITCH_SWITCHTYPE).Value;
+                _switchType = Node.Attribute(IdfSwitchType).Value;
 
                 switch (_gisswitchtype)
                 {
@@ -171,7 +170,7 @@ namespace MainPower.Osi.Enricher
                         break;
                     case @"MV Isolator\Earth Switch":
                         //ProcessEarthSwitch();
-                        _symbol = SYMBOL_EARTH_SWITCH;
+                        _symbol = SymbolEarthSwitch;
                         break;
                     case @"MV Isolator\HV Fuse Switch":
                         ProcessRingMainFuseSwitch();
@@ -218,22 +217,24 @@ namespace MainPower.Osi.Enricher
                         break;
                 }
                 
-                Node.SetAttributeValue(IDF_SWITCH_BASEKV, _baseKv);
-                Node.SetAttributeValue(IDF_SWITCH_BIDIRECTIONAL, _bidirectional);
-                Node.SetAttributeValue(IDF_SWITCH_FORWARDTRIPAMPS, _forwardTripAmps);
-                Node.SetAttributeValue(IDF_SWITCH_GANGED, _ganged);
-                Node.SetAttributeValue(IDF_SWITCH_LOADBREAKCAPABLE, _loadBreakCapable);
-                Node.SetAttributeValue(IDF_SWITCH_MAXINTERRUPTAMPS, _maxInterruptAmps);
-                Node.SetAttributeValue(IDF_SWITCH_RATEDAMPS, _ratedAmps);
-                Node.SetAttributeValue(IDF_SWITCH_RATEDKV, _ratedKv);
-                Node.SetAttributeValue(IDF_SWITCH_REVERSETRIPAMPS, _reverseTripAmps);
-                Node.SetAttributeValue(IDF_SWITCH_SWITCHTYPE, _switchType);
+                Node.SetAttributeValue(IdfSwitchBasekV, _baseKv);
+                Node.SetAttributeValue(IdfSwitchBidirectional, _bidirectional);
+                Node.SetAttributeValue(IdfSwitchForwardTripAmps, _forwardTripAmps);
+                Node.SetAttributeValue(IdfSwitchGanged, _ganged);
+                Node.SetAttributeValue(IdfSwitchLoadBreakCapable, _loadBreakCapable);
+                Node.SetAttributeValue(IdfSwitchMaxInterruptAmps, _maxInterruptAmps);
+                Node.SetAttributeValue(IdfSwitchRatedAmps, _ratedAmps);
+                Node.SetAttributeValue(IdfSwitchRatedkV, _ratedKv);
+                Node.SetAttributeValue(IdfSwitchReverseTripAmps, _reverseTripAmps);
+                Node.SetAttributeValue(IdfSwitchType, _switchType);
 
                 if (!string.IsNullOrWhiteSpace(_nominalUpstreamSide))
-                    Node.SetAttributeValue(IDF_SWITCH_NOMINALUPSTREAMSIDE, _nominalUpstreamSide);
-                
-                //need to do this before the SCADA linking otherwise the datalink will be replaced
-                ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IDF_SCALE_GEOGRAPHIC, IDF_SCALE_INTERNALS);
+                    Node.SetAttributeValue(IdfSwitchNominalUpstreamSide, _nominalUpstreamSide);
+                if (!string.IsNullOrWhiteSpace(_faultProtectionAttrs))
+                    Node.SetAttributeValue(IdfSwitchFaultProtectionAttrs, _faultProtectionAttrs);
+
+                    //need to do this before the SCADA linking otherwise the datalink will be replaced
+                    ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IdfScaleGeographic, IdfScaleInternals);
 
                 //TODO tidy this up
                 var scada = GenerateScadaLinking();
@@ -244,8 +245,9 @@ namespace MainPower.Osi.Enricher
                     ParentGroup.AddDatalinkToText(Id);
                     ParentGroup.AddScadaDatalink(Id, scada.Item1);
                 }
-                if (_baseKv != "0.4")
-                    GenerateDeviceInfo();
+                List<KeyValuePair<string, string>> items = new List<KeyValuePair<string, string>>();
+                items.Add(new KeyValuePair<string, string>("GIS Switch Type", _gisswitchtype.Length > 39 ? _gisswitchtype.Substring(0,39): _gisswitchtype));
+                GenerateDeviceInfo(items);
                 RemoveExtraAttributes();
 
                 Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, geo.geometry, geo.internals);
@@ -265,8 +267,6 @@ namespace MainPower.Osi.Enricher
 
         private (string,XElement) GenerateScadaLinking()
         {
-            //if (Name == "P45")
-            //    Debugger.Break();
             bool hasVolts = false;
 
             var status = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
@@ -550,24 +550,23 @@ namespace MainPower.Osi.Enricher
             _bidirectional = IdfTrue;
             _ganged = IdfTrue;
             _loadBreakCapable = IdfTrue;
-            _switchType = IDF_SWITCH_TYPE_SWITCH; //TODO
+            _switchType = IdfSwitchTypeSwitch; //TODO
 
-            DataType asset = null;
-            if (T1Id == "")
+            if (string.IsNullOrWhiteSpace(T1Id))
             {
                 Warn($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
+                _t1Asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
 
-                if (asset != null)
+                if (_t1Asset != null)
                 {
                     //TODO: validate  operating voltage
-                    _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
-                    _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SW1] as string, asset[T1_SWITCH_SW2] as string, asset[T1_SWITCH_SW3] as string, asset[T1_SWITCH_SW4] as string);
+                    _ratedAmps = ValidatedRatedAmps(_t1Asset[T1SwitchRatedAmps]);
+                    _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1SwitchMaxInterruptAmps]);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1RmuRatedVoltage]);
+                    ValidateSwitchNumber(_t1Asset[T1RmuSwitchSw1], _t1Asset[T1RmuSwitchSw2], _t1Asset[T1RmuSwitchSw3], _t1Asset[T1RmuSwitchSw4]);
                 }
                 else
                 {
@@ -577,7 +576,7 @@ namespace MainPower.Osi.Enricher
             }
 
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
-            SetSymbol(p, SYMBOL_HVFUSESWITCH, SYMBOL_HVFUSESWITCH_QUAD);
+            SetSymbol(p, SymbolHVFuseSwitch, SymbolHVFuseSwitchQuad);
         }
 
         private void ProcessRingMainSwitch()
@@ -585,24 +584,23 @@ namespace MainPower.Osi.Enricher
             _bidirectional = IdfTrue;
             _ganged = IdfTrue;
             _loadBreakCapable = IdfTrue;
-            _switchType = IDF_SWITCH_TYPE_SWITCH;
+            _switchType = IdfSwitchTypeSwitch;
             
-            DataType asset = null;
-            if (T1Id == "")
+            if (string.IsNullOrWhiteSpace(T1Id))
             {
                 Warn($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
+                _t1Asset = DataManager.I.RequestRecordById<T1RingMainUnit>(T1Id);
 
-                if (asset != null)
+                if (_t1Asset != null)
                 {
                     //TODO: validate operating voltage
-                    _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
+                    _ratedAmps = ValidatedRatedAmps(_t1Asset[T1SwitchRatedAmps]);
                     //_maxInterruptAmps = "";
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SW1] as string, asset[T1_SWITCH_SW2] as string, asset[T1_SWITCH_SW3] as string, asset[T1_SWITCH_SW4] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1RmuRatedVoltage]);
+                    ValidateSwitchNumber(_t1Asset[T1RmuSwitchSw1], _t1Asset[T1RmuSwitchSw2], _t1Asset[T1RmuSwitchSw3], _t1Asset[T1RmuSwitchSw4]);
                 }
                 else
                 {
@@ -611,7 +609,7 @@ namespace MainPower.Osi.Enricher
 
             }
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
-            SetSymbol(p, SYMBOL_SWITCH, SYMBOL_SWITCH_QUAD);
+            SetSymbol(p, SymbolSwitch, SymbolSwitchQuad);
         }
 
         private void ProcessLVSwitch()
@@ -626,8 +624,8 @@ namespace MainPower.Osi.Enricher
             //_ratedAmps = "";
             //_ratedKv = "";
             //_reverseTripAmps = "";
-            _switchType = IDF_SWITCH_TYPE_SWITCH;
-            _symbol = SYMBOL_LVSWITCH;
+            _switchType = IdfSwitchTypeSwitch;
+            _symbol = SymbolLVSwitch;
         }
 
         private void ProcessLVFuse()
@@ -642,8 +640,8 @@ namespace MainPower.Osi.Enricher
             //_ratedAmps = "";
             //_ratedKv = "";
             //_reverseTripAmps = "";
-            _switchType = IDF_SWITCH_TYPE_FUSE;
-            _symbol = SYMBOL_LVFUSE;
+            _switchType = IdfSwitchTypeFuse;
+            _symbol = SymbolLVFuse;
         }
 
         private void ProcessFuseSaver()
@@ -662,23 +660,22 @@ namespace MainPower.Osi.Enricher
 
             //ProcessCircuitBreakerAdms();
 
-            _switchType = IDF_SWITCH_TYPE_RECLOSER;
-            DataType asset = null;
-            if (T1Id == "")
+            _switchType = IdfSwitchTypeRecloser;
+            if (string.IsNullOrWhiteSpace(T1Id))
             {
                 Warn($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
+                _t1Asset = DataManager.I.RequestRecordById<T1HvCircuitBreaker>(T1Id);
 
-                if (asset != null)
+                if (_t1Asset != null)
                 {
                     //TODO: validate rated voltage
-                    _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
-                    _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_HVCB_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
+                    _ratedAmps = ValidatedRatedAmps(_t1Asset[T1SwitchRatedAmps]);
+                    _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1SwitchMaxInterruptAmps]);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1HvcbRatedVoltage]);
+                    ValidateSwitchNumber(_t1Asset[T1SwitchNumber]);
                 }
                 else
                 {
@@ -686,7 +683,7 @@ namespace MainPower.Osi.Enricher
                 }
 
             }
-            _symbol = SYMBOL_FUSESAVER;
+            _symbol = SymbolFuseSaver;
         }
 
         private void ProcessEntec()
@@ -694,26 +691,25 @@ namespace MainPower.Osi.Enricher
             //_bidirectional //TODO
             //TODO: need to get sectionliser function from AdmsDatabase
             _ganged = IdfTrue;
-            _switchType = IDF_SWITCH_TYPE_SWITCH;
+            _switchType = IdfSwitchTypeSwitch;
 
-            DataType asset = null;
-            if (T1Id == "")
+            if (string.IsNullOrWhiteSpace(T1Id))
             {
                 Warn($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Disconnector>(T1Id);
+                _t1Asset = DataManager.I.RequestRecordById<T1Disconnector>(T1Id);
 
-                if (asset != null)
+                if (_t1Asset != null)
                 {
                     //TODO: validate op voltage
-                    _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
-                    _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
+                    _ratedAmps = ValidatedRatedAmps(_t1Asset[T1SwitchRatedAmps]);
+                    _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1SwitchMaxInterruptAmps]);
                     //TODO
                     //_loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_DISCO_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1DisconnectorRatedVoltage]);
+                    ValidateSwitchNumber(_t1Asset[T1SwitchNumber]);
                 }
                 else
                 {
@@ -722,7 +718,7 @@ namespace MainPower.Osi.Enricher
 
             }
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
-            SetSymbol(p, SYMBOL_ENTEC, SYMBOL_ENTEC_QUAD);
+            SetSymbol(p, SymbolEntec, SymbolEntecQuad);
         }
 
         private void ProcessHVLinks()
@@ -731,56 +727,53 @@ namespace MainPower.Osi.Enricher
             //TODO
             //_loadBreakCapable = IDF_FALSE;//TODO
             _ratedAmps = "300";//confirmed by robert
-            _switchType = IDF_SWITCH_TYPE_SWITCH;
+            _switchType = IdfSwitchTypeSwitch;
 
-            DataType asset = null;
-            if (T1Id == "")
+            if (string.IsNullOrWhiteSpace(T1Id))
             {
                 Warn($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Fuse>(T1Id);
+                _t1Asset = DataManager.I.RequestRecordById<T1Fuse>(T1Id);
 
-                if (asset == null)
+                if (_t1Asset == null)
                 {
                     Warn($"T1 asset number [{T1Id}] wasn't in T1");
                 }
                 else
                 {
-                    //TODO: validate op voltage
                     //TODO: rated voltage always null here
-                    ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
-                    ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_FUSE_RATED_VOLTAGE] as string);
+                    ValidateSwitchNumber(_t1Asset[T1SwitchNumber]);
+                    ValidateRatedVoltage(_baseKv, _t1Asset[T1FuseRatedVoltage]);
                 }
             }
             
-            _symbol = SYMBOL_LINKS;
+            _symbol = SymbolLinks;
         }
 
         private void ProcessDisconnector()
         {
             _ganged = IdfTrue;          
-            _switchType = IDF_SWITCH_TYPE_SWITCH;
+            _switchType = IdfSwitchTypeSwitch;
 
-            DataType asset = null;
-            if (T1Id == "")
+            if (string.IsNullOrWhiteSpace(T1Id))
             {
                 Warn($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Disconnector>(T1Id);
+                _t1Asset = DataManager.I.RequestRecordById<T1Disconnector>(T1Id);
 
-                if (asset != null)
+                if (_t1Asset != null)
                 {
                     //TODO: validate rated voltage
-                    _ratedAmps = ValidatedRatedAmps(asset[T1_SWITCH_RATED_AMPS] as string);
-                    _maxInterruptAmps = ValidateMaxInterruptAmps(asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
+                    _ratedAmps = ValidatedRatedAmps(_t1Asset[T1SwitchRatedAmps]);
+                    _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1SwitchMaxInterruptAmps]);
                     //TODO
                     //_loadBreakCapable = ValidateLoadBreakRating(asset[T1_SWITCH_LOAD_BREAK_RATING] as string) == "" ? IDF_FALSE : IDF_TRUE;
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_DISCO_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1DisconnectorRatedVoltage]);
+                    ValidateSwitchNumber(_t1Asset[T1SwitchNumber]);
                 }
                 else
                 {
@@ -797,7 +790,7 @@ namespace MainPower.Osi.Enricher
             }
             
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
-            SetSymbol(p, SYMBOL_DISCONNECTOR, SYMBOL_DISCONNECTOR_QUAD);
+            SetSymbol(p, SymbolDisconnector, SymbolDisconnectorQuad);
         }
         private void ProcessCircuitBreaker()
         {
@@ -834,7 +827,7 @@ namespace MainPower.Osi.Enricher
             ProcessCircuitBreakerAdms();
 
             var p = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, Name);
-            SetSymbol(p, SYMBOL_CIRCUITBREAKER, SYMBOL_CIRCUITBREAKER_QUAD);
+            SetSymbol(p, SymbolCircuitBreaker, SymbolCircuitBreakerQuad);
         }
 
         private void ProcessT1CircuitBreaker()
@@ -843,10 +836,10 @@ namespace MainPower.Osi.Enricher
             if (_t1Asset != null)
             {
                 //TODO: validate op voltage
-                _ratedAmps = ValidatedRatedAmps(_t1Asset[T1_SWITCH_RATED_AMPS] as string);
-                _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1_SWITCH_HVCB_RATED_VOLTAGE] as string);
-                ValidateSwitchNumber(_t1Asset[T1_SWITCH_SWNUMBER] as string);
+                _ratedAmps = ValidatedRatedAmps(_t1Asset[T1SwitchRatedAmps]);
+                _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1SwitchMaxInterruptAmps]);
+                _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1HvcbRatedVoltage]);
+                ValidateSwitchNumber(_t1Asset[T1SwitchNumber]);
             }
         }
         private void ProcessT1RingMainCb()
@@ -854,30 +847,31 @@ namespace MainPower.Osi.Enricher
             if (_t1Asset != null)
             {
                 //TODO: validate operating voltage
-                _ratedAmps = ValidatedRatedAmps(_t1Asset[T1_SWITCH_RATED_AMPS] as string, true);
-                _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1_SWITCH_MAX_INTERRUPT_AMPS] as string);
-                _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1_SWITCH_RMU_RATED_VOLTAGE] as string);
-                ValidateSwitchNumber(_t1Asset[T1_SWITCH_SW1] as string, _t1Asset[T1_SWITCH_SW2] as string, _t1Asset[T1_SWITCH_SW3] as string, _t1Asset[T1_SWITCH_SW4] as string);
+                _ratedAmps = ValidatedRatedAmps(_t1Asset[T1SwitchRatedAmps], true);
+                _maxInterruptAmps = ValidateMaxInterruptAmps(_t1Asset[T1SwitchMaxInterruptAmps]);
+                _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1RmuRatedVoltage]);
+                ValidateSwitchNumber(_t1Asset[T1RmuSwitchSw1], _t1Asset[T1RmuSwitchSw2], _t1Asset[T1RmuSwitchSw3], _t1Asset[T1RmuSwitchSw4]);
             }
         }
         private void ProcessCircuitBreakerAdms()
         {
             if (DataManager.I.RequestRecordById<AdmsSwitch>(Name) is DataType asset)
             {
+                _admsAsset = asset;
                 //TODO: RMU circuit breakers are generally not in the protection database... they use generic settings based on tx size.
                 //how are we going to handle these?
                 //TODO: validation on these?
-                //if (_name == "P45")
-                //    Debugger.Break();
-                _nominalUpstreamSide = asset[ADMS_SWITCH_NOMINALUPSTREAMSIDE];
-                _forwardTripAmps = asset[ADMS_SWITCH_FORWARDTRIPAMPS];
-                _reverseTripAmps = asset[ADMS_SWITCH_REVERSETRIPAMPS];
-                _switchType = asset[ADMS_SWITCH_RECLOSER_ENABLED] as string == "Y" ? IDF_SWITCH_TYPE_RECLOSER : IDF_SWITCH_TYPE_BREAKER;
+                _nominalUpstreamSide = asset[AdmsSwitchNominalUpstreamSide];
+                _forwardTripAmps = asset[AdmsSwitchForwardTripAmps];
+                _reverseTripAmps = asset[AdmsSwitchReverseTripAmps];
+                _switchType = asset[AdmsSwitchRecloserEnabled] == "Y" ? IdfSwitchTypeRecloser : IdfSwitchTypeBreaker;
+                _faultProtectionAttrs = "faultprotectionattributes_default";
             }
             else
             {
+                //all HV CBs should be in the ADMS db
                 Warn("Breaker not in Adms database");
-                _switchType = IDF_SWITCH_TYPE_BREAKER;
+                _switchType = IdfSwitchTypeBreaker;
             }
         }
         private void ProcessHVFuse()
@@ -889,27 +883,26 @@ namespace MainPower.Osi.Enricher
             //_loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "10000";//TODO check with sjw
             _ratedAmps = _forwardTripAmps == "" ? "" : (int.Parse(_forwardTripAmps) / 2).ToString();
-            _switchType = IDF_SWITCH_TYPE_FUSE;
+            _switchType = IdfSwitchTypeFuse;
 
-            DataType asset = null;
             if (T1Id == "")
             {
                 Warn($"No T1 asset number assigned");
             }
             else
             {
-                asset = DataManager.I.RequestRecordById<T1Fuse>(T1Id);
+                _t1Asset = DataManager.I.RequestRecordById<T1Fuse>(T1Id);
 
-                if (asset != null)
+                if (_t1Asset != null)
                 {
-                    if (asset[T1_FUSE_GANGED] as string == "2")
+                    if (_t1Asset[T1FuseGanged] == "2")
                     {
                         _ganged = IdfTrue;
                     }
                     //TODO: fuse not have rated voltage?
                     //TODO: validate op voltage
-                    _ratedKv = ValidateRatedVoltage(_baseKv, asset[T1_SWITCH_FUSE_RATED_VOLTAGE] as string);
-                    ValidateSwitchNumber(asset[T1_SWITCH_SWNUMBER] as string);
+                    _ratedKv = ValidateRatedVoltage(_baseKv, _t1Asset[T1FuseRatedVoltage]);
+                    ValidateSwitchNumber(_t1Asset[T1SwitchNumber]);
                 }
                 else
                 {
@@ -917,7 +910,7 @@ namespace MainPower.Osi.Enricher
                 }
             }
             
-         _symbol = SYMBOL_FUSE;
+         _symbol = SymbolFuse;
         }
         private void ProcessServiceFuse()
         {
@@ -930,7 +923,7 @@ namespace MainPower.Osi.Enricher
             _ratedAmps = "";//TODO?
             _switchType = "Fuse";
             _ratedKv = ValidateRatedVoltage(_baseKv, _baseKv, 1);
-            _symbol = SYMBOL_SERVICE_FUSE;
+            _symbol = SymbolServiceFuse;
         }
 #endregion
 

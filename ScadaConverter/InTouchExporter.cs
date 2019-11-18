@@ -871,10 +871,10 @@ namespace MainPower.Osi.ScadaConverter
                             if (onlabel1 == "On" || onlabel1 == "Close")
                             {
                                 _log.Info($"Combining duplicate dnp controls on points {point1} and {point2}");
-                                dt.Rows[row1]["DnpControlOffCode"] = offcode2;
+                                dt.Rows[row1]["DnpControlOffCode"] = oncode2;
                                 dt.Rows[row1]["OffLabel"] = offlabel2;
                                 dt.Rows[row1]["PointName2"] += " (Comb.)";
-                                dt.Rows[row1]["ItemName"] = address;
+                                //dt.Rows[row1]["ItemName"] = address;
                                 dt.Rows.RemoveAt(i);
                                 i--;
                             }
@@ -884,7 +884,7 @@ namespace MainPower.Osi.ScadaConverter
                                 dt.Rows[row1]["DnpControlOnCode"] = oncode2;
                                 dt.Rows[row1]["OnLabel"] = onlabel2;
                                 dt.Rows[row1]["PointName2"] += " (Comb.)";
-                                dt.Rows[row1]["ItemName"] = address;
+                                //dt.Rows[row1]["ItemName"] = address;
                                 dt.Rows.RemoveAt(i);
                                 i--;
                             }

@@ -217,24 +217,33 @@ namespace MainPower.Osi.Enricher
                     InitializeFailIsFatal = true
                 };
                 Datasets.Add(nameof(OsiScadaSetpoint), source);
-
-                source = new CsvDataSource()
+                source = new SqliteSource()
                 {
+                    ConnectionString = @$"Data Source={Path.Combine(Enricher.I.Options.DataPath, "adms.db")};Version=3;",
+                    Table = "Switch",
                     Name = "AdmsSwitch",
-                    FileName = "AdmsSwitch.csv",
-                    IndexColumn = "Switch Number",
+                    IndexColumn = "SwitchNumber",
                     InitializeFailIsFatal = true
                 };
                 Datasets.Add(nameof(AdmsSwitch), source);
-
-                source = new CsvDataSource()
+                source = new SqliteSource()
                 {
+                    ConnectionString = @$"Data Source={Path.Combine(Enricher.I.Options.DataPath, "adms.db")};Version=3;",
+                    Table = "Transformer",
                     Name = "AdmsTransformer",
-                    FileName = "AdmsTransformer.csv",
-                    IndexColumn = "Asset Number",
+                    IndexColumn = "AssetNumber",
                     InitializeFailIsFatal = true
                 };
                 Datasets.Add(nameof(AdmsTransformer), source);
+                source = new SqliteSource()
+                {
+                    ConnectionString = @$"Data Source={Path.Combine(Enricher.I.Options.DataPath, "adms.db")};Version=3;",
+                    Table = "Source",
+                    Name = "AdmsSource",
+                    IndexColumn = "Name",
+                    InitializeFailIsFatal = true
+                };
+                Datasets.Add(nameof(AdmsSource), source);
 
                 source = new CsvDataSource()
                 {

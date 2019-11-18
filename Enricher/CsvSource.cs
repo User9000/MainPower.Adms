@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Data;
+using System.Data.SQLite;
 using System.IO;
 
 namespace MainPower.Osi.Enricher
 {
-    public class CsvDataSource : DataSource
+    public class CsvDataSource : TableDataSource
     {
-        private DataTable Data;
-
         public string FileName { get; set; }
 
-        public string IndexColumn { get; set; }
-
-        protected override bool OnInitialize() 
+        protected override bool OnInitialize()
         {
             try
             {
@@ -34,6 +31,30 @@ namespace MainPower.Osi.Enricher
                 return false;
             }
         }
+
+        public override bool Save<T>()
+        {
+            try
+            {
+                Data.AcceptChanges();
+                Util.ExportDatatable(Data, Path.Combine(Enricher.I.Options.DataPath, FileName));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Err(ex.Message);
+                return false;
+            }
+
+
+        }
+    }
+
+    public abstract class TableDataSource : DataSource
+    {
+        protected DataTable Data;
+
+        public string IndexColumn { get; set; }
 
         public override T RequestRecord<T>(string id)
         {
@@ -104,40 +125,38 @@ namespace MainPower.Osi.Enricher
 
         }
 
+    }
+    public class SqliteSource : TableDataSource
+    {
+        public string ConnectionString { get; set; }
+        public string Table { get; set; }
+
         public override bool Save<T>()
+        {
+            //TODO implement this
+            //throw new NotImplementedException();
+            return true;
+        }
+
+        protected override bool OnInitialize()
         {
             try
             {
-                Data.AcceptChanges();
-                Util.ExportDatatable(Data, Path.Combine(Enricher.I.Options.DataPath, FileName));
+                SQLiteConnection con = new SQLiteConnection(ConnectionString);
+                con.Open();
+                SQLiteCommand cmd = con.CreateCommand();
+                cmd.CommandText = $"SELECT * FROM {Table}";
+                SQLiteDataAdapter adapter = new SQLiteDataAdapter(cmd);
+                Data = new DataTable();
+                adapter.Fill(Data);
+                con.Close();
                 return true;
             }
             catch (Exception ex)
             {
-                Err(ex.Message);
+                Fatal(ex.Message);
                 return false;
             }
-
-
         }
     }
-    /*
-    public class SqlSource : DataSource
-    {
-
-    }
-    public class SqliteSource : DataSource
-    {
-
-    }
-    public class OsiDatabaseSource : DataSource
-    {
-
-    }
-    public class MsSqlSource : DataSource
-    {
-
-
-    }
-    */
 }

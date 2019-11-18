@@ -74,10 +74,16 @@ namespace MainPower.Osi.Enricher
     {
 
     }
+    public class AdmsSwitch2 : DataType
+    {
+
+    }
     public class AdmsTransformer : DataType
     {
 
     }
+
+    public class AdmsSource : DataType { }
     public class Icp : DataType
     {
 

@@ -6,7 +6,7 @@ using System.Xml.Linq;
 namespace MainPower.Osi.Enricher
 {
     /// <summary>
-    /// 
+    /// TODO: subclass IdfDevice to remove all the extra stuff that isn't relevant to groups etc
     /// </summary>
     abstract public class IdfElement : ErrorReporter
     {
@@ -29,6 +29,17 @@ namespace MainPower.Osi.Enricher
         /// The IDF name
         /// </summary>
         public string Name { get; protected set; }
+
+        /// <summary>
+        /// The Node1 Id
+        /// </summary>
+        public string Node1Id { get; private set; }
+
+        /// <summary>
+        /// The Node2 Id
+        /// </summary>
+        public string Node2Id { get; private set; }
+
 
         /// <summary>
         /// The Tech1 asset number
@@ -88,6 +99,8 @@ namespace MainPower.Osi.Enricher
             Id = node.Attribute(IdfElementId).Value;
             Name = node.Attribute(IdfElementName).Value;
             T1Id = Node.Attribute(GisT1Asset)?.Value;
+            Node1Id = Node.Attribute(IdfDeviceS1Node)?.Value ?? "";
+            Node2Id = Node.Attribute(IdfDeviceS1Node)?.Value ?? "";
 
             if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId1)?.Value)) S1Phases++;
             if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId2)?.Value)) S1Phases++;
