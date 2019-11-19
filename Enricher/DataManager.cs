@@ -73,10 +73,10 @@ namespace MainPower.Osi.Enricher
         /// <param name="id">The id of the record</param>
         /// <param name="exact">Match the id exactly, or use 'like'</param>
         /// <returns>A record of type T if the record was found, or null</returns>
-        public T RequestRecordByColumn<T>(string column, string id, bool exact = false) where T : DataType, new()
+        public T RequestRecordByColumn<T>(string column, string id, SearchMode searchMode = SearchMode.Exact) where T : DataType, new()
         {
             if (Datasets.ContainsKey(typeof(T).Name))
-                return Datasets[typeof(T).Name].RequestRecord<T>(column, id, exact);
+                return Datasets[typeof(T).Name].RequestRecord<T>(column, id, searchMode);
             else
                 return null;
 

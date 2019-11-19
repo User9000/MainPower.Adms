@@ -49,6 +49,13 @@ namespace MainPower.Osi.Enricher
 
         }
     }
+    public enum SearchMode
+    {
+        Exact,
+        Contains,
+        StartsWith,
+        EndsWith
+    }
 
     public abstract class TableDataSource : DataSource
     {
@@ -58,31 +65,39 @@ namespace MainPower.Osi.Enricher
 
         public override T RequestRecord<T>(string id)
         {
-            return RequestRecord<T>(IndexColumn, id, true);
+            return RequestRecord<T>(IndexColumn, id);
         }
 
-        public override T RequestRecord<T>(string columnName, string id, bool exact)
+        public override T RequestRecord<T>(string columnName, string id, SearchMode searchMode = SearchMode.Exact)
         {
             try
             {
                 //TODO: have a bunch of match types               
                 var s = Data.Columns[columnName].DataType == typeof(string) ? "'" : "";
                 //only string searches can be not exact
-                if (s == "" && !exact)
+                if (s == "" && searchMode != SearchMode.Exact)
                 {
-                    Warn("Can't have a non-exact non-string match");
-                    return null;
+                    Warn("Search mode for non string data must be SearchMode.Exact");
+                    searchMode = SearchMode.Exact;
                 }
 
                 DataRow[] result;
-                if (exact)
+                switch (searchMode)
                 {
-                    result = Data.Select($"[{columnName}] = {s}{id}{s}");
+                    case SearchMode.Exact:
+                        result = Data.Select($"[{columnName}] = {s}{id}{s}");
+                        break;
+                    case SearchMode.EndsWith:
+                        result = Data.Select($"[{columnName}] LIKE '*{id}'");
+                        break;
+                    case SearchMode.StartsWith:
+                        throw new NotImplementedException();
+                    case SearchMode.Contains:
+                        throw new NotImplementedException();
+                    default:
+                        throw new NotImplementedException();
                 }
-                else
-                {
-                    result = Data.Select($"[{columnName}] LIKE '* {id}'");
-                }
+
                 if (result.Length == 0)
                 {
                     Debug($"Record Not found with {columnName}:{id}");

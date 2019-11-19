@@ -153,7 +153,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        public void CreateDataLinkSymbol(string id)
+        public void CreateDataLinkSymbol(string id, SymbolPlacement position = SymbolPlacement.Left)
         {
             foreach (var group in _displayGroups)
             {
@@ -164,8 +164,25 @@ namespace MainPower.Osi.Enricher
                 {
                     var parent = dataLink.Parent;
 
-                    double x = double.Parse(parent.Attribute("x").Value) - 1;
+                    double x = double.Parse(parent.Attribute("x").Value);
                     double y = double.Parse(parent.Attribute("y").Value);
+
+                    switch (position) 
+                    {
+                        case SymbolPlacement.Top:
+                            y -= 1;
+                            break;
+                        case SymbolPlacement.Bottom:
+                            y += 1;
+                            break;
+                        case SymbolPlacement.Left:
+                            x -= 1;
+                            break;
+                        case SymbolPlacement.Right:
+                            x += 1;
+                            break;
+                    }
+
 
                     XElement symbol = new XElement("element");
                     symbol.Add(new XAttribute("id", parent.Attribute("id").Value + "_dlink"));
@@ -439,7 +456,7 @@ namespace MainPower.Osi.Enricher
             return (false, points);
         }
 
-        private Point TranslatePoint(Point p)
+        public static Point TranslatePoint(Point p)
         {
             p.X -= 250000;
             p.Y -= 250000;
@@ -484,37 +501,6 @@ namespace MainPower.Osi.Enricher
             }
         }
 
-        public void AddDatalinkToText(string id)
-        {
-            try
-            {
-                foreach (var group in _displayGroups.Values)
-                {
-                    var symbols = group.Descendants("element").Where(x => x.Attribute("type")?.Value == "Text" && x.Attribute("id").Value == $"d_t_{id}");
-                    foreach (var symbol in symbols.ToList())
-                    {
-                        if (!symbol.Descendants("dataLink").Any())
-                        {
-                            XElement x = new XElement("dataLink",
-                                new XAttribute("id", id),
-                                new XElement("link",
-                                    new XAttribute("d", "EMAP"),
-                                    new XAttribute("f", "AggregateState"),
-                                    new XAttribute("i", "0"),
-                                    new XAttribute("identityType", "Key"),
-                                    new XAttribute("o", "EMAP_DEVICE")
-                                )
-                            );
-                            symbol.Add(x);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Fatal($"Uncaught exception: {ex.Message}");
-            }
-        }
     }
 }
 

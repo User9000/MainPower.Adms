@@ -25,6 +25,17 @@ namespace MainPower.Osi.Enricher
 
         static int Main(string[] args)
         {
+            /*
+            Point tl = new Point { X = 0, Y = 0 };
+            Point br = new Point { X = 500000, Y = 500000 };
+            Point tl2 = IdfGroup.TranslatePoint(tl);
+            Point br2 = IdfGroup.TranslatePoint(br);
+
+            Console.WriteLine($"{tl2.X} {tl2.Y} {br2.X} {br2.Y}");
+            Console.ReadKey();
+            return 0;
+            */
+
             Console.BufferWidth = 320;
             
             int retCode = 3;

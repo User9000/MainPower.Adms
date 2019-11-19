@@ -13,12 +13,14 @@ using System.Text;
 
 namespace MainPower.Osi.Enricher
 {
-    public enum MatchMode
+    public enum SymbolPlacement 
     {
-        Exact,
-        Like,
-        WholeWord
+        Top,
+        Bottom,
+        Left, 
+        Right
     }
+
 
     public static class Util
     {

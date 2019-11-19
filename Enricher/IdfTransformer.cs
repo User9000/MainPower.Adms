@@ -633,7 +633,7 @@ namespace MainPower.Osi.Enricher
 
         private void GenerateScadaLinking(string scadaId)
         {
-            var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Tap Position", true);
+            var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Tap Position");
 
             //if we don't have the tap position, then assume we don't have any other telemtry either
             //TODO this assumption needs to be documented
@@ -646,7 +646,7 @@ namespace MainPower.Osi.Enricher
             x.SetAttributeValue("tapPosition", tap.Key);
 
             //this is actually auto/manual not remote/local
-            var remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} AVR Control Mode", true);
+            var remote = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} AVR Control Mode");
             if (remote != null)
             {
                 x.SetAttributeValue("remoteLocalPoint", remote.Key);
@@ -657,7 +657,7 @@ namespace MainPower.Osi.Enricher
                 x.SetAttributeValue("remoteLocalPoint", "");
             }
 
-            var setpoint = DataManager.I.RequestRecordByColumn<OsiScadaSetpoint>(ScadaName, $"{scadaId} AVR SP1 Value", true);
+            var setpoint = DataManager.I.RequestRecordByColumn<OsiScadaSetpoint>(ScadaName, $"{scadaId} AVR SP1 Value");
             if (setpoint != null)
                 x.SetAttributeValue("controlPoint", setpoint.Key);
 
