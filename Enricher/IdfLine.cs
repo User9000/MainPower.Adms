@@ -46,19 +46,20 @@ namespace MainPower.Osi.Enricher
                 string lineType = LINE_BUSBAR;
                 string phase_conductor = Node.Attribute(GIS_PHASE_CONDUCTOR)?.Value ?? "";
                 string neutral_conductor = Node.Attribute(GIS_NEUTRAL_CONDUCTOR)?.Value ?? "";
+                
 
                 //TODO: this should be determined by conductor type
                 string voltage = Node.Attribute(IdfDeviceBasekV).Value;
                 switch (voltage) 
                 {
                     case "66":
-                        Node.SetAttributeValue("ratedKV", "70");
+                        //Node.SetAttributeValue("ratedKV", "70");
                         ParentGroup.AddColorToLine(Id, Color.DarkBlue);
                         ParentGroup.SetLineWidth(Id, 6);
                         if (!isBusbar) lineType = "lineType_66kV_default";
                         break;
                     case "33":
-                        Node.SetAttributeValue("ratedKV", "40");
+                        //Node.SetAttributeValue("ratedKV", "40");
                         ParentGroup.AddColorToLine(Id, Color.DarkGreen);
                         ParentGroup.SetLineWidth(Id, 6);
                         if (!isBusbar) lineType = "lineType_33kV_default";
@@ -70,20 +71,20 @@ namespace MainPower.Osi.Enricher
                         if (!isBusbar) lineType = "lineType_22kV_default";
                         break;
                     case "11":
-                        Node.SetAttributeValue("ratedKV", "15");
+                        //Node.SetAttributeValue("ratedKV", "15");
                         ParentGroup.AddColorToLine(Id, Color.Red);
                         ParentGroup.SetLineWidth(Id, 3);
                         if (!isBusbar) lineType = "lineType_11kV_default";
                         break;
                     case "6.6":
-                        Node.SetAttributeValue("ratedKV", "11");
+                        //Node.SetAttributeValue("ratedKV", "11");
                         ParentGroup.AddColorToLine(Id, Color.Turquoise);
                         ParentGroup.SetLineWidth(Id, 3);
                         if (!isBusbar) lineType = "lineType_6.6kV_default";
                         break;
                     case "0.4":
                     case "0.4000":
-                        Node.SetAttributeValue("ratedKV", "1");
+                        //Node.SetAttributeValue("ratedKV", "1");
                         ParentGroup.AddColorToLine(Id, Color.Yellow);
                         if (Name.StartsWith("Service"))
                         {
@@ -97,16 +98,22 @@ namespace MainPower.Osi.Enricher
                         if (!isBusbar) lineType = "lineType_400V_default";
                         break;
                     default:
-                        Node.SetAttributeValue("ratedKV", "100");
+                        //Node.SetAttributeValue("ratedKV", "100");
                         ParentGroup.AddColorToLine(Id, Color.Purple);
                         break;
                 }
+
+                Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
 
                 if (!double.TryParse(Node.Attribute("length")?.Value ?? "", out double length))
                 {
                     length = 0;
                 }
 
+                if (!isBusbar && length <= 25)
+                    Enricher.I.Line25Count++;
+                if (!isBusbar && length <= 5)
+                    Enricher.I.Line5Count++;
 
                 var conductor = (voltage, S1Phases, lineType, Node.Attribute(GIS_PHASE_CONDUCTOR)?.Value, Node.Attribute(GIS_NEUTRAL_CONDUCTOR)?.Value, Name.StartsWith("Service"));
                 //HashSet not thread safe
@@ -143,8 +150,6 @@ namespace MainPower.Osi.Enricher
             {
                 Fatal($"Uncaught exception: {ex.Message}");
             }
-
-            
         }
 
         public static void ExportConductors()

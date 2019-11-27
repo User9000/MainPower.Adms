@@ -1,0 +1,17 @@
+﻿<Window x:Class="CoordinateConverter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CoordinateConverter"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="240" Width="595">
+    <Grid>
+        <TextBox x:Name="txtlat1" Text="-42" TextWrapping="Wrap" Margin="10,5,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtlon1" Text="172" TextWrapping="Wrap" Margin="215,5,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtlat2" Text="" TextWrapping="Wrap" Margin="10,35,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtlon2" Text="" TextWrapping="Wrap" Margin="215,35,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <Button Content="WSG84 2 OSI" HorizontalAlignment="Left" Height="38" Margin="420,10,0,0" VerticalAlignment="Top" Width="135" Click="Button_Click"/>
+
+    </Grid>
+</Window>

@@ -23,6 +23,8 @@ namespace MainPower.Osi.Enricher
         
         public int TransformerCount { get; set; }
         public int LineCount { get; set; }
+        public int Line5Count { get; set; }
+        public int Line25Count { get; set; }
         public int CapCount { get; set; }
         public int SwitchCount { get; set; }
         public int LoadCount { get; set; }
@@ -129,7 +131,7 @@ namespace MainPower.Osi.Enricher
                 FileManager.I.SaveFiles(o.OutputPath);
             }
             TimeSpan runtime = DateTime.Now - start;
-            Info($"Stats: Tx:{TransformerCount} Line:{LineCount} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
+            Info($"Stats: Tx:{TransformerCount} Line:{LineCount} Line5:{Line5Count} Line25:{Line25Count} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
             Info($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
         }
 

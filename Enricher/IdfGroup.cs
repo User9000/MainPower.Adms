@@ -282,7 +282,7 @@ namespace MainPower.Osi.Enricher
                                 new XAttribute("o", "EMAP_LINE"),
                                 new XAttribute("f", "AggregateFlow"),
                                 new XAttribute("i", "0"),
-                                new XAttribute("identityType", "Key")
+                                new XAttribute("identityType", "Record")
                                 
                             )
                         );

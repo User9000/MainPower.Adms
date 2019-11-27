@@ -168,7 +168,7 @@ namespace MainPower.Osi.Enricher
                 _controlPhase = "12";
                 _nominalUpstreamSide = "1";
                 _standardRotation = IdfTrue;
-                _tapSide = "1";
+                _tapSide = "0";
                 _transformerTypeType = "Fixed";
 
                 DataType asset1, asset2 = null;

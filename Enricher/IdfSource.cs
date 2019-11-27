@@ -20,6 +20,9 @@ namespace MainPower.Osi.Enricher
         private const string AdmsSourcePhase1Angle = "Phase1Angle";
         private const string AdmsSourcePhase2Angle = "Phase2Angle";
         private const string AdmsSourcePhase3Angle = "Phase3Angle";
+        private const string AdmsSourcePhase1VoltageRef = "Phase1Voltage";
+        private const string AdmsSourcePhase2VoltageRef = "Phase2Voltage";
+        private const string AdmsSourcePhase3VoltageRef = "Phase3Voltage";
 
         public IdfSource(XElement node, IdfGroup processor) : base(node, processor) { }
 
@@ -41,6 +44,29 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue(IdfSourcePhase1Angle, source[AdmsSourcePhase1Angle]);
                     Node.SetAttributeValue(IdfSourcePhase2Angle, source[AdmsSourcePhase2Angle]);
                     Node.SetAttributeValue(IdfSourcePhase3Angle, source[AdmsSourcePhase3Angle]);
+                    Node.SetAttributeValue("voltageType", "L-L");
+                    string _basekV = Node.Attribute("baseKV").Value;
+
+                    XElement x = new XElement("element");
+                    x.SetAttributeValue("type", "SCADA");
+                    x.SetAttributeValue("id", Id);
+                    x.SetAttributeValue("voltageReference", _basekV);
+                    var p1Voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, source[AdmsSourcePhase1VoltageRef],SearchMode.Exact);
+                    if (p1Voltage != null)
+                    {
+                        x.SetAttributeValue($"p1KV", p1Voltage.Key);
+                    }
+                    var p2Voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, source[AdmsSourcePhase2VoltageRef], SearchMode.Exact);
+                    if (p2Voltage != null)
+                    {
+                        x.SetAttributeValue($"p2KV", p2Voltage.Key);
+                    }
+                    var p3Voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, source[AdmsSourcePhase3VoltageRef], SearchMode.Exact);
+                    if (p3Voltage != null)
+                    {
+                        x.SetAttributeValue($"p3KV", p3Voltage.Key);
+                    }
+                    ParentGroup.AddGroupElement(x);
                 }
             }
             catch (Exception ex)

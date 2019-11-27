@@ -75,6 +75,8 @@ namespace MainPower.Osi.Enricher
         protected const string IdfDeviceS2PhaseId3 = "s2phaseID3";
         protected const string IdfDeviceS1Node = "s1node";
         protected const string IdfDeviceS2Node = "s2node";
+        protected const string IdfViolations = "violations";
+        protected const string IdfLimits = "limits";
 
         protected const string GisT1Asset = "mpwr_t1_asset_nbr";
         protected const string GisSwitchType = "mpwr_gis_switch_type";
@@ -110,7 +112,12 @@ namespace MainPower.Osi.Enricher
             if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS2PhaseId3)?.Value)) S2Phases++;
 
             //TODO: to be removed
-            node.SetAttributeValue(IdfElementAorGroup, AorDefault);
+            if (parentGroup != null)
+            {
+                node.SetAttributeValue(IdfElementAorGroup, AorDefault);
+                node.SetAttributeValue(IdfViolations, IdfTrue);
+                node.SetAttributeValue(IdfLimits, "Limits,System");
+            }
         }
 
         /// <summary>
