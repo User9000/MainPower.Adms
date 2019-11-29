@@ -616,7 +616,7 @@ namespace MainPower.Osi.ScadaConverter
                     p.Units = dt.Rows[i]["EngUnits"] as string;
                     p.ScaleFactor = 1;
                     if (!memoryTagFile)
-                    {
+                    {                        
                         r1 = double.Parse(dt.Rows[i]["MinRaw"].ToString());
                         r2 = double.Parse(dt.Rows[i]["MaxRaw"].ToString());
                         e1 = double.Parse(dt.Rows[i]["MinEU"].ToString());
@@ -704,8 +704,8 @@ namespace MainPower.Osi.ScadaConverter
                 else
                 {
                     dt.Rows[i]["EngUnits"] = result.Units;
-                    dt.Rows[i]["Scale"] = result.ScaleFactor.ToString("N5");
-                    dt.Rows[i]["Offset"] = result.Offset.ToString("N5");
+                    dt.Rows[i]["Scale"] = result.ScaleFactor.ToString("N7");
+                    dt.Rows[i]["Offset"] = result.Offset.ToString("N7");
 
                     dt.Rows[i]["Limit1Enabled"] = result.ELimits[PointDetail.LIMIT1].ToString();
                     dt.Rows[i]["Limit1Low"] = result.LowLimits[PointDetail.LIMIT1];

@@ -3,8 +3,12 @@ using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
 {
+    /// <summary>
+    /// Represents an IDF Source element
+    /// </summary>
     public class IdfSource : IdfElement
     {
+        //constants used in the IDF
         private const string IdfSourcePosSeqX = "positiveSequenceReactance";
         private const string IdfSourcePosSeqR = "positiveSequenceResistance";
         private const string IdfSourceZeroSeqX = "zeroSequenceReactance";
@@ -12,7 +16,9 @@ namespace MainPower.Osi.Enricher
         private const string IdfSourcePhase1Angle = "phase1Angle";
         private const string IdfSourcePhase2Angle = "phase2Angle";
         private const string IdfSourcePhase3Angle = "phase3Angle";
-
+        private const string IdfSourceVoltageTypeLL = "L-L";
+       
+        //constants used by the ADMS database
         private const string AdmsSourcePosSeqX = "PositiveSequenceReactance";
         private const string AdmsSourcePosSeqR = "PositiveSequenceResistance";
         private const string AdmsSourceZeroSeqX = "ZeroSequenceReactance";
@@ -37,6 +43,8 @@ namespace MainPower.Osi.Enricher
                 }
                 else
                 {
+                    string basekV = Node.Attribute(IdfDeviceBasekV).Value;
+
                     Node.SetAttributeValue(IdfSourcePosSeqX, source[AdmsSourcePosSeqX]);
                     Node.SetAttributeValue(IdfSourcePosSeqR, source[AdmsSourcePosSeqR]);
                     Node.SetAttributeValue(IdfSourceZeroSeqX, source[AdmsSourceZeroSeqX]);
@@ -44,27 +52,27 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue(IdfSourcePhase1Angle, source[AdmsSourcePhase1Angle]);
                     Node.SetAttributeValue(IdfSourcePhase2Angle, source[AdmsSourcePhase2Angle]);
                     Node.SetAttributeValue(IdfSourcePhase3Angle, source[AdmsSourcePhase3Angle]);
-                    Node.SetAttributeValue("voltageType", "L-L");
-                    string _basekV = Node.Attribute("baseKV").Value;
-
-                    XElement x = new XElement("element");
-                    x.SetAttributeValue("type", "SCADA");
-                    x.SetAttributeValue("id", Id);
-                    x.SetAttributeValue("voltageReference", _basekV);
+                    Node.SetAttributeValue(IdfDeviceVoltageType, IdfSourceVoltageTypeLL);
+                    
+                    XElement x = new XElement(IdfEl);
+                    x.SetAttributeValue(IdfElementType, IdfElementTypeScada);
+                    x.SetAttributeValue(IdfElementId, Id);
+                    x.SetAttributeValue(IdfDeviceVoltageReference, basekV);
+                    
                     var p1Voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, source[AdmsSourcePhase1VoltageRef],SearchMode.Exact);
                     if (p1Voltage != null)
                     {
-                        x.SetAttributeValue($"p1KV", p1Voltage.Key);
+                        x.SetAttributeValue(IdfDeviceP1kV, p1Voltage.Key);
                     }
                     var p2Voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, source[AdmsSourcePhase2VoltageRef], SearchMode.Exact);
                     if (p2Voltage != null)
                     {
-                        x.SetAttributeValue($"p2KV", p2Voltage.Key);
+                        x.SetAttributeValue(IdfDeviceP2kV, p2Voltage.Key);
                     }
                     var p3Voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, source[AdmsSourcePhase3VoltageRef], SearchMode.Exact);
                     if (p3Voltage != null)
                     {
-                        x.SetAttributeValue($"p3KV", p3Voltage.Key);
+                        x.SetAttributeValue(IdfDeviceP3kV, p3Voltage.Key);
                     }
                     ParentGroup.AddGroupElement(x);
                 }

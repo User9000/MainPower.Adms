@@ -104,7 +104,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(IdfElement node, string gid, DeviceType type, List<Point> geo, bool internals, int phaseshift = 0)
+        public bool AddDevice(IdfElement node, string gid, DeviceType type, List<Point> geo, bool internals, int phaseshift = 0, double kva = 0)
         {
             var s1nodeid = node.Node.Attribute("s1node")?.Value;
             var s2nodeid = node.Node.Attribute("s2node")?.Value;
@@ -137,6 +137,7 @@ namespace MainPower.Osi.Enricher
             {
                 d.Base1kV = double.Parse(node.Node.Attribute("s1baseKV").Value);
                 d.Base2kV = double.Parse(node.Node.Attribute("s2baseKV").Value);
+                d.NominalkVA = kva;
                 d.PhaseShift = phaseshift;
             }
             else
@@ -702,6 +703,18 @@ namespace MainPower.Osi.Enricher
         {
             ModelDevice d = Devices[s.DeviceId];
 
+            Dictionary<ModelDevice, ModelFeeder> feederMap = new Dictionary<ModelDevice, ModelFeeder>();
+            foreach (var f in Feeders.Values)
+            {
+                if (Devices.ContainsKey(f.DeviceId))
+                {
+                    if (!feederMap.ContainsKey(Devices[f.DeviceId]))
+                    {
+                        feederMap.Add(Devices[f.DeviceId], f);
+                    }
+                }
+            }
+
             long loop = 0;
             //The stack keeps track of all the branches
             //The tuple items are:
@@ -731,11 +744,9 @@ namespace MainPower.Osi.Enricher
                 var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
 
                 //check if there is a feeder attached to this device
-                //TODO: this is an expensive operation...
-                var feeder = (from f in Feeders.Values where f.DeviceId == set.d.Id select f).FirstOrDefault();
-                if (feeder != null)
+                if (feederMap.ContainsKey(set.d))
                 {
-                    currentFeeder = feeder;
+                    currentFeeder = feederMap[set.d];
                     currentColor = RandomColor();
                 }
 
@@ -760,6 +771,7 @@ namespace MainPower.Osi.Enricher
                 if (set.d.NominalFeeder != null && set.d.IdfDevice != null)
                     set.d.IdfDevice.Node.SetAttributeValue("nominalFeeder", set.d.NominalFeeder.FeederId);
 
+                //TODO: this is expensive
                 if (set.d.Type == DeviceType.Line && set.d.IdfDevice != null)
                     set.d.IdfDevice.ParentGroup.SetLineColor(set.d.Id, currentColor);
 
@@ -791,6 +803,120 @@ namespace MainPower.Osi.Enricher
             while (stack.Count > 0);
             Info($"Feeder trace took {loop} loops for source {s.Name}");
         }
+
+        /// <summary>
+        /// Traces to loads and allocates the nominal kVA based on the size of the upstream transformer and the number of loads attached to it
+        /// </summary>
+        public void TraceLoadAllocation()
+        {
+            Info("Calculating load allocation...");
+            DateTime start = DateTime.Now;
+            ClearTrace();
+
+            foreach (var source in Sources.Values)
+            {
+                if (Devices.ContainsKey(source.DeviceId))
+                    TraceLoadAllocation(source);
+            }
+            TimeSpan runtime = DateTime.Now - start;
+            Info($"Load allocation runtime: {runtime.TotalSeconds}s");
+        }
+
+        /// <summary>
+        /// Trace downstream from a source, calculating the load allocation to each load
+        /// </summary>
+        /// <param name="s">The source that is energizing this trace</param>
+        private void TraceLoadAllocation(ModelSource s)
+        {
+            ModelDevice d = Devices[s.DeviceId];
+
+            long loop = 0;
+
+            Dictionary<ModelDevice, List<ModelDevice>> trannyMap = new Dictionary<ModelDevice, List<ModelDevice>>();
+            //The stack keeps track of all the branches
+            //The tuple items are:
+            //d - the device we are tracing into
+            //n - the node we are tracing in from
+            //ud - the device the trace came from
+            //tx - the nearest upstream transformer
+            Stack<(ModelDevice d, ModelNode n, ModelDevice ud, ModelDevice tx)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, ModelDevice)>();
+            stack.Push((d, d.Node1, null, null));
+            do
+            {
+                //trace boilerplace start
+                loop++;
+                var set = stack.Pop();
+                ModelNode traceNode = null;
+                //if we have been here before then continue
+                if (set.d.Trace)
+                    continue;
+                else
+                    set.d.Trace = true;
+                var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
+                //trace boilerplate end
+
+                ModelDevice tx = set.tx;
+                
+                //if we are going through a distribution transformer, then set tx
+                if (set.d.Type == DeviceType.Transformer)
+                    tx = set.d;
+
+                //if we are going through a load, then add it to the tranny map
+                else if (set.d.Type == DeviceType.Load)
+                {
+                    if (tx == null)
+                        Warn("Was not expecting tranny to be null", set.d);
+                    else
+                    {
+                        if (!trannyMap.ContainsKey(tx))
+                            trannyMap.Add(tx, new List<ModelDevice>());
+                        trannyMap[tx].Add(set.d);
+                    }
+                }
+
+                //trace boilerplate start
+                if (openSwitch)
+                    continue;
+                //we are coming in from side 1
+                if (set.d.Node1 == set.n)
+                {
+                    traceNode = set.d.Node2;
+                }
+                else if (set.d.Node2 == set.n)//we are coming in from side 2
+                {
+                    traceNode = set.d.Node1;
+                }
+                //else single sided device
+
+                if (traceNode != null)
+                {
+                    foreach (ModelDevice dd in traceNode.Devices)
+                    {
+                        if (dd != set.d && dd.UpstreamNode == traceNode)
+                        {
+                            stack.Push((dd, traceNode, set.d, tx));
+                        }
+                    }
+                }
+                //trace boilerplate end
+            }
+            while (stack.Count > 0);
+
+            foreach (var kvp in trannyMap)
+            {
+                double loads = kvp.Value.Count;
+                foreach (var load in kvp.Value)
+                {
+                    load.NominalkVA = kvp.Key.NominalkVA / loads;
+                    if (load.IdfDevice is IdfLoad)
+                        ((IdfLoad)load.IdfDevice).SetNominalLoad(load.NominalkVA);
+                }
+            }
+            Info($"Feeder trace took {loop} loops for source {s.Name}");
+        }
+
+
+
 
         /// <summary>
         /// Generates a random color
@@ -852,7 +978,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="dir">The directory to export to</param>
         public void ExportToShapeFile(string dir)
         {
-            DbfFieldDesc[] deviceFields = new DbfFieldDesc[16];
+            DbfFieldDesc[] deviceFields = new DbfFieldDesc[17];
             deviceFields[0] = new DbfFieldDesc
             {
                 FieldName = "Node1Id",
@@ -966,6 +1092,13 @@ namespace MainPower.Osi.Enricher
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
+            deviceFields[16] = new DbfFieldDesc
+            {
+                FieldName = "NominalkVA",
+                FieldLength = 10,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
             ShapeFileWriter sfwDevices = ShapeFileWriter.CreateWriter(dir, "Devices", ShapeType.Point, deviceFields);
             ExportWebMercatorProjectionFile(Path.Combine(dir, "Devices.prj"));
             ShapeFileWriter sfwLines = ShapeFileWriter.CreateWriter(dir, "Lines", ShapeType.PolyLine, deviceFields);
@@ -974,7 +1107,7 @@ namespace MainPower.Osi.Enricher
             {
                 foreach (ModelDevice d in Devices.Values)
                 {
-                    string[] fieldData = new string[16];
+                    string[] fieldData = new string[17];
                     fieldData[0] = d.Node1?.Id ?? "-";
                     fieldData[1] = d.Node2?.Id ?? "-";
                     fieldData[2] = d.Id;
@@ -991,6 +1124,7 @@ namespace MainPower.Osi.Enricher
                     fieldData[13] = d.PhaseShift.ToString("N2");
                     fieldData[14] = d.NominalFeeder?.FeederName ?? "-";
                     fieldData[15] = d.Color ?? "";
+                    fieldData[16] = d.NominalkVA.ToString("N5") ?? "";
 
                     if (d.Geometry == null)
                     {

@@ -101,6 +101,9 @@ namespace MainPower.Osi.Enricher
         [Key(16)]
         public string Color { get; set; }
 
+        [Key(17)]
+        public double NominalkVA { get; set; }
+
         [IgnoreMember]
         public bool Trace { get; set;} = false;
 

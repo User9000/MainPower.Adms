@@ -348,7 +348,7 @@ namespace MainPower.Osi.Enricher
                 //TODO: fix this
                 if (_vGroup != "ZN")
                 {
-                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo.geometry, geo.internals, _phaseshift);
+                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo.geometry, geo.internals, _phaseshift, _dkva);
                 }
 
             }

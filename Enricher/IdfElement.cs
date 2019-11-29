@@ -66,7 +66,14 @@ namespace MainPower.Osi.Enricher
         protected const string IdfDeviceInSubstation = "inSubstation";
         protected const string IdfDeviceBasekV = "baseKV";
         protected const string IdfDeviceRatedkV = "ratedKV";
-
+        protected const string IdfDeviceVoltageType = "voltageType";
+        protected const string IdfDeviceVoltageReference = "voltageReference";
+        protected const string IdfEl = "element";
+        protected const string IdfElementType = "type";
+        protected const string IdfElementTypeScada = "SCADA";
+        protected const string IdfDeviceP1kV = "p1KV";
+        protected const string IdfDeviceP2kV = "p2KV";
+        protected const string IdfDeviceP3kV = "p3KV";
         protected const string IdfDeviceS1PhaseId1 = "s1phaseID1";
         protected const string IdfDeviceS1PhaseId2 = "s1phaseID2";
         protected const string IdfDeviceS1PhaseId3 = "s1phaseID3";

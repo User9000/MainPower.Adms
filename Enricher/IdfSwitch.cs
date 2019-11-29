@@ -400,6 +400,12 @@ namespace MainPower.Osi.Enricher
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVoltsus = true;
                 }
+                else if ((s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Volts RY", _scadaSearchMode)) != null && phase1)
+                {
+                    x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LL");
+                    hasVoltsus = true;
+                }
                 else if ((s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts RY", _scadaSearchMode)) != null && phase1)
                 {
                     x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
@@ -413,6 +419,12 @@ namespace MainPower.Osi.Enricher
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVoltsus = true;
                 }
+                else if ((s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Volts YB", _scadaSearchMode)) != null && phase2)
+                {
+                    x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LL");
+                    hasVoltsus = true;
+                }
                 else if ((s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts YB", _scadaSearchMode)) != null && phase2)
                 {
                     x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
@@ -424,6 +436,12 @@ namespace MainPower.Osi.Enricher
                 {
                     x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
+                    hasVoltsus = true;
+                }
+                else if ((s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Volts BR", _scadaSearchMode)) != null && phase3)
+                {
+                    x.SetAttributeValue($"s{us}p3KV", s1BRVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LL");
                     hasVoltsus = true;
                 }
                 else if ((s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts BR", _scadaSearchMode)) != null && phase3)

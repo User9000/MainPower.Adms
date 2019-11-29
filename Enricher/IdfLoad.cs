@@ -131,5 +131,31 @@ namespace MainPower.Osi.Enricher
                 Fatal($"Uncaught exception: {ex.Message}");
             }
         }
+
+        public void SetNominalLoad(double load)
+        {
+            if (load == 0)
+                return;
+            load /= S1Phases;
+
+            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
+            {
+                Node.SetAttributeValue("nominalKW1", load.ToString("N2"));
+                Node.SetAttributeValue("nominalKVAR1", "0.1");
+                Node.SetAttributeValue("ratedKVA1", load.ToString("N2"));
+            }
+            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
+            {
+                Node.SetAttributeValue("nominalKW2", load.ToString("N2"));
+                Node.SetAttributeValue("nominalKVAR2", "0.1");
+                Node.SetAttributeValue("ratedKVA2", load.ToString("N2"));
+            }
+            if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
+            {
+                Node.SetAttributeValue("nominalKW3", load.ToString("N2"));
+                Node.SetAttributeValue("nominalKVAR3", "0.1");
+                Node.SetAttributeValue("ratedKVA3", load.ToString("N2"));
+            }
+        }
     }
 }

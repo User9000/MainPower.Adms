@@ -78,6 +78,7 @@ namespace MainPower.Osi.Enricher
                 Model.ValidateBaseVoltages();
                 Model.ValidatePhasing();
                 Model.CalculateNominalFeeders();
+                Model.TraceLoadAllocation();
                 
                 if (Fatals == 0)
                 {
