@@ -104,6 +104,9 @@ namespace MainPower.Osi.Enricher
         [Key(17)]
         public double NominalkVA { get; set; }
 
+        [Key(18)]
+        public SymbolPlacement Position { get; set; }
+
         [IgnoreMember]
         public bool Trace { get; set;} = false;
 
@@ -116,6 +119,7 @@ namespace MainPower.Osi.Enricher
 
         [IgnoreMember]
         public IdfElement IdfDevice { get; set; } = null;
+
 
         /// <summary>
         /// Calculates the upstream side of the device, based on the shorted path to source calculations

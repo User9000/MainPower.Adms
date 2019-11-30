@@ -21,10 +21,10 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                SetAllNominalStates();
-                var geo = ParentGroup.GetSymbolGeometry(Id);
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.ShuntCapacitor, geo.geometry, geo.internals);
-                ParentGroup.SetSymbolNameByDataLink(Id, SYMBOL_CAPACITOR);
+                //TODO: backport to extractor
+                //SetAllNominalStates();
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.ShuntCapacitor, SYMBOL_CAPACITOR);
+                //TODO: backport to extractor
                 Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV)?.Value);
             }
             catch (Exception ex)

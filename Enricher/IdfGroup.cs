@@ -10,10 +10,20 @@ namespace MainPower.Osi.Enricher
 { 
     public class IdfGroup : IdfElement
     {
-        private const string SYMBOL_DATALINK = "Symbol 23";
+        private const string SymbolDataLink = "Symbol 23";
+        private const string GisDisplayName = "MainPower";
+
+        private const double SymbolScaleSwitchHV = 17;
+        private const double SymbolScaleSwitchLV = 3;
+        private const double SymbolScaleSwitchInternals = 0.2;
+        private const double SymbolScaleSwitchSLD = 100;
+        private const double SymbolScaleTransformerGIS = 0.3;
+        private const double SymbolScaleTransformerSLD = 100;
 
         private XElement _dataGroup = null;
         private Dictionary<string, XElement> _displayGroups = new Dictionary<string, XElement>();
+
+        #region Admin
         public bool NoData
         {
             get
@@ -44,254 +54,16 @@ namespace MainPower.Osi.Enricher
         public IdfGroup(XElement node, IdfGroup processor) : base(node, processor) { }
 
         /// <summary>
-        /// Finds all symbol elements with the provided datalink id, and sets the symbol parameters
+        /// Adds an element to the first data file containing the group
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="symbolName"></param>
-        /// <param name="scale"></param>
-        /// <param name="rotation"></param>
-        /// <param name="z"></param>
-        public void SetSymbolNameByDataLink(string id, string symbolName, double scale = double.NaN, double iScale = double.NaN, double rotation = double.NaN, double z = double.NaN)
+        /// <param name="xml"></param>
+        public void AddGroupElement(XElement xml)
         {
-            foreach (var group in _displayGroups.Values)
-            {
-                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var dataLink in dataLinks)
-                {
-                    var symbol = dataLink.Parent;
-                    symbol.SetAttributeValue("name", symbolName);
-                    symbol.SetAttributeValue("library", "MPNZ.LIB2");
-
-                    if (!scale.Equals(double.NaN))
-                        symbol.SetAttributeValue("scale", scale.ToString("N3"));
-
-                    bool internals = symbol.Attribute("mpwr_internals")?.Value == "True";
-                    if (internals)
-                    {
-                        if (!iScale.Equals(double.NaN))
-                        {
-                            symbol.SetAttributeValue("scale", iScale.ToString("N3"));
-                        }
-                    }
-                    
-                    if (!rotation.Equals(double.NaN))
-                        symbol.SetAttributeValue("rotation", rotation.ToString("N0"));
-
-                    if (!z.Equals(double.NaN))
-                        symbol.SetAttributeValue("z", z.ToString("N1"));
-
-                    symbol.SetAttributeValue("maxSize", "30");
-                }
-            }
+            _dataGroup.Add(xml);
         }
 
-        public void AddColorToLine(string id, Color c)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var dataLinks = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var dataLink in dataLinks)
-                {
-                    var parent = dataLink.Parent;
-                    parent.Descendants("color").Remove();
-                    XElement color = new XElement("color", new XAttribute("red", c.R.ToString()), new XAttribute("green", c.G.ToString()), new XAttribute("blue", c.B.ToString()));
-                    parent.Add(color);
-                }
-            }
-        }
-
-        public void UpdateLinkId(string oldId, string newId)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var links = group.Descendants("element").Descendants("colorLink").Where(n => n.Attribute("id")?.Value == oldId);
-                foreach (var link in links)
-                {
-                    link.SetAttributeValue("id", newId);
-                }
-                links = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == oldId);
-                foreach (var link in links)
-                {
-                    link.SetAttributeValue("id", newId);
-                }
-
-                links = group.Descendants("element").Descendants("flowLink").Where(n => n.Attribute("id")?.Value == oldId);
-                foreach (var link in links)
-                {
-                    link.SetAttributeValue("id", newId);
-                }
-
-            }
-        }
-
-        public void SetLineWidth(string id, int width)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var links = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Line").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var link in links)
-                {
-
-                    link.Parent.SetAttributeValue("width", width.ToString());
-                }
-
-            }
-        }
-
-        public void SetLineColor(string id, Color c)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var links = group.Descendants("element").Where(n => n.Attribute("type")?.Value == "Line").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var link in links)
-                {
-                    link.Parent.Descendants("color").Remove();
-                    var col = new XElement("color", new XAttribute("red", c.R.ToString()), new XAttribute("green", c.G.ToString()), new XAttribute("blue", c.B.ToString()));
-                    link.Parent.Add(col);
-                }
-
-            }
-        }
-
-        public void CreateDataLinkSymbol(string id, SymbolPlacement position = SymbolPlacement.Left)
-        {
-            foreach (var group in _displayGroups)
-            {
-                if (group.Key != "MainPower")
-                    continue;
-                var dataLinks = group.Value.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id).ToList();
-                foreach (var dataLink in dataLinks)
-                {
-                    var parent = dataLink.Parent;
-
-                    double x = double.Parse(parent.Attribute("x").Value);
-                    double y = double.Parse(parent.Attribute("y").Value);
-
-                    switch (position) 
-                    {
-                        case SymbolPlacement.Top:
-                            y -= 1;
-                            break;
-                        case SymbolPlacement.Bottom:
-                            y += 1;
-                            break;
-                        case SymbolPlacement.Left:
-                            x -= 1;
-                            break;
-                        case SymbolPlacement.Right:
-                            x += 1;
-                            break;
-                    }
-
-
-                    XElement symbol = new XElement("element");
-                    symbol.Add(new XAttribute("id", parent.Attribute("id").Value + "_dlink"));
-                    symbol.Add(new XAttribute("type", "Symbol"));
-                    symbol.Add(new XAttribute("x", x.ToString()));
-                    symbol.Add(new XAttribute("y", y.ToString()));
-                    symbol.Add(new XAttribute("overlay", parent.Attribute("overlay")?.Value?? "Overlay_MainPower_Default"));
-                    symbol.Add(new XAttribute("layer", parent.Attribute("layer")?.Value?? "Layer_MainPower_Internals"));
-                    symbol.Add(new XAttribute("library", "MPNZ.LIB2"));
-                    symbol.Add(new XAttribute("z", "4"));
-                    symbol.Add(new XAttribute("name", SYMBOL_DATALINK));
-                    symbol.Add(new XAttribute("scale", "0.2"));
-                    symbol.Add(new XAttribute("maxSize", "30"));
-
-                    XElement command = new XElement("command");
-                    command.Add(new XAttribute("topic", "Jump to Tabular"));
-                    command.Add(new XAttribute("plugin", "eMap"));
-                    command.Add(new XAttribute("instance", "Active"));
-                    symbol.Add(command);
-
-                    XElement field1 = new XElement("field");
-                    field1.Add(new XAttribute("name", "Data Link URL"));
-                    field1.Add(new XAttribute("value", "@URL"));
-                    command.Add(field1);
-
-                    XElement field2 = new XElement("field");
-                    field2.Add(new XAttribute("name", "Data Mode"));
-                    field2.Add(new XAttribute("value", "@MODE"));
-                    command.Add(field2);
-
-                    XElement field3 = new XElement("field");
-                    field3.Add(new XAttribute("name", "Data Instance"));
-                    field3.Add(new XAttribute("value", "@I"));
-                    command.Add(field3);
-
-                    XElement field4 = new XElement("field");
-                    field4.Add(new XAttribute("name", "Tabular Type"));
-                    field4.Add(new XAttribute("value", "Detail"));
-                    command.Add(field4);
-
-                    XElement datalink = new XElement("dataLink");
-                    datalink.Add(new XAttribute("id", id));
-                    symbol.Add(dataLink);
-
-
-                    XElement link = new XElement("link");
-                    link.Add(new XAttribute("d", "EMAP"));
-                    link.Add(new XAttribute("o", "EMAP_DEVICE"));
-                    link.Add(new XAttribute("f", "AggregateState"));
-                    link.Add(new XAttribute("i", "0"));
-                    link.Add(new XAttribute("identityType", "Key"));
-                    datalink.Add(link);
-
-                    group.Value.Add(symbol);
-
-                }
-            }
-        }
+        #endregion
         
-        private void CheckDataLinks()
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var dataLinks = group.Descendants("element").Descendants("dataLink");
-                foreach (var dataLink in dataLinks)
-                {
-                    if (!_dataGroup.Descendants("element").Where(x => x.Attribute("id")?.Value == dataLink.Attribute("id")?.Value).Any())
-                    {
-                        //TODO: actually we can't check these without the data...
-                        //TODO: we could check the cache.
-                        Err("Datalink ");
-                    }
-                }
-            }
-        }
-
-        //TODO: backport to extractor
-        public void AddDataAndFlowlink(string id)
-        {
-            foreach (var group in _displayGroups.Values)
-            {
-                var symbols = group.Descendants("element").Descendants("colorLink").Where(n => n.Attribute("id")?.Value == id);
-                foreach (var symbol in symbols)
-                {
-                    var parent = symbol.Parent;
-                    
-                    if (!parent.Descendants("flowLink").Any())
-                    {
-                        parent.SetAttributeValue("flowDirection", "Forward");
-                        parent.SetAttributeValue("flowStyle", "Arrow");
-                        parent.SetAttributeValue("flowSubStyle", "Solid");
-
-                        XElement x = new XElement("flowLink",
-                            new XAttribute("id", id),
-                            new XElement("link",
-                                new XAttribute("d", "EMAP"),
-                                new XAttribute("o", "EMAP_LINE"),
-                                new XAttribute("f", "AggregateFlow"),
-                                new XAttribute("i", "0"),
-                                new XAttribute("identityType", "Record")
-                                
-                            )
-                        );
-                        parent.Add(x);
-                    }
-                }
-            }
-        }
-
         public override void Process()
         {
             var tasks = new List<Task>();
@@ -363,97 +135,400 @@ namespace MainPower.Osi.Enricher
                     d.Process();
                 }
             }
-            DeleteInternals();
+            //DeleteInternals();
         }
 
+        public void ProcessGraphics()
+        {
+            foreach (var group in _displayGroups)
+            {
+                var geographic = group.Key == GisDisplayName;
+                var display = group.Value;
+                
+                var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value != SymbolDataLink && x.Elements("dataLink").Any());
+                foreach (var symbol in symbols)
+                {
+                    try
+                    {
+                        //we can assume that datalinks will be of the id type, not the dsID type
+                        var datalink = symbol.Element("dataLink").Attribute("id").Value;
+                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        if (device != null)
+                        {
+                            //set the symbol, size etc
+                            if (!string.IsNullOrWhiteSpace(device.SymbolName))
+                            {
+                                SetSymbol(symbol, device, geographic);
+                            }
 
-        private void DeleteInternals()
+                            //set scada link and emap link symbol
+                            if (!string.IsNullOrWhiteSpace(device.ScadaKey))
+                            {
+                                SetSymbolScadaLink(symbol, device.ScadaKey);
+                                display.Add(CreateEmapDeviceLinkSymbol(symbol, datalink, device.Position));
+                            }
+                        }
+                        symbol.SetAttributeValue("mpwr_internals", null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Fatal($"Uncaught exception processing symbol: {ex.Message}");
+                    }
+                }
+                var lines = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Line" && x.Elements("dataLink").Any());
+                foreach (var line in lines)
+                {
+                    try {
+                        //we can assume that datalinks will be of the id type, not the dsID type
+                        //TODO: john needs to set the data link in schematics
+                        var datalink = line.Element("colorLink").Attribute("id").Value;
+                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        if (device != null)
+                        {
+                            if (device.Type == DeviceType.Line)
+                                SetLineStyle(line, datalink, device.Base1kV, device.Color, device.Name.StartsWith("Service"));
+                            else
+                                Warn("Expected device type is Line.", device.Id, device.Name);
+
+                        }
+                        line.SetAttributeValue("mpwr_internals", null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Fatal($"Uncaught exception processing line: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        public void ProcessGeographic()
+        {
+            foreach (var group in _displayGroups)
+            {
+                var geographic = group.Key == GisDisplayName;
+                var display = group.Value;
+
+                if (!geographic)
+                    continue;
+
+                var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value != SymbolDataLink && x.Elements("dataLink").Any());
+                foreach (var symbol in symbols)
+                {
+                    try
+                    {
+                        //we can assume that datalinks will be of the id type, not the dsID type
+                        var datalink = symbol.Element("dataLink").Attribute("id").Value;
+                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        if (device != null)
+                        {
+                            bool internals = symbol.Attribute("mpwr_internals")?.Value == "True";
+                            List<Point> points = new List<Point>();
+                            Point p = new Point();
+                            p.X = double.Parse(symbol.Attribute("x").Value);
+                            p.Y = double.Parse(symbol.Attribute("y").Value);
+                            p = TranslatePoint(p);
+                            points.Add(p);
+                            device.Geometry = points;
+                            device.Internals = internals;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Fatal($"Uncaught exception processing symbol: {ex.Message}");
+                    }
+                }
+                //TODO: change this to datalink?
+                var lines = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Line" && x.Elements("colorLink").Any());
+                foreach (var line in lines)
+                {
+                    try
+                    {
+                        //we can assume that datalinks will be of the id type, not the dsID type
+                        //TODO: john needs to set the data link in schematics
+                        var datalink = line.Element("colorLink").Attribute("id").Value;
+                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        if (device != null)
+                        {
+                            bool internals = line.Attribute("mpwr_internals")?.Value == "True";
+                            List<Point> points = new List<Point>();
+                            foreach (var xy in line.Descendants("xy"))
+                            {
+                                Point p = new Point();
+                                p.X = float.Parse(xy.Attribute("x").Value);
+                                p.Y = float.Parse(xy.Attribute("y").Value);
+                                p = TranslatePoint(p);
+                                points.Add(p);
+                            }
+                            device.Internals = internals;
+                            device.Geometry = points;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Fatal($"Uncaught exception processing line: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        #region Graphic Manipulation Functions
+
+        private void SetSymbolScadaLink(XElement symbol, string scadaKey)
+        {
+            //remove the old datalink, if any
+            symbol.Element("dataLink")?.Remove();
+
+            XElement x = new XElement("dataLink",
+                new XAttribute("dsID", scadaKey),
+                new XElement("link",
+                    new XAttribute("d", "SCADA"),
+                    new XAttribute("f", "State"),
+                    new XAttribute("i", "0"),
+                    new XAttribute("identityType", "Key"),
+                    new XAttribute("o", "STATUS")
+                )
+            );
+            symbol.Add(x);
+        }
+        
+        private XElement CreateEmapDeviceLinkSymbol(XElement symbol, string id, SymbolPlacement position)
+        {
+            double x = double.Parse(symbol.Attribute("x").Value);
+            double y = double.Parse(symbol.Attribute("y").Value);
+
+            switch (position)
+            {
+                case SymbolPlacement.Top:
+                    y -= 1;
+                    break;
+                case SymbolPlacement.Bottom:
+                    y += 1;
+                    break;
+                case SymbolPlacement.Left:
+                    x -= 1;
+                    break;
+                case SymbolPlacement.Right:
+                    x += 1;
+                    break;
+            }
+
+            //TODO: the offsets should be different for gis vs internals vs sld
+            string overlay = symbol.Attribute("overlay")?.Value;
+            string layer = symbol.Attribute("layer")?.Value;
+
+            XElement newsymbol = new XElement("element");
+            newsymbol.Add(new XAttribute("id", symbol.Attribute("id").Value + "_dlink"));
+            newsymbol.Add(new XAttribute("type", "Symbol"));
+            newsymbol.Add(new XAttribute("x", x.ToString()));
+            newsymbol.Add(new XAttribute("y", y.ToString()));
+            //TODO: john should fix this
+            if (!string.IsNullOrWhiteSpace(overlay))
+                newsymbol.Add(new XAttribute("overlay", overlay));
+            if (!string.IsNullOrWhiteSpace(layer))
+                newsymbol.Add(new XAttribute("layer", layer));
+            newsymbol.Add(new XAttribute("library", "MPNZ.LIB2"));
+            newsymbol.Add(new XAttribute("z", "4"));
+            newsymbol.Add(new XAttribute("name", SymbolDataLink));
+            newsymbol.Add(new XAttribute("scale", "0.2"));
+            newsymbol.Add(new XAttribute("maxSize", "30"));
+
+            XElement command = new XElement("command");
+            command.Add(new XAttribute("topic", "Jump to Tabular"));
+            command.Add(new XAttribute("plugin", "eMap"));
+            command.Add(new XAttribute("instance", "Active"));
+            newsymbol.Add(command);
+
+            XElement field1 = new XElement("field");
+            field1.Add(new XAttribute("name", "Data Link URL"));
+            field1.Add(new XAttribute("value", "@URL"));
+            command.Add(field1);
+
+            XElement field2 = new XElement("field");
+            field2.Add(new XAttribute("name", "Data Mode"));
+            field2.Add(new XAttribute("value", "@MODE"));
+            command.Add(field2);
+
+            XElement field3 = new XElement("field");
+            field3.Add(new XAttribute("name", "Data Instance"));
+            field3.Add(new XAttribute("value", "@I"));
+            command.Add(field3);
+
+            XElement field4 = new XElement("field");
+            field4.Add(new XAttribute("name", "Tabular Type"));
+            field4.Add(new XAttribute("value", "Detail"));
+            command.Add(field4);
+
+            XElement datalink = new XElement("dataLink");
+            datalink.Add(new XAttribute("id", id));
+            newsymbol.Add(id);
+
+
+            XElement link = new XElement("link");
+            link.Add(new XAttribute("d", "EMAP"));
+            link.Add(new XAttribute("o", "EMAP_DEVICE"));
+            link.Add(new XAttribute("f", "AggregateState"));
+            link.Add(new XAttribute("i", "0"));
+            link.Add(new XAttribute("identityType", "Key"));
+            datalink.Add(link);
+
+            return newsymbol;
+        }
+
+        private void SetSymbol(XElement symbol, ModelDevice device, bool gis)
+        {
+
+            symbol.SetAttributeValue("name", device.SymbolName);
+            symbol.SetAttributeValue("library", "MPNZ.LIB2");
+            bool internals = symbol.Attribute("mpwr_internals")?.Value == "True";
+
+            double scale = double.NaN;
+            double z = double.NaN;
+            double rotation = double.NaN;
+            double maxSize = 30;
+
+            switch (device.Type)
+            {
+                case DeviceType.Switch:
+                    if (gis)
+                    {
+                        if (internals)
+                            scale = SymbolScaleSwitchInternals;
+                        else if (device.Base1kV >= 1)
+                            scale = SymbolScaleSwitchHV;
+                        else scale = SymbolScaleSwitchLV;
+                    }
+                    else
+                        scale = SymbolScaleSwitchSLD;
+                    break;
+                case DeviceType.Transformer:
+                    if (gis)
+                        scale = SymbolScaleTransformerGIS;
+                    else
+                        scale = SymbolScaleTransformerSLD;
+                    rotation = 0;
+                    z = 4;
+                    break;
+            }
+
+            if (!scale.Equals(double.NaN))
+                symbol.SetAttributeValue("scale", scale.ToString("N3"));
+            if (!rotation.Equals(double.NaN))
+                symbol.SetAttributeValue("rotation", rotation.ToString("N0"));
+            if (!z.Equals(double.NaN))
+                symbol.SetAttributeValue("z", z.ToString("N1"));
+            if (!maxSize.Equals(double.NaN))
+                symbol.SetAttributeValue("maxSize", maxSize.ToString("N3"));
+        }
+
+        /// <summary>
+        /// Sets the line style
+        /// </summary>
+        /// <param name="line"></param>
+        /// <param name="id"></param>
+        /// <param name="voltage">The voltage of the line</param>
+        /// <param name="color">The color of the line</param>
+        /// <param name="service"></param>
+        private void SetLineStyle(XElement line, string id, double voltage, string color, bool service)
+        {
+            //set the line color
+            Color c = ColorTranslator.FromHtml(color);
+            //remove and existing color
+            line.Descendants("color").Remove();
+            var col = new XElement("color", new XAttribute("red", c.R), new XAttribute("green", c.G), new XAttribute("blue", c.B));
+            line.Add(col);
+
+            //set the line width
+            int width = 1;
+            switch (voltage)
+            {
+                case 66:
+                case 33:
+                    width = 6;
+                    break;
+                case 22:
+                case 11:
+                case 6.6:
+                    width = 3;
+                    break;
+                case 0.4:
+                    if (service)
+                        width = 1;
+                    else
+                        width = 2;
+                    break;
+            }
+            line.SetAttributeValue("width", width);
+
+            //add the flowlink
+            if (!line.Descendants("flowLink").Any())
+            {
+                line.SetAttributeValue("flowDirection", "Forward");
+                line.SetAttributeValue("flowStyle", "Arrow");
+                line.SetAttributeValue("flowSubStyle", "Solid");
+
+                XElement x = new XElement("flowLink",
+                    new XAttribute("id", id),
+                    new XElement("link",
+                        new XAttribute("d", "EMAP"),
+                        new XAttribute("o", "EMAP_LINE"),
+                        new XAttribute("f", "AggregateFlow"),
+                        new XAttribute("i", "0"),
+                        new XAttribute("identityType", "Record")
+                    )
+                );
+                line.Add(x);
+            }
+
+            //add the datalink
+            //TODO john should be doing this
+            if (!line.Descendants("dataLink").Any())
+            {
+                XElement x = new XElement("dataLink",
+                    new XAttribute("id", id),
+                    new XElement("link",
+                        new XAttribute("d", "EMAP"),
+                        new XAttribute("o", "EMAP_DEVICE"),
+                        new XAttribute("f", "AggregateState"),
+                        new XAttribute("i", "0"),
+                        new XAttribute("identityType", "Key")
+                    )
+                );
+                line.Add(x);
+            }
+        }
+
+        #endregion
+
+        #region Functions that need to be moved elsewhere
+
+        /// <summary>
+        /// For loads... hte id must be the icp for OMS device linking
+        /// </summary>
+        /// <param name="oldId"></param>
+        /// <param name="newId"></param>
+        public void UpdateLinkId(string oldId, string newId)
         {
             foreach (var group in _displayGroups.Values)
             {
-                var elements = group.Descendants("element").Where(n => n.Attribute("mpwr_internals") != null);
-                foreach (var element in elements.ToList())
+                var links = group.Descendants("element").Descendants("colorLink").Where(n => n.Attribute("id")?.Value == oldId);
+                foreach (var link in links)
                 {
-                    element.SetAttributeValue("mpwr_internals", null);
+                    link.SetAttributeValue("id", newId);
                 }
-            }
-        }
-
-        /// <summary>
-        /// Adds an element to the first data file containing the group
-        /// </summary>
-        /// <param name="xml"></param>
-        public void AddGroupElement (XElement xml)
-        {
-            _dataGroup.Add(xml);
-        }
-
-        /// <summary>
-        /// Returns the point for a symbol with datalink
-        /// </summary>
-        /// <param name="id">The datalink id</param>
-        public (bool internals, List<Point> geometry) GetSymbolGeometry(string id)
-        {
-            var points = new List<Point>();
-            try
-            {
-
-                foreach (var group in _displayGroups.Values)
+                links = group.Descendants("element").Descendants("dataLink").Where(n => n.Attribute("id")?.Value == oldId);
+                foreach (var link in links)
                 {
-                    //lock (idf)
-                    {
-                        var elements = group.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol");
-                        var res = elements.Descendants("dataLink").Where(x => x.Attribute("id")?.Value == id).FirstOrDefault();
-                        if (res != null)
-                        {
-                            bool internals = res.Parent.Attribute("mpwr_internals")?.Value == "True";
-                            Point p = new Point();
-                            p.X = double.Parse(res.Parent.Attribute("x").Value);
-                            p.Y = double.Parse(res.Parent.Attribute("y").Value);
-                            p = TranslatePoint(p);
-                            points.Add(p);
-                            return (internals, points);
-                        }
-                    }
+                    link.SetAttributeValue("id", newId);
                 }
-            }
-            catch (Exception ex)
-            {
-                Err($"Uncaught exception in GetSymbolGeometry [{id}]:{ex.Message}");
-            }
-            Warn("Could not locate symbol geometry", id, "");
-            return (false, points);
-        }
 
-        /// <summary>
-        /// Returns the point for a symbol with datalink
-        /// </summary>
-        /// <param name="id">The datalink id</param>
-        public (bool internals, List<Point> geometry) GetLineGeometry(string id)
-        {
-            var points = new List<Point>();
-            foreach (var kvp in _displayGroups)
-            {
-                if (kvp.Key != "MainPower")
-                    continue;
-                var group = kvp.Value;
-                var res = group.Descendants("element").Where(x => x.Attribute("type").Value == "Line").Descendants("dataLink").Where(x => x.Attribute("id").Value == id).FirstOrDefault();
-                if (res != null)
+                links = group.Descendants("element").Descendants("flowLink").Where(n => n.Attribute("id")?.Value == oldId);
+                foreach (var link in links)
                 {
-                    bool internals = res.Parent.Attribute("mpwr_internals")?.Value == "True";
-                    foreach (var xy in res.Parent.Descendants("xy"))
-                    {
-                        Point p = new Point();
-                        p.X = float.Parse(xy.Attribute("x").Value);
-                        p.Y = float.Parse(xy.Attribute("y").Value);
-                        p = TranslatePoint(p);
-                        points.Add(p);
-                    }
-                    return (internals, points);
+                    link.SetAttributeValue("id", newId);
                 }
+
+
             }
-            Warn("Could not locate line geometry", id, "");
-            return (false, points);
         }
 
         public static Point TranslatePoint(Point p)
@@ -469,38 +544,7 @@ namespace MainPower.Osi.Enricher
  
             return p;
         }
-
-        public void AddScadaDatalink(string id, string key)
-        {
-            try
-            {
-                foreach (var group in _displayGroups.Values)
-                {
-                    var symbols = group.Descendants("element").Where(x=> x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value != SYMBOL_DATALINK).Descendants("dataLink").Where(n => n.Attribute("id")?.Value == id);
-                    foreach (var symbol in symbols.ToList())
-                    {
-                        var parent = symbol.Parent;
-                        symbol.Remove();
-                        XElement x = new XElement("dataLink",
-                            new XAttribute("dsID", key),
-                            new XElement("link",
-                                new XAttribute("d", "SCADA"),
-                                new XAttribute("f", "State"),
-                                new XAttribute("i", "0"),
-                                new XAttribute("identityType", "Key"),
-                                new XAttribute("o", "STATUS")
-                            )
-                        );
-                        parent.Add(x);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Fatal($"Uncaught exception: {ex.Message}");
-            }
-        }
-
+        #endregion
     }
 }
 

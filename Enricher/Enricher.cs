@@ -14,13 +14,7 @@ namespace MainPower.Osi.Enricher
         public static Enricher I { get; } = new Enricher();
 
         public Options Options { get; set; }
-        
-        private const string ICP_ICP = "ICP";
-        private const string ICP_Month = "Month";
-        private const string ICP_Consumption = "Consumption";
-
-        public Dictionary<string, double> IcpConsumption { get; set; }
-        
+               
         public int TransformerCount { get; set; }
         public int LineCount { get; set; }
         public int Line5Count { get; set; }
@@ -36,27 +30,20 @@ namespace MainPower.Osi.Enricher
             DateTime start = DateTime.Now;
             ValidateOptions(o);
             PrintLogHeader();
-            if (o.ProcessTopology)
+
+            if (!o.BlankModel)
             {
-                if (!o.BlankModel)
+                var model = Model.Deserialize($"{o.DataPath}\\model");
+                if (model != null)
                 {
-                    
-                    var model = Model.Deserialize($"{o.DataPath}\\model");
-                    if (model != null)
-                    {
-                        Model = model;
-                    }
-                    else
-                    {
-                        Info("Creating a new model...");
-                    }
+                    Model = model;
+                }
+                else
+                {
+                    Info("Creating a new model...");
                 }
             }
-            if (o.ConvertIcps)
-            {
-                Info("Converting ICP database...");
-                ConvertIcpDatabase();
-            }
+
             if (!DataManager.I.Load("", true))
             {
                 Fatal("Failed to initialize the datamanager");
@@ -72,55 +59,54 @@ namespace MainPower.Osi.Enricher
             IdfTransformer.GenerateParallelSets(Path.Combine(Options.OutputPath, "Parallel Sets.xml"));
             FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
 
-            if (o.ProcessTopology)
+            ProcessGeographic();
+
+            Model.ValidateConnectivity();
+            Model.ValidateBaseVoltages();
+            Model.ValidatePhasing();
+            Model.CalculateNominalFeeders();
+            Model.TraceLoadAllocation();
+
+            if (Fatals == 0)
             {
-                Model.ValidateConnectivity();
-                Model.ValidateBaseVoltages();
-                Model.ValidatePhasing();
-                Model.CalculateNominalFeeders();
-                Model.TraceLoadAllocation();
-                
-                if (Fatals == 0)
+
+                Model.Serialize($"{o.DataPath}\\model");
+                if (o.CheckSwitchFlow)
                 {
-                    
-                    Model.Serialize($"{o.DataPath}\\model");
-                    if (o.CheckSwitchFlow)
+                    //TODO move this into the nodemodel??
+                    Info("Verifying connected device upstream side consistency...");
+                    foreach (var d in Model.Devices.Values.Where(s => (s.Type == DeviceType.Switch) && s.ConnectivityMark && s.SwitchState))
                     {
-                        //TODO move this into the nodemodel??
-                        Info("Verifying connected device upstream side consistency...");
-                        foreach (var d in Model.Devices.Values.Where(s => (s.Type == DeviceType.Switch) && s.ConnectivityMark && s.SwitchState))
+                        var asset = DataManager.I.RequestRecordById<AdmsSwitch>(d.Name);
+                        if (asset != null)
                         {
-                            var asset = DataManager.I.RequestRecordById<AdmsSwitch>(d.Name);
-                            if (asset != null)
+                            if (asset.AsBool("NotifyUpstreamSide") ?? false)
                             {
-                                if (asset.AsBool("NotifyUpstreamSide") ?? false)
+                                var upstream = asset.AsInt("NominalUpstreamSide");
+                                if ((upstream ?? 0) != d.Upstream)
                                 {
-                                    var upstream = asset.AsInt("NominalUpstreamSide");
-                                    if ((upstream ?? 0) != d.Upstream)
-                                    {
-                                        Warn($"Calculated nominal upstream side for switch [{d.Name}] ({d.Upstream}) is different from adms database ({upstream})");
-                                        DataManager.I.SetVale<AdmsSwitch>(d.Name, "NominalUpstreamSide", d.Upstream);
-                                    }
+                                    Warn($"Calculated nominal upstream side for switch [{d.Name}] ({d.Upstream}) is different from adms database ({upstream})");
+                                    //DataManager.I.SetVale<AdmsSwitch>(d.Name, "NominalUpstreamSide", d.Upstream);
                                 }
                             }
                         }
-                        DataManager.I.Save<AdmsSwitch>();
                     }
-                    if (o.ExportShapeFiles)
-                    {
-                        Model.ExportToShapeFile($"{o.OutputPath}\\");
-                    }
-                    if (o.ExportDeviceInfo)
-                    {
-                        Model.ExportDeviceCoordinates();
-                    }
-
-                    IdfLine.ExportConductors();
-                }    
-                else
+                    //DataManager.I.Save<AdmsSwitch>();
+                }
+                ProcessGraphics();
+                if (o.ExportShapeFiles)
                 {
-                    Info("Skipping model serialization and flow checking due to the ocurrence of previous fatal errors");
-                }               
+                    Model.ExportToShapeFile($"{o.OutputPath}\\");
+                }
+                if (o.ExportDeviceInfo)
+                {
+                    Model.ExportDeviceCoordinates();
+                }
+                IdfLine.ExportConductors();
+            }
+            else
+            {
+                Info("Skipping model serialization and flow checking due to the ocurrence of previous fatal errors");
             }
             if (Fatals > 0)
             {
@@ -146,39 +132,6 @@ namespace MainPower.Osi.Enricher
             Options = o;
         }
 
-        //TODO: get rid of this
-        public  void ConvertIcpDatabase()
-        {
-            DataTable icps = Util.GetDataTableFromCsv($"{Options.DataPath}\\ICPs-source.csv", true);
-            IcpConsumption = new Dictionary<string, double>();
-            var icp2 = new DataTable();
-            icp2.Columns.Add("ICP", typeof(string));
-            icp2.Columns.Add("AverageMonthlyLoad", typeof(double));
-            //to start with we are just going for a plain jane average
-            for (int i = 0; i < icps.Rows.Count; i++)
-            {
-                string icp = icps.Rows[i][ICP_ICP] as string;
-                double c = icps.Rows[i][ICP_Consumption] as double? ?? 0;
-
-                if (IcpConsumption.ContainsKey(icp))
-                {
-                    IcpConsumption[icp] = (IcpConsumption[icp] + c) / 2;
-                }
-                else
-                {
-                    IcpConsumption.Add(icp, c);
-                }
-            }
-            foreach (var kvp in IcpConsumption)
-            {
-                var r = icp2.NewRow();
-                r["ICP"] = kvp.Key;
-                r["AverageMonthlyLoad"] = kvp.Value;
-                icp2.Rows.Add(r);
-            }
-            Util.ExportDatatable(icp2, $"{Options.DataPath}\\ICPs.csv");
-        }
-
         public bool ProcessImportConfiguration()
         {
             FileManager fm = FileManager.I;
@@ -194,8 +147,7 @@ namespace MainPower.Osi.Enricher
                 {
                     if (group.NoData)
                         continue;
-                    if (Options.ProcessTopology)
-                        Model.RemoveGroup(group.Id);
+                    Model.RemoveGroup(group.Id);
                     
                     //No point running 1000 threads at once
                     while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Options.Threads)
@@ -211,6 +163,52 @@ namespace MainPower.Osi.Enricher
             Task.WaitAll(tasks.ToArray());
 
             return true;
+        }
+
+        public void ProcessGraphics()
+        {
+            Info("Processing graphics...");
+            var tasks = new List<Task>();
+
+            foreach (var group in FileManager.I.Groups.Values)
+            {
+                try
+                {
+                    //No point running 1000 threads at once
+                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Options.Threads)
+                        Thread.Sleep(100);
+                    tasks.Add(Task.Run((Action)group.ProcessGraphics));
+                }
+                catch (Exception ex)
+                {
+                    Fatal($"Uncaugut exception: {ex.Message}");
+                }
+            }
+
+            Task.WaitAll(tasks.ToArray());
+        }
+
+        public void ProcessGeographic()
+        {
+            Info("Processing geographic information...");
+            var tasks = new List<Task>();
+
+            foreach (var group in FileManager.I.Groups.Values)
+            {
+                try
+                {
+                    //No point running 1000 threads at once
+                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Options.Threads)
+                        Thread.Sleep(100);
+                    tasks.Add(Task.Run((Action)group.ProcessGeographic));
+                }
+                catch (Exception ex)
+                {
+                    Fatal($"Uncaugut exception: {ex.Message}");
+                }
+            }
+
+            Task.WaitAll(tasks.ToArray());
         }
     }
 }

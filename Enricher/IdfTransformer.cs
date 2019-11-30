@@ -153,8 +153,6 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                SetAllNominalStates();
-                var geo = ParentGroup.GetSymbolGeometry(Id);
                 //default transformer type
                 _transformerType = IdfTxDefaultType;
                 _s1BaseKv = Node.Attribute(IdfTxS1BasekV)?.Value;
@@ -337,7 +335,7 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue(IdfTxS2RatedkV, "1");
                 }
 
-                ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SymbolTxScale, SymbolTxScaleInternals, SymbolTxRotation);
+                //ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SymbolTxScale, SymbolTxScaleInternals, SymbolTxRotation);
 
                 List<KeyValuePair<string, string>> kvps = new List<KeyValuePair<string, string>>();
                 kvps.Add(new KeyValuePair<string, string>("Vector Group", _vGroup));
@@ -345,11 +343,11 @@ namespace MainPower.Osi.Enricher
                 GenerateDeviceInfo(kvps);
                 RemoveExtraAttributes();
 
-                //TODO: fix this
-                if (_vGroup != "ZN")
-                {
-                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, geo.geometry, geo.internals, _phaseshift, _dkva);
-                }
+                if (_vGroup == "ZN")
+                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.EarthingTransformer, _symbolName);
+                else
+                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, _symbolName, null, SymbolPlacement.Left, _phaseshift, _dkva);
+
 
             }
             catch (Exception ex)

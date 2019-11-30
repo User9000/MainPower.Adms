@@ -10,9 +10,9 @@ namespace MainPower.Osi.Enricher
 {
     public class IdfRegulator : IdfElement
     {
-        private const string IDF_REGULATOR_SYMBOL = "Symbol 7";
-        private const string REGULATOR_DEFAULT_TYPE = "transformerType_regulator_default";
-        private const string IDF_TRANSFORMER_TYPE = "transformerType";
+        private const string IdfRegulatorSymbol = "Symbol 7";
+        private const string RegulatorDefaultType = "transformerType_regulator_default";
+        private const string IdfTransformerType = "transformerType";
 
         public IdfRegulator(XElement node, IdfGroup processor) : base(node, processor) { }
 
@@ -21,15 +21,9 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                //TODO
-                SetAllNominalStates();
-
-
                 Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV).Value);
-                Node.SetAttributeValue(IDF_TRANSFORMER_TYPE, REGULATOR_DEFAULT_TYPE);
-                ParentGroup.SetSymbolNameByDataLink(Id, IDF_REGULATOR_SYMBOL, double.NaN, double.NaN, 2);
-                var geo = ParentGroup.GetSymbolGeometry(Id);
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Regulator, geo.geometry, geo.internals);
+                Node.SetAttributeValue(IdfTransformerType, RegulatorDefaultType);
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Regulator, IdfRegulatorSymbol);
                 RemoveExtraAttributes();
             }
             catch (Exception ex)

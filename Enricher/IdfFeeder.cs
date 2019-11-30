@@ -7,14 +7,14 @@ namespace MainPower.Osi.Enricher
     {
         public IdfFeeder(XElement node, IdfGroup processor) : base(node, processor) { }
 
-        private const string IDF_FEEDER_SOURCE = "source";
-        private const string IDF_FEEDER_DEVICE = "primary";
+        private const string IdfFeederSource = "source";
+        private const string IdfFeederDevice = "primary";
 
         public override void Process()
         {
             try
             {
-                var dev = Node.Attribute(IDF_FEEDER_DEVICE)?.Value;
+                var dev = Node.Attribute(IdfFeederDevice)?.Value;
                 if (!string.IsNullOrWhiteSpace(dev))
                 {
                     Enricher.I.Model.AddFeeder(Id, Name, dev, ParentGroup.Id);

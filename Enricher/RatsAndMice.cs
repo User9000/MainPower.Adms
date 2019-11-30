@@ -21,7 +21,6 @@ namespace MainPower.Osi.Enricher
         Right
     }
 
-
     public static class Util
     {
         private static Random random = new Random();
@@ -94,12 +93,11 @@ namespace MainPower.Osi.Enricher
 
         public static void SerializeMessagePack(string file, object obj)
         {
-            using (var f = File.OpenWrite(file))
-            {
-                LZ4MessagePackSerializer.Serialize(f, obj);
-            }
+            using var f = File.OpenWrite(file);
+            //LZ4MessagePackSerializer.Serialize(f, obj);
+            MessagePackSerializer.Serialize(f, obj);
         }
-
+   
         public static void SerialzeBinaryFormatter(string file, object obj)
         {
             using (var f = File.OpenWrite(file))
@@ -131,11 +129,10 @@ namespace MainPower.Osi.Enricher
         public static T DeserializeMessagePack<T>(string file)
         {
 
-            using (var f = File.OpenRead(file))
-            {
-                T m = LZ4MessagePackSerializer.Deserialize<T>(f);
-                return m;
-            }
+            using var f = File.OpenRead(file);
+            //T m = LZ4MessagePackSerializer.Deserialize<T>(f);
+            T m = MessagePackSerializer.Deserialize<T>(f);
+            return m;
         }
 
         public static T DeserializeNewtonsoft<T>(string file)
@@ -193,6 +190,7 @@ namespace MainPower.Osi.Enricher
         Regulator,
         ShuntCapacitor,
         Generator,
+        EarthingTransformer,
     }
 
     public enum IdfFileType

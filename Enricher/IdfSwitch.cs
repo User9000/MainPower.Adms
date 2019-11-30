@@ -99,10 +99,10 @@ namespace MainPower.Osi.Enricher
         private const string IdfSwitchScadaS2P2kV = "s2p2KV";
         private const string IdfSwitchScadaS2P3kV = "s2p3KV";
 
-        private const double IdfScaleGeographicHV = 17.0;
-        private const double IdfScaleGeographicLV = 3.0;
-        private const double IdfScaleInternals = 0.2;
-        private const double IdfSwitchZ = double.NaN;
+        public const double IdfScaleGeographicHV = 17.0;
+        public const double IdfScaleGeographicLV = 3.0;
+        public const double IdfScaleInternals = 0.2;
+        public const double IdfSwitchZ = double.NaN;
         #endregion
      
         //temporary fields from GIS
@@ -144,9 +144,9 @@ namespace MainPower.Osi.Enricher
                 //TODO: long term I think we should probably force exact matches via the ScadaId field on the AdmsSwitch dataset
                 _scadaName = $" {Name}";
 
-                CheckPhases();
+                //CheckPhases();
 
-                var geo = ParentGroup.GetSymbolGeometry(Id);
+                //var geo = ParentGroup.GetSymbolGeometry(Id);
 
                 T1Id = Node.Attribute(GisT1Asset)?.Value;
                 _gisswitchtype = Node.Attribute(GisSwitchType)?.Value ?? "";
@@ -249,24 +249,26 @@ namespace MainPower.Osi.Enricher
                     Node.SetAttributeValue(IdfSwitchFaultProtectionAttrs, _faultProtectionAttrs);
 
                 //need to do this before the SCADA linking otherwise the datalink will be replaced
-                if (_baseKv.StartsWith("0.4"))
-                    ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IdfScaleGeographicLV, IdfScaleInternals);
-                else
-                    ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IdfScaleGeographicHV, IdfScaleInternals);
+                //if (_baseKv.StartsWith("0.4"))
+                //    ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IdfScaleGeographicLV, IdfScaleInternals);
+                //else
+                //    ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IdfScaleGeographicHV, IdfScaleInternals);
                 //TODO tidy this up
                 var scada = GenerateScadaLinking();
+                string scadaKey = null;
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
-                    ParentGroup.CreateDataLinkSymbol(Id, _orientation);
+                    //ParentGroup.CreateDataLinkSymbol(Id, _orientation);
                     ParentGroup.AddGroupElement(scada.Item2);
-                    ParentGroup.AddScadaDatalink(Id, scada.Item1);
+                    scadaKey = scada.Item1;
+                    //ParentGroup.AddScadaDatalink(Id, scada.Item1);
                 }
                 List<KeyValuePair<string, string>> items = new List<KeyValuePair<string, string>>();
                 items.Add(new KeyValuePair<string, string>("GIS Switch Type", _gisswitchtype.Length > 39 ? _gisswitchtype.Substring(0,39): _gisswitchtype));
                 GenerateDeviceInfo(items);
                 RemoveExtraAttributes();
 
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, geo.geometry, geo.internals);
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, _symbol, scadaKey, _orientation);
             }
             catch (Exception ex)
             {

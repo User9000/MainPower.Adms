@@ -249,7 +249,7 @@ namespace MainPower.Osi.Enricher
                 {
                     Name = "ICPs",
                     FileName = "ICPs.csv",
-                    IndexColumn = "ICP",
+                    IndexColumn = "Name",
                     InitializeFailIsFatal = true
                 };
                 Datasets.Add(nameof(Icp), source);

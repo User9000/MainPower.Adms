@@ -104,7 +104,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(IdfElement node, string gid, DeviceType type, List<Point> geo, bool internals, int phaseshift = 0, double kva = 0)
+        public bool AddDevice(IdfElement node, string gid, DeviceType type, string symbol = null, string key = null, SymbolPlacement orientation = SymbolPlacement.Left, int phaseshift = 0, double kva = 0)
         {
             var s1nodeid = node.Node.Attribute("s1node")?.Value;
             var s2nodeid = node.Node.Attribute("s2node")?.Value;
@@ -115,9 +115,12 @@ namespace MainPower.Osi.Enricher
                 Name = node.Node.Attribute("name").Value,
                 GroupId = gid,
                 Type = type,
-                Geometry = geo,
+                //Geometry = geo,
                 IdfDevice = node,
-                Internals = internals
+                //Internals = internals,
+                SymbolName = symbol,
+                ScadaKey = key,
+                Position = orientation
             };
 
             string t = node.Node.Attribute("s1phaseID1").Value;
@@ -139,6 +142,13 @@ namespace MainPower.Osi.Enricher
                 d.Base2kV = double.Parse(node.Node.Attribute("s2baseKV").Value);
                 d.NominalkVA = kva;
                 d.PhaseShift = phaseshift;
+            }
+            else if (type == DeviceType.EarthingTransformer)
+            {
+                d.Base1kV = double.Parse(node.Node.Attribute("s1baseKV").Value);
+                d.Base2kV = double.NaN;
+                d.NominalkVA = double.NaN;
+                d.PhaseShift = 0;
             }
             else
             {
@@ -290,8 +300,8 @@ namespace MainPower.Osi.Enricher
         {
             lock (Devices)
             {
-                d.Node1.Devices.Remove(d);
-                d.Node2.Devices.Remove(d);
+                d.Node1?.Devices.Remove(d);
+                d.Node2?.Devices.Remove(d);
                 Devices.Remove(d.Id);
             }
         }
@@ -357,8 +367,8 @@ namespace MainPower.Osi.Enricher
         {
             foreach (var device in Devices.Values)
             {
-                device.Node1.Devices.Add(device);
-                device.Node2.Devices.Add(device);
+                device.Node1?.Devices.Add(device);
+                device.Node2?.Devices.Add(device);
             }
         }
 
@@ -766,14 +776,14 @@ namespace MainPower.Osi.Enricher
 
                 //set device feeder and color
                 set.d.NominalFeeder = currentFeeder;
-                set.d.Color = currentColor.Name;
+                set.d.Color = ColorTranslator.ToHtml(currentColor);
 
                 if (set.d.NominalFeeder != null && set.d.IdfDevice != null)
                     set.d.IdfDevice.Node.SetAttributeValue("nominalFeeder", set.d.NominalFeeder.FeederId);
 
-                //TODO: this is expensive
-                if (set.d.Type == DeviceType.Line && set.d.IdfDevice != null)
-                    set.d.IdfDevice.ParentGroup.SetLineColor(set.d.Id, currentColor);
+
+                //if (set.d.Type == DeviceType.Line && set.d.IdfDevice != null)
+                //    set.d.IdfDevice.ParentGroup.SetLineColor(set.d.Id, currentColor);
 
                 if (openSwitch)
                     continue;

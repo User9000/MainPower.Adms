@@ -15,9 +15,9 @@ namespace Leika2Adms
     {
         static void Main(string[] args)
         {
-            string path = @"P:\HamishC\Leika\Leika Files";
+            string path = @"C:\Users\hsc\Downloads\adms\enricher\data\Leika";
             string conductorFile = @"C:\Users\hsc\Downloads\adms\enricher\data\Conductors.csv";
-            string outputFile = @"C:\Users\hsc\Downloads\adms\enricher\output\Conductors.xml";
+            string outputFile = @"C:\Users\hsc\Downloads\adms\enricher\data\Conductors.xml";
             try
             {
                 //load the conductor table

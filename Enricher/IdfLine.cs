@@ -30,13 +30,7 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                //change this to check
-                SetAllNominalStates();
-                ParentGroup.AddDataAndFlowlink(Id);             
-                CheckPhases();
-
-                var geo = ParentGroup.GetLineGeometry(Id);
-                if (!Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line, geo.geometry, geo.internals))
+                if (!Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line))
                 {
                     Err("Failed to add line to model -> deleted 😬");
                     Node.Remove();
@@ -48,58 +42,29 @@ namespace MainPower.Osi.Enricher
                 string neutral_conductor = Node.Attribute(GIS_NEUTRAL_CONDUCTOR)?.Value ?? "";
                 
 
-                //TODO: this should be determined by conductor type
                 string voltage = Node.Attribute(IdfDeviceBasekV).Value;
                 switch (voltage) 
                 {
                     case "66":
-                        //Node.SetAttributeValue("ratedKV", "70");
-                        ParentGroup.AddColorToLine(Id, Color.DarkBlue);
-                        ParentGroup.SetLineWidth(Id, 6);
                         if (!isBusbar) lineType = "lineType_66kV_default";
                         break;
                     case "33":
-                        //Node.SetAttributeValue("ratedKV", "40");
-                        ParentGroup.AddColorToLine(Id, Color.DarkGreen);
-                        ParentGroup.SetLineWidth(Id, 6);
                         if (!isBusbar) lineType = "lineType_33kV_default";
                         break;
                     case "22":
-                        Node.SetAttributeValue("ratedKV", "30");
-                        ParentGroup.AddColorToLine(Id, Color.Orange);
-                        ParentGroup.SetLineWidth(Id, 3);
                         if (!isBusbar) lineType = "lineType_22kV_default";
                         break;
                     case "11":
-                        //Node.SetAttributeValue("ratedKV", "15");
-                        ParentGroup.AddColorToLine(Id, Color.Red);
-                        ParentGroup.SetLineWidth(Id, 3);
                         if (!isBusbar) lineType = "lineType_11kV_default";
                         break;
                     case "6.6":
-                        //Node.SetAttributeValue("ratedKV", "11");
-                        ParentGroup.AddColorToLine(Id, Color.Turquoise);
-                        ParentGroup.SetLineWidth(Id, 3);
                         if (!isBusbar) lineType = "lineType_6.6kV_default";
                         break;
                     case "0.4":
-                    case "0.4000":
-                        //Node.SetAttributeValue("ratedKV", "1");
-                        ParentGroup.AddColorToLine(Id, Color.Yellow);
-                        if (Name.StartsWith("Service"))
-                        {
-                            ParentGroup.SetLineWidth(Id, 1);
-                        }
-                        else
-                        {
-                            ParentGroup.SetLineWidth(Id, 2);
-                        }
-                        
+                    case "0.4000":                      
                         if (!isBusbar) lineType = "lineType_400V_default";
                         break;
                     default:
-                        //Node.SetAttributeValue("ratedKV", "100");
-                        ParentGroup.AddColorToLine(Id, Color.Purple);
                         break;
                 }
 
@@ -142,9 +107,6 @@ namespace MainPower.Osi.Enricher
 
                 Node.SetAttributeValue(GIS_NEUTRAL_CONDUCTOR, null);
                 Node.SetAttributeValue(GIS_PHASE_CONDUCTOR, null);
-#if !nofixes
-                ParentGroup.SetLayerFromVoltage(Id, Node.Attribute(IDF_DEVICE_BASEKV).Value, false);
-#endif
             }
             catch (Exception ex)
             {

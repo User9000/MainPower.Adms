@@ -119,7 +119,7 @@ namespace MainPower.Osi.Enricher
             if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS2PhaseId3)?.Value)) S2Phases++;
 
             //TODO: to be removed
-            if (parentGroup != null)
+            if (parentGroup != null && !(this is IdfSource))
             {
                 node.SetAttributeValue(IdfElementAorGroup, AorDefault);
                 node.SetAttributeValue(IdfViolations, IdfTrue);
@@ -127,6 +127,7 @@ namespace MainPower.Osi.Enricher
             }
         }
 
+        /*
         /// <summary>
         /// Check that at least one phase is set on side 1
         /// TODO: to be removed
@@ -168,6 +169,7 @@ namespace MainPower.Osi.Enricher
             Node.SetAttributeValue(IdfDeviceNomState2, IdfTrue);
             Node.SetAttributeValue(IdfDeviceNomState3, IdfTrue);
         }
+        */
 
         /// <summary>
         /// Updates the id attribute
