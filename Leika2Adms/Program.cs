@@ -39,6 +39,7 @@ namespace Leika2Adms
                         string name = row["Name"] as string;
                         string voltage = row["Voltage"] as string;
                         string type = row["Type"] as string;
+                        string phases = row["Phases"] as string;
                         if (type.EndsWith("OH"))
                             type = "Overhead";
                         else if (type.EndsWith("UG"))
@@ -46,32 +47,52 @@ namespace Leika2Adms
                         else
                             type = "Busbar";
 
-
-
                         LineParameters? p = GetLeikaData(row["Leika"] as string, path);
 
                         if (p != null)
                         {
-                            XElement element = new XElement("element",
-                                new XAttribute("type", "Line Type"),
-                                new XAttribute("id", id),
-                                new XAttribute("name", name),
-                                new XAttribute("lineType", type),
-                                new XAttribute("calcMode", "None"),
-                                new XAttribute("chargingBase", voltage),
-                                new XAttribute("reactance1-1", p?.S1?.Reactance),
-                                new XAttribute("reactance1-2", p?.M12?.Reactance),
-                                new XAttribute("reactance1-3", p?.M13?.Reactance),
-                                new XAttribute("reactance2-2", p?.S2?.Reactance),
-                                new XAttribute("reactance2-3", p?.M23?.Reactance),
-                                new XAttribute("reactance3-3", p?.S3?.Reactance),
-                                new XAttribute("resistance1-1", p?.S1?.Resistance),
-                                new XAttribute("resistance1-2", p?.M12?.Resistance),
-                                new XAttribute("resistance1-3", p?.M13?.Resistance),
-                                new XAttribute("resistance2-2", p?.S2?.Resistance),
-                                new XAttribute("resistance2-3", p?.M23?.Resistance),
-                                new XAttribute("resistance3-3", p?.S3?.Resistance));
-                            xgroup.Add(element);
+                            List<(string, LineParameters)> combos = new List<(string, LineParameters)>();
+                            if (phases == "3")
+                                combos.Add((id.Replace("lineType_", "lineType_ABC_"), p.Value));
+                            else if (phases == "2")
+                            {
+                                combos.Add((id.Replace("lineType_", "lineType_AB_"), p.Value));
+                                combos.Add((id.Replace("lineType_", "lineType_BC_"), SwapIndexes(p.Value, 0, 2)));
+                                combos.Add((id.Replace("lineType_", "lineType_AC_"), SwapIndexes(p.Value, 1, 2)));
+                            }
+                            else if (phases == "1")
+                            {
+                                combos.Add((id.Replace("lineType_", "lineType_A_"), p.Value));
+                                combos.Add((id.Replace("lineType_", "lineType_B_"), SwapIndexes(p.Value, 0, 2)));
+                                combos.Add((id.Replace("lineType_", "lineType_C_"), SwapIndexes(p.Value, 1, 2)));
+                            }
+                            foreach (var p2 in combos)
+                            {
+                                XElement element = new XElement("element",
+                                    new XAttribute("type", "Line Type"),
+                                    new XAttribute("id", p2.Item1),
+                                    new XAttribute("name", name),
+                                    new XAttribute("lineType", type),
+                                    new XAttribute("calcMode", "None"),
+                                    new XAttribute("chargingBase", voltage),
+                                    new XAttribute("reactance1-1", p2.Item2.SelfImpedance[0].Reactance),
+                                    new XAttribute("reactance1-2", p2.Item2.MutualImpedance[0].Reactance),
+                                    new XAttribute("reactance1-3", p2.Item2.MutualImpedance[1].Reactance),
+                                    new XAttribute("reactance2-2", p2.Item2.SelfImpedance[1].Reactance),
+                                    new XAttribute("reactance2-3", p2.Item2.MutualImpedance[2].Reactance),
+                                    new XAttribute("reactance3-3", p2.Item2.SelfImpedance[2].Reactance),
+                                    new XAttribute("resistance1-1", p2.Item2.SelfImpedance[0].Resistance),
+                                    new XAttribute("resistance1-2", p2.Item2.MutualImpedance[0].Resistance),
+                                    new XAttribute("resistance1-3", p2.Item2.MutualImpedance[1].Resistance),
+                                    new XAttribute("resistance2-2", p2.Item2.SelfImpedance[1].Resistance),
+                                    new XAttribute("resistance2-3", p2.Item2.MutualImpedance[2].Resistance),
+                                    new XAttribute("resistance3-3", p2.Item2.SelfImpedance[2].Resistance));
+                                xgroup.Add(element);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Line parameters were null");
                         }
                     }
                 }
@@ -85,6 +106,22 @@ namespace Leika2Adms
             }
             Console.ReadKey();
          }
+
+        private static LineParameters SwapIndexes(LineParameters p, int i1, int i2)
+        {
+            LineParameters p2 = new LineParameters();
+            p2.Initialize();
+            p.MutualImpedance.CopyTo(p2.MutualImpedance, 0);
+            p.SelfImpedance.CopyTo(p2.SelfImpedance, 0);
+
+            p2.SelfImpedance[i1] = p.SelfImpedance[i2];
+            p2.SelfImpedance[i2] = p.SelfImpedance[i1];
+
+            p2.MutualImpedance[i1] = p.MutualImpedance[i2];
+            p2.MutualImpedance[i2] = p.MutualImpedance[i1];
+
+            return p2;
+        }
 
         private static LineParameters? GetLeikaData(string fileName, string path)
         {
@@ -110,16 +147,15 @@ namespace Leika2Adms
                                 Console.WriteLine("Was expecting more lines in file");
                                 break;
                             }
-                            LineParameters p = new LineParameters
-                            {
-                                S1 = GetImpedance("1L1", lines[i + 9]),
-                                S2 = GetImpedance("1L2", lines[i + 9]),
-                                S3 = GetImpedance("1L3", lines[i + 9]),
-                                M12 = GetImpedance("1L1-1L2", lines[i + 17]),
-                                M13 = GetImpedance("1L1-1L3", lines[i + 18]),
-                                M23 = GetImpedance("1L2-1L3", lines[i + 18])
-                            };
-
+                            LineParameters p = new LineParameters();
+                            p.Initialize();
+                            p.SelfImpedance[0] = GetImpedance("1L1", lines[i + 9]);
+                            p.SelfImpedance[1] = GetImpedance("1L2", lines[i + 9]);
+                            p.SelfImpedance[2] = GetImpedance("1L3", lines[i + 9]);
+                            p.MutualImpedance[0] = GetImpedance("1L1-1L2", lines[i + 17]);
+                            p.MutualImpedance[1] = GetImpedance("1L1-1L3", lines[i + 18]);
+                            p.MutualImpedance[2] = GetImpedance("1L2-1L3", lines[i + 18]);
+                           
                             return p;
                         }
                     }
@@ -133,14 +169,18 @@ namespace Leika2Adms
         }
 
 
-        private static Impedance? GetImpedance(string marker, string text)
+        private static Impedance GetImpedance(string marker, string text)
         {
             int start = text.IndexOf(marker) + marker.Length;
             string substr = text.Substring(start);
             Regex r = new Regex("(-?)(0|([1-9][0-9]*))(\\.[0-9]+)?");
             var matches = r.Matches(substr);
             if (matches.Count < 2)
-                return null;
+            {
+                //TODO: throw an error here
+                Console.WriteLine("Impedance was null");
+                return new Impedance();
+            }
             Impedance result = new Impedance
             {
                 Reactance = double.Parse(matches[1].Value),
@@ -205,12 +245,14 @@ namespace Leika2Adms
 
     public struct LineParameters 
     {
-        public Impedance? S1 { get; set; }
-        public Impedance? S2 { get; set; }
-        public Impedance? S3 { get; set; }
-        public Impedance? M12 { get; set; }
-        public Impedance? M13 { get; set; }
-        public Impedance? M23 { get; set; }     
+        public Impedance[] SelfImpedance { get; set; }
+        public Impedance[] MutualImpedance {get;set; }     
+
+        public void Initialize()
+        {
+            SelfImpedance = new Impedance[3];
+            MutualImpedance = new Impedance[3];
+        }
     }
 
 }

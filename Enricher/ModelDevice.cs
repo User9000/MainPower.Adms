@@ -10,7 +10,6 @@ namespace MainPower.Osi.Enricher
     /// <summary>
     /// 
     /// </summary>
-    [Serializable]
     [MessagePackObject]
     public class ModelDevice
     {
@@ -25,32 +24,6 @@ namespace MainPower.Osi.Enricher
 
         [Key(3)]
         public string GroupId { get; set; }
-
-        [JsonIgnore]
-        [IgnoreMember]
-        public bool ConnectivityMark { get; set; }
-
-        [JsonIgnore]
-        [IgnoreMember]
-        public int Upstream { get; set; }
-
-        [JsonIgnore]
-        [IgnoreMember]
-        public ModelNode UpstreamNode
-        {
-            get
-            {
-                if (Upstream == 1)
-                    return Node1;
-                else if (Upstream == 2)
-                    return Node2;
-                else return null;
-            }
-        }
-
-        [JsonIgnore]
-        [IgnoreMember]
-        public ModelSource ClosestUpstreamSource { get; set; }
 
         [Key(4)]
         public DeviceType Type { get; set; }
@@ -106,14 +79,33 @@ namespace MainPower.Osi.Enricher
 
         [Key(18)]
         public SymbolPlacement Position { get; set; }
+        [IgnoreMember]
+        public bool ConnectivityMark { get; set; }
 
+        [IgnoreMember]
+        public int Upstream { get; set; }
+
+        [IgnoreMember]
+        public ModelNode UpstreamNode
+        {
+            get
+            {
+                if (Upstream == 1)
+                    return Node1;
+                else if (Upstream == 2)
+                    return Node2;
+                else return null;
+            }
+        }
+
+        [IgnoreMember]
+        public ModelSource ClosestUpstreamSource { get; set; }
         [IgnoreMember]
         public bool Trace { get; set;} = false;
 
         [IgnoreMember]
         public ModelFeeder NominalFeeder { get; set; } = null;
 
-        [JsonIgnore]
         [IgnoreMember]
         public Dictionary<ModelSource, PFDetail> SP2S { get; set; } = new Dictionary<ModelSource, PFDetail>();
 

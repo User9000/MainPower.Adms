@@ -9,12 +9,13 @@ namespace MainPower.Osi.Enricher
 {
     public class IdfLine : IdfElement
     {
-        private const string GIS_PHASE_CONDUCTOR = "mpwr_cable_type";
-        private const string GIS_NEUTRAL_CONDUCTOR = "mpwr_neutral_cable_type";
-        private const string IDF_LINE_TYPE = "lineType";
-        private const string LINE_BUSBAR = "lineType_busbar";
+        private const string GisPhaseConductor = "mpwr_cable_type";
+        private const string GisNeutralConductor = "mpwr_neutral_cable_type";
+        private const string IdfLineType = "lineType";
+        private const string LineBusbar = "lineType_busbar";
 
-        private static readonly Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service), (int count,double length)> conductors = new Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service), (int, double)>();
+        private static readonly Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service), (int count,double length)> _conductors = new Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service), (int, double)>();
+        private static DataTable _conductorTypes = null;
 
         /// <summary>
         /// Represents a IDF Line object
@@ -30,42 +31,58 @@ namespace MainPower.Osi.Enricher
         {
             try
             {
-                if (!Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line))
+                lock (_conductors)
                 {
-                    Err("Failed to add line to model -> deleted 😬");
-                    Node.Remove();
+                    if (_conductorTypes == null)
+                        LoadConductorTypes();
                 }
-                
-                bool isBusbar = Node.Attribute("lineType")?.Value.Contains("BUSBAR") ?? false;
-                string lineType = LINE_BUSBAR;
-                string phase_conductor = Node.Attribute(GIS_PHASE_CONDUCTOR)?.Value ?? "";
-                string neutral_conductor = Node.Attribute(GIS_NEUTRAL_CONDUCTOR)?.Value ?? "";
-                
 
+                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line);               
+                bool isBusbar = Node.Attribute("lineType")?.Value.Contains("BUSBAR") ?? false;
+                string lineType = LineBusbar;
+                string phase_conductor = Node.Attribute(GisPhaseConductor)?.Value;
+                string neutral_conductor = Node.Attribute(GisNeutralConductor)?.Value;
                 string voltage = Node.Attribute(IdfDeviceBasekV).Value;
-                switch (voltage) 
+                
+                if (!isBusbar)
                 {
-                    case "66":
-                        if (!isBusbar) lineType = "lineType_66kV_default";
-                        break;
-                    case "33":
-                        if (!isBusbar) lineType = "lineType_33kV_default";
-                        break;
-                    case "22":
-                        if (!isBusbar) lineType = "lineType_22kV_default";
-                        break;
-                    case "11":
-                        if (!isBusbar) lineType = "lineType_11kV_default";
-                        break;
-                    case "6.6":
-                        if (!isBusbar) lineType = "lineType_6.6kV_default";
-                        break;
-                    case "0.4":
-                    case "0.4000":                      
-                        if (!isBusbar) lineType = "lineType_400V_default";
-                        break;
-                    default:
-                        break;
+                    lineType = GetConductorId(double.Parse(voltage), S1Phases, phase_conductor, neutral_conductor);
+                    if (string.IsNullOrEmpty(lineType))
+                    {
+                        switch (voltage)
+                        {
+                            case "66":
+                                if (!isBusbar) lineType = "lineType_66kV_default";
+                                break;
+                            case "33":
+                                if (!isBusbar) lineType = "lineType_33kV_default";
+                                break;
+                            case "22":
+                                if (!isBusbar) lineType = "lineType_22kV_default";
+                                break;
+                            case "11":
+                                if (!isBusbar) lineType = "lineType_11kV_default";
+                                break;
+                            case "6.6":
+                                if (!isBusbar) lineType = "lineType_6.6kV_default";
+                                break;
+                            case "0.4":
+                            case "0.4000":
+                                if (!isBusbar) lineType = "lineType_400V_default";
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        string phid = "";
+                        if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId1)?.Value)) phid += "A";
+                        if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId2)?.Value)) phid += "B";
+                        if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId3)?.Value)) phid += "C";
+
+                        lineType = lineType.Replace("lineType_", $"lineType_{phid}_");
+                    }
                 }
 
                 Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
@@ -80,20 +97,21 @@ namespace MainPower.Osi.Enricher
                 if (!isBusbar && length <= 5)
                     Enricher.I.Line5Count++;
 
-                var conductor = (voltage, S1Phases, lineType, Node.Attribute(GIS_PHASE_CONDUCTOR)?.Value, Node.Attribute(GIS_NEUTRAL_CONDUCTOR)?.Value, Name.StartsWith("Service"));
-                //HashSet not thread safe
-                lock (conductors)
+                var conductor = (voltage, S1Phases, lineType, phase_conductor ?? "", neutral_conductor ?? "", Name.StartsWith("Service"));
+
+                //Dictionary not thread safe
+                lock (_conductors)
                 {
-                    if (conductors.ContainsKey(conductor))
+                    if (_conductors.ContainsKey(conductor))
                     {
-                        var val = conductors[conductor];
+                        var val = _conductors[conductor];
                         val.count++;
                         val.length+= length;
-                        conductors[conductor] = val;
+                        _conductors[conductor] = val;
                     }
                     else
                     {
-                        conductors.Add(conductor, (1, length));
+                        _conductors.Add(conductor, (1, length));
                     }
                 }
 
@@ -103,10 +121,10 @@ namespace MainPower.Osi.Enricher
 
                 GenerateDeviceInfo(kvps);
 
-                Node.SetAttributeValue(IDF_LINE_TYPE, lineType);
+                Node.SetAttributeValue(IdfLineType, lineType);
 
-                Node.SetAttributeValue(GIS_NEUTRAL_CONDUCTOR, null);
-                Node.SetAttributeValue(GIS_PHASE_CONDUCTOR, null);
+                Node.SetAttributeValue(GisNeutralConductor, null);
+                Node.SetAttributeValue(GisPhaseConductor, null);
             }
             catch (Exception ex)
             {
@@ -126,7 +144,7 @@ namespace MainPower.Osi.Enricher
             dt.Columns.Add("Count", typeof(int));
             dt.Columns.Add("Length", typeof(int));
 
-            foreach (var item in conductors)
+            foreach (var item in _conductors)
             {
                 DataRow r = dt.NewRow();
                 r[0] = item.Key.voltage;
@@ -142,6 +160,34 @@ namespace MainPower.Osi.Enricher
 
             dt.DefaultView.Sort = "Count desc";
             Util.ExportDatatable(dt.DefaultView.ToTable(), Path.Combine(Enricher.I.Options.OutputPath, "Conductors.csv"));
+        }
+
+        private void LoadConductorTypes()
+        {
+            _conductorTypes = Util.GetDataTableFromCsv(Path.Combine(Enricher.I.Options.DataPath, "Conductors.csv"), true);
+        }
+
+        private string GetConductorId(double voltage, int phases, string pconductor, string nconductor)
+        {
+            if (string.IsNullOrEmpty(pconductor))
+                pconductor = $"[Phase Conductor] is null";
+            else
+                pconductor = $"[Phase Conductor] = '{pconductor}'";
+
+            if (string.IsNullOrEmpty(nconductor))
+                nconductor = $"[Neutral Conductor] is null";
+            else
+                nconductor = $"[Neutral Conductor] = '{nconductor}'";
+
+            var result = _conductorTypes.Select($"[ADMS] = 'TRUE' AND [Voltage] = {voltage} AND [Phases] = {phases} AND {pconductor} AND {nconductor}");
+            if (result.Length == 0)
+            {
+                return null;
+            }
+            else
+            {
+                return result[0]["ID"] as string;
+            }
         }
     }
 }

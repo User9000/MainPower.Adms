@@ -58,7 +58,8 @@ namespace MainPower.Osi.Enricher
 
             IdfTransformer.GenerateParallelSets(Path.Combine(Options.OutputPath, "Parallel Sets.xml"));
             FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
-
+            FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Line Types"), new XAttribute("name", "Line Types")));
+            File.Copy(Path.Combine(Options.DataPath, "Conductors.xml"), Path.Combine(Options.OutputPath, "Conductors.xml"), true);
             ProcessGeographic();
 
             Model.ValidateConnectivity();

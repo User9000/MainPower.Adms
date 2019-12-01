@@ -5,31 +5,13 @@ using System.Linq;
 
 namespace MainPower.Osi.Enricher
 {
-    public class T1Disconnector : DataType
-    {
+    public class T1Disconnector : DataType { }
+    public class T1Fuse : DataType { }
+    public class T1HvCircuitBreaker : DataType { }
+    public class T1RingMainUnit : DataType { }
+    public class T1Transformer : DataType { }
 
-    }
-    public class T1Fuse : DataType
-    {
-
-    }
-    public class T1HvCircuitBreaker : DataType
-    {
-
-    }
-    public class T1RingMainUnit : DataType
-    {
-
-    }
-    public class T1Transformer : DataType
-    {
-
-    }
-
-    public class TranspowerTransformer : DataType
-    {
-
-    }
+    public class TranspowerTransformer : DataType { }
 
     public class OsiScadaPoint : DataType
     {
@@ -39,13 +21,13 @@ namespace MainPower.Osi.Enricher
         {
             get
             {
-                return this[SCADA_KEY].PadLeft(8,'0');
+                return this[SCADA_KEY].PadLeft(8, '0');
             }
         }
     }
     public class OsiScadaStatus : OsiScadaPoint
     {
-        
+
         public const string SCADA_STATES = "pStates";
 
         public bool QuadState
@@ -56,36 +38,14 @@ namespace MainPower.Osi.Enricher
             }
         }
     }
-    public class OsiScadaAccumulator : OsiScadaPoint
-    {
+    public class OsiScadaAccumulator : OsiScadaPoint { }
+    public class OsiScadaAnalog : OsiScadaPoint { }
 
-    }
-    public class OsiScadaAnalog : OsiScadaPoint
-    {
-
-    }
-
-    public class OsiScadaSetpoint : OsiScadaPoint
-    {
-
-    }
-
-    public class AdmsSwitch : DataType
-    {
-
-    }
-    public class AdmsSwitch2 : DataType
-    {
-
-    }
-    public class AdmsTransformer : DataType
-    {
-
-    }
-
+    public class OsiScadaSetpoint : OsiScadaPoint { }
+    public class AdmsSwitch : DataType { }
+    public class AdmsTransformer : DataType { }
     public class AdmsSource : DataType { }
-    public class Icp : DataType
-    {
+    public class AdmsConductor : DataType { }
+    public class Icp : DataType { }
 
-    }
 }
