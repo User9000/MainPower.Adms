@@ -122,7 +122,6 @@ namespace MainPower.Osi.Enricher
                         break;
                     case "Source":
                         d = new IdfSource(node, this);
-                        Enricher.I.Model.AddSource(node, Id);
                         break;
                     case "Generator":
                         d = new IdfGenerator(node, this);

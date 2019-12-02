@@ -76,7 +76,7 @@ namespace MainPower.Osi.Enricher
                 {
                     //TODO move this into the nodemodel??
                     Info("Verifying connected device upstream side consistency...");
-                    foreach (var d in Model.Devices.Values.Where(s => (s.Type == DeviceType.Switch) && s.ConnectivityMark && s.SwitchState))
+                    foreach (var d in Model.Devices.Values.Where(s => (s.Type == DeviceType.Switch) && s.Connectivity && s.SwitchState))
                     {
                         var asset = DataManager.I.RequestRecordById<AdmsSwitch>(d.Name);
                         if (asset != null)

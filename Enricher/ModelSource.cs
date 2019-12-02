@@ -20,6 +20,6 @@ namespace MainPower.Osi.Enricher
         public string GroupId { get; set; }
 
         [Key(4)]
-        public short[] PhaseAngles { get; set; } = new short[3];
+        public short Phasing { get; set; }
     }
 }

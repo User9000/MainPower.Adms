@@ -48,7 +48,7 @@ namespace MainPower.Osi.Enricher
         {
             get
             {
-                var devices = from d in Devices.Values where !d.ConnectivityMark select d;
+                var devices = from d in Devices.Values where !d.Connectivity select d;
                 return devices.Count();
             }
         }
@@ -104,7 +104,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(IdfElement node, string gid, DeviceType type, string symbol = null, string key = null, SymbolPlacement orientation = SymbolPlacement.Left, int phaseshift = 0, double kva = 0)
+        public bool AddDevice(IdfElement node, string gid, DeviceType type, string symbol = null, string key = null, SymbolPlacement orientation = SymbolPlacement.Left, short phaseshift = 0, double kva = 0)
         {
             var s1nodeid = node.Node.Attribute("s1node")?.Value;
             var s2nodeid = node.Node.Attribute("s2node")?.Value;
@@ -236,10 +236,7 @@ namespace MainPower.Osi.Enricher
                 Name = node.Attribute("name").Value,
                 DeviceId = node.Attribute("device").Value
             };
-            s.PhaseAngles[0] = (short)(short.Parse(node.Attribute("phase1Angle").Value) / 30);
-            s.PhaseAngles[1] = (short)(short.Parse(node.Attribute("phase2Angle").Value) / 30);
-            s.PhaseAngles[2] = (short)(short.Parse(node.Attribute("phase3Angle").Value) / 30);
-
+            s.Phasing = (short)((short.Parse(node.Attribute("phase1Angle").Value) / 30 + 12) % 12);
             return AddSource(s);
         }
 
@@ -390,7 +387,7 @@ namespace MainPower.Osi.Enricher
                 TraceConnectivity(s);
             }
 
-            foreach (var device in (from d in Devices.Values where !d.ConnectivityMark select d))
+            foreach (var device in (from d in Devices.Values where !d.Connectivity select d))
             {
                 Warn($"Device is disconnected", device.Id, device.Name);
             }
@@ -420,10 +417,10 @@ namespace MainPower.Osi.Enricher
                 var set = stack.Pop();
 
                 ModelNode traceNode;
-                if (set.d.ConnectivityMark)
+                if (set.d.Connectivity)
                     continue;
                 else
-                    set.d.ConnectivityMark = true;
+                    set.d.Connectivity = true;
 
                 if (set.d.Node1 == set.n)
                 {
@@ -512,8 +509,14 @@ namespace MainPower.Osi.Enricher
             foreach (ModelDevice dd in Devices.Values)
             {
                 dd.CalculateUpstreamSide();
+                dd.CalculatePhaseShift();
             }
             ValidateDevicePhasing();
+            var openpoints = from d in Devices.Values where d.Type == DeviceType.Switch && d.CalculatedPhaseShift != 0 && d.CalculatedPhaseShift != null select d;
+            foreach (var openpoint in openpoints)
+            {
+                Info($"Switch has a phase shift of {openpoint.CalculatedPhaseShift}", openpoint);
+            }
             TimeSpan runtime = DateTime.Now - start;
             Info($"Power flow check: {DeenergizedCount} of {Devices.Count} devices deenergized ({runtime.TotalSeconds}s)");
         }
@@ -537,48 +540,67 @@ namespace MainPower.Osi.Enricher
             //n - the node we are tracing in from
             //ud - the device the trace came from
             //distance - the distance thus far from the source
-            Stack<(ModelDevice d, ModelNode n, ModelDevice ud, double distance)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, double)>();
-            stack.Push((d, d.Node1, null, 0));
+            //phase - phasing in clock units of phase 1
+            Queue<(ModelDevice d, ModelNode n, ModelDevice ud, double distance, short phase)> stack = new Queue<(ModelDevice, ModelNode, ModelDevice, double, short)>();
+            stack.Enqueue((d, d.Node1, null, 0, s.Phasing));
             do
             {
                 loop++;
-                var set = stack.Pop();
+                var set = stack.Dequeue();
                 ModelNode traceNode;
                 //if we haven't visited this node from source s, add new PFDetails for this source
                 if (!set.d.SP2S.ContainsKey(s))
                     set.d.SP2S.Add(s, new PFDetail());
 
                 var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
-
+                //if (set.d.Name == "CUL GXP T1")
+                //    Debugger.Break();
                 //we are coming in from side 1
                 if (set.d.Node1 == set.n)
                 {
                     //if we have already been here from a shorter path, then quit
                     if (set.distance >= set.d.SP2S[s].N1IntDistance)
                         continue;
-
+                    set.d.SP2S[s].Phasing[0] = set.phase;
+                    set.d.Energization[0] = true;
                     //mark that we have been here from side 1 and update the distance
                     set.d.SP2S[s].N1ExtDistance = set.d.SP2S[s].N1IntDistance = set.distance;
                     if (!openSwitch)
+                    {
                         set.d.SP2S[s].N2IntDistance = set.distance + d.Length;
+                        set.d.Energization[1] = true;
+                    } 
+                    if (set.d.Type == DeviceType.Transformer)
+                        set.d.SP2S[s].Phasing[1] = set.phase = (short)((set.phase + set.d.PhaseShift) % 12);
+                    else
+                        set.d.SP2S[s].Phasing[1] = set.phase;
                     traceNode = set.d.Node2;
                 }
                 else //we are coming in from side 2
                 {
                     if (set.distance >= set.d.SP2S[s].N2IntDistance)
                         continue;
+                    set.d.SP2S[s].Phasing[1] = set.phase;
+                    set.d.Energization[1] = true;
                     set.d.SP2S[s].N2ExtDistance = set.d.SP2S[s].N2IntDistance = set.distance;
                     if (!openSwitch)
+                    {
                         set.d.SP2S[s].N1IntDistance = set.distance + d.Length;
+                        set.d.Energization[0] = true;
+                    }
+                    if (set.d.Type == DeviceType.Transformer)
+                        set.d.SP2S[s].Phasing[0] = set.phase = (short)((set.phase + (12 - set.d.PhaseShift)) % 12);
+                    else
+                        set.d.SP2S[s].Phasing[0] = set.phase;
                     traceNode = set.d.Node1;
                 }
-                if (set.d.SwitchState || set.d.Type != DeviceType.Switch && traceNode != null)
+                if (!openSwitch && traceNode != null)
                 {
                     foreach (ModelDevice dd in traceNode.Devices)
                     {
                         if (dd != set.d)
                         {
-                            stack.Push((dd, traceNode, set.d, set.distance + set.d.Length));
+                            stack.Enqueue((dd, traceNode, set.d, set.distance + set.d.Length, set.phase));
                         }
                     }
                 }
@@ -595,7 +617,7 @@ namespace MainPower.Osi.Enricher
             foreach (ModelDevice d in Devices.Values)
             {
                 //don't check disconnected, deenergized devices or head devices
-                if (!d.ConnectivityMark || d.Upstream == 0 || d.SP2S.Count == 0)
+                if (!d.Connectivity || d.Upstream == 0 || d.SP2S.Count == 0)
                     continue;
 
                 //convert from upstream side (1 or 2) to array indexes (0 or 1)
@@ -772,7 +794,13 @@ namespace MainPower.Osi.Enricher
                 //switch we go through should change the line color
                 //this is required for the case where there are incomer switches
                 if (set.d.Type == DeviceType.Switch && tx)
-                    currentColor = RandomColor();
+                {
+                    //if the switch is already in the model with a different color, then use the existing one
+                    if (set.d.Color != ColorTranslator.ToHtml(currentColor))
+                        currentColor = ColorTranslator.FromHtml(set.d.Color);
+                    else
+                        currentColor = RandomColor();
+                }
 
                 //set device feeder and color
                 set.d.NominalFeeder = currentFeeder;
@@ -849,13 +877,13 @@ namespace MainPower.Osi.Enricher
             //n - the node we are tracing in from
             //ud - the device the trace came from
             //tx - the nearest upstream transformer
-            Stack<(ModelDevice d, ModelNode n, ModelDevice ud, ModelDevice tx)> stack = new Stack<(ModelDevice, ModelNode, ModelDevice, ModelDevice)>();
-            stack.Push((d, d.Node1, null, null));
+            Queue<(ModelDevice d, ModelNode n, ModelDevice ud, ModelDevice tx)> stack = new Queue<(ModelDevice, ModelNode, ModelDevice, ModelDevice)>();
+            stack.Enqueue((d, d.Node1, null, null));
             do
             {
                 //trace boilerplace start
                 loop++;
-                var set = stack.Pop();
+                var set = stack.Dequeue();
                 ModelNode traceNode = null;
                 //if we have been here before then continue
                 if (set.d.Trace)
@@ -866,11 +894,9 @@ namespace MainPower.Osi.Enricher
                 //trace boilerplate end
 
                 ModelDevice tx = set.tx;
-                
                 //if we are going through a distribution transformer, then set tx
                 if (set.d.Type == DeviceType.Transformer)
                     tx = set.d;
-
                 //if we are going through a load, then add it to the tranny map
                 else if (set.d.Type == DeviceType.Load)
                 {
@@ -904,7 +930,7 @@ namespace MainPower.Osi.Enricher
                     {
                         if (dd != set.d && dd.UpstreamNode == traceNode)
                         {
-                            stack.Push((dd, traceNode, set.d, tx));
+                            stack.Enqueue((dd, traceNode, set.d, tx));
                         }
                     }
                 }
@@ -924,9 +950,6 @@ namespace MainPower.Osi.Enricher
             }
             Info($"Feeder trace took {loop} loops for source {s.Name}");
         }
-
-
-
 
         /// <summary>
         /// Generates a random color
@@ -988,7 +1011,7 @@ namespace MainPower.Osi.Enricher
         /// <param name="dir">The directory to export to</param>
         public void ExportToShapeFile(string dir)
         {
-            DbfFieldDesc[] deviceFields = new DbfFieldDesc[17];
+            DbfFieldDesc[] deviceFields = new DbfFieldDesc[16];
             deviceFields[0] = new DbfFieldDesc
             {
                 FieldName = "Node1Id",
@@ -1034,7 +1057,7 @@ namespace MainPower.Osi.Enricher
             deviceFields[6] = new DbfFieldDesc
             {
                 FieldName = "Energized",
-                FieldLength = 1,
+                FieldLength = 15,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
@@ -1048,64 +1071,57 @@ namespace MainPower.Osi.Enricher
             deviceFields[8] = new DbfFieldDesc
             {
                 FieldName = "Type",
-                FieldLength = 15,
+                FieldLength = 20,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
             deviceFields[9] = new DbfFieldDesc
             {
-                FieldName = "Base1kV",
-                FieldLength = 8,
+                FieldName = "BasekV",
+                FieldLength = 20,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
             deviceFields[10] = new DbfFieldDesc
             {
-                FieldName = "Base2kV",
-                FieldLength = 8,
+                FieldName = "Phases",
+                FieldLength = 10,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
             deviceFields[11] = new DbfFieldDesc
             {
-                FieldName = "Side1Phase",
-                FieldLength = 3,
-                RecordOffset = 0,
-                FieldType = DbfFieldType.Character,
-            };
-            deviceFields[12] = new DbfFieldDesc
-            {
-                FieldName = "Side2Phase",
-                FieldLength = 3,
-                RecordOffset = 0,
-                FieldType = DbfFieldType.Character,
-            };
-            deviceFields[13] = new DbfFieldDesc
-            {
                 FieldName = "PhaseShift",
-                FieldLength = 2,
+                FieldLength = 10,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
 
-            deviceFields[14] = new DbfFieldDesc
+            deviceFields[12] = new DbfFieldDesc
             {
                 FieldName = "Feeder",
                 FieldLength = 10,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
-            deviceFields[15] = new DbfFieldDesc
+            deviceFields[13] = new DbfFieldDesc
             {
                 FieldName = "Color",
                 FieldLength = 10,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
-            deviceFields[16] = new DbfFieldDesc
+            deviceFields[14] = new DbfFieldDesc
             {
                 FieldName = "NominalkVA",
                 FieldLength = 10,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
+            deviceFields[15] = new DbfFieldDesc
+            {
+                FieldName = "Phasing",
+                FieldLength = 20,
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
@@ -1117,24 +1133,23 @@ namespace MainPower.Osi.Enricher
             {
                 foreach (ModelDevice d in Devices.Values)
                 {
-                    string[] fieldData = new string[17];
+                    string[] fieldData = new string[16];
                     fieldData[0] = d.Node1?.Id ?? "-";
                     fieldData[1] = d.Node2?.Id ?? "-";
                     fieldData[2] = d.Id;
                     fieldData[3] = d.Name;
                     fieldData[4] = d.GroupId;
-                    fieldData[5] = d.ConnectivityMark ? "1" : "0";
-                    fieldData[6] = d.SP2S.Any() ? "1" : "0";
+                    fieldData[5] = d.Connectivity ? "1" : "0";
+                    fieldData[6] = $"{d.Energization[0]}/{d.Energization[1]}";
                     fieldData[7] = d.Upstream.ToString();
                     fieldData[8] = d.Type.ToString();
-                    fieldData[9] = d.Base1kV.ToString("N3");
-                    fieldData[10] = d.Base2kV.ToString("N3");
-                    fieldData[11] = $"{d.PhaseID[0, 0]}{d.PhaseID[0, 1]}{d.PhaseID[0, 2]}";
-                    fieldData[12] = $"{d.PhaseID[1, 0]}{d.PhaseID[1, 1]}{d.PhaseID[1, 2]}";
-                    fieldData[13] = d.PhaseShift.ToString("N2");
-                    fieldData[14] = d.NominalFeeder?.FeederName ?? "-";
-                    fieldData[15] = d.Color ?? "";
-                    fieldData[16] = d.NominalkVA.ToString("N5") ?? "";
+                    fieldData[9] = $"{d.Base1kV.ToString("F1")}/{d.Base2kV.ToString("F1")}";
+                    fieldData[10] = $"{d.PhaseID[0, 0]}{d.PhaseID[0, 1]}{d.PhaseID[0, 2]}/{d.PhaseID[1, 0]}{d.PhaseID[1, 1]}{d.PhaseID[1, 2]}";
+                    fieldData[11] = $"{d.PhaseShift}/{d.CalculatedPhaseShift}";
+                    fieldData[12] = d.NominalFeeder?.FeederName ?? "-";
+                    fieldData[13] = d.Color ?? "";
+                    fieldData[14] = d.NominalkVA.ToString("N5") ?? "";
+                    fieldData[15] = $"{d.Phasing[0]}-{(d.Phasing[0] + 4) % 12}-{(d.Phasing[0] + 8) % 12}/{d.Phasing[1]}-{(d.Phasing[1] + 4) % 12}-{(d.Phasing[1] + 8) % 12}";
 
                     if (d.Geometry == null)
                     {

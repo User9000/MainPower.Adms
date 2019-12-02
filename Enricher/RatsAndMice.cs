@@ -202,11 +202,7 @@ namespace MainPower.Osi.Enricher
 
     public class PFDetail
     {
-        public short[] PhaseId1 { get; set; } = new short[3];
-        public short[] PhaseId2 { get; set; } = new short[3];
-        public short[] PhaseAngle1 { get; set; } = new short[3];
-        public short[] PhaseAngle2 { get; set; } = new short[3];
-
+        public short[] Phasing { get; set; } = new short[2];
         public double N1ExtDistance { get; set; } = double.NaN;
         public double N1IntDistance { get; set; } = double.NaN;
         public double N2ExtDistance { get; set; } = double.NaN;

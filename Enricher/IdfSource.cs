@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
@@ -76,6 +77,7 @@ namespace MainPower.Osi.Enricher
                     }
                     ParentGroup.AddGroupElement(x);
                 }
+                Enricher.I.Model.AddSource(Node, Id);
             }
             catch (Exception ex)
             {

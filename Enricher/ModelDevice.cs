@@ -3,6 +3,7 @@ using MessagePack;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Xml.Linq;
 
 namespace MainPower.Osi.Enricher
@@ -11,7 +12,7 @@ namespace MainPower.Osi.Enricher
     /// 
     /// </summary>
     [MessagePackObject]
-    public class ModelDevice
+    public class ModelDevice : ErrorReporter
     {
         [Key(0)]
         public ModelNode Node1 { get; set; }
@@ -48,7 +49,7 @@ namespace MainPower.Osi.Enricher
         /// Phase shift of transformer or regulator, in clock units
         /// </summary>
         [Key(10)]
-        public int PhaseShift { get; set; }
+        public short PhaseShift { get; set; }
 
         /// <summary>
         /// Phase Identifiers
@@ -79,8 +80,21 @@ namespace MainPower.Osi.Enricher
 
         [Key(18)]
         public SymbolPlacement Position { get; set; }
+
+        /// <summary>
+        /// Phasing (in clock units) of phase index 1
+        /// </summary>
         [IgnoreMember]
-        public bool ConnectivityMark { get; set; }
+        public short[] Phasing { get; set; } = new short[2];
+
+        [IgnoreMember]
+        public short? CalculatedPhaseShift { get; set; }
+
+        [IgnoreMember]
+        public bool[] Energization { get; set; } = new bool[2];
+
+        [IgnoreMember]
+        public bool Connectivity { get; set; }
 
         [IgnoreMember]
         public int Upstream { get; set; }
@@ -100,6 +114,7 @@ namespace MainPower.Osi.Enricher
 
         [IgnoreMember]
         public ModelSource ClosestUpstreamSource { get; set; }
+      
         [IgnoreMember]
         public bool Trace { get; set;} = false;
 
@@ -167,6 +182,49 @@ namespace MainPower.Osi.Enricher
                 }
             }
             return result;
+        }
+
+        public void CalculatePhaseShift()
+        {
+            short? s1 = null;
+            short? s2 = null;
+            foreach (var dpf in SP2S)
+            {
+                if (!dpf.Value.N1IntDistance.Equals(double.NaN))
+                {
+                    if (s1.HasValue)
+                    {
+                        if (s1 != dpf.Value.Phasing[0])
+                        {
+                            Warn("Device has inconsistent phasing between parallel sources", Id, Name);
+                        }
+                    }
+                    else
+                    {
+                        s1 = dpf.Value.Phasing[0];
+                    }
+                }
+                if (!dpf.Value.N2IntDistance.Equals(double.NaN))
+                {
+                    if (s2.HasValue)
+                    {
+                        if (s2 != dpf.Value.Phasing[1])
+                        {
+                            Warn("Device has inconsistent phasing between parallel sources", Id, Name);
+                        }
+                    }
+                    else
+                    {
+                        s2 = dpf.Value.Phasing[1];
+                    }
+                }
+            }
+            if (s1 == null || s2 == null)
+                CalculatedPhaseShift = null;
+            else
+                CalculatedPhaseShift = (short)((s1 - s2) % 12);
+            Phasing[0] = s1 ?? 0;
+            Phasing[1] = s2 ?? 0;
         }
     }
 
