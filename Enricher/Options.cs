@@ -4,22 +4,22 @@ namespace MainPower.Osi.Enricher
 {
     public class Options
     {
-        [Option('i', "ipath", HelpText = "Input file path", Required = true)]
+        [Option('i', "idfinput", HelpText = "Input IDF file path", Required = true)]
         public string InputPath { get; set; }
 
-        [Option('o', "opath", HelpText = "Output path", Required = true)]
+        [Option('o', "output", HelpText = "Output path", Required = true)]
         public string OutputPath { get; set; }
 
-        [Option('d', "dpath", HelpText = "Data path", Required = true)]
+        [Option('m', "model", HelpText = "Model file path", Required = false)]
+        public string Model { get; set; }
+
+        [Option('d', "data", HelpText = "Data path", Required = true)]
         public string DataPath { get; set; }
 
-        [Option('t', "dotopology", HelpText = "Process topology", Default = true)]
-        public bool ProcessTopology { get; set; }
+        [Option('D', "debug", HelpText = "Debug Level", Required = false)]
+        public int Debug { get; set; }
 
-        [Option('c', "checkupstream", HelpText = "Check switch upstream side", Default = true)]
-        public bool CheckSwitchFlow { get; set; }
-
-        [Option('m', "blankmodel", HelpText = "Start with a blank model", Default = false)]
+        [Option('n', "newmodel", HelpText = "Start with a blank model", Default = false)]
         public bool BlankModel { get; set; }
 
         [Option('p', "pause", HelpText = "Pause before quitting", Default = true)]
@@ -27,15 +27,6 @@ namespace MainPower.Osi.Enricher
 
         [Option('s', "exportshp", HelpText = "Export shape files", Default = true)]
         public bool ExportShapeFiles { get; set; }
-
-        [Option('z', "archiveidf", HelpText = "Archive the input idfs to the log directory", Default = true)]
-        public bool ArchiveIdf { get; set; }
-
-        [Option("converticps", HelpText = "Convert the icp database", Default = false)]
-        public bool ConvertIcps { get; set; }
-
-        [Option("exportdeviceinfo", HelpText = "Export extra device info", Default = true)]
-        public bool ExportDeviceInfo { get; set; }
 
         [Option("threads", HelpText = "The number of threads for group processing", Default = 10)]
         public int Threads { get; set; }

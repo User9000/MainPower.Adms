@@ -2,6 +2,7 @@
 using CommandLine.Text;
 using log4net;
 using log4net.Appender;
+using log4net.Core;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -34,6 +35,8 @@ namespace MainPower.Osi.Enricher
                {
                    try
                    {
+                       Logger.Setup(o.OutputPath, Level.Info);
+
                        //clear the output directory
                        var files = Directory.GetFiles(o.OutputPath, "*.xml");
                        foreach (var file in files)
@@ -49,7 +52,7 @@ namespace MainPower.Osi.Enricher
                    }
                    try
                    {
-                       if (o.ArchiveIdf) {
+                       if (false) {
                            //copy the input idfs to the log location
                            string logpath = GetLogFileName("file");
                            string logfile = Path.GetFileName(logpath);

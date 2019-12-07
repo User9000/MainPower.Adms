@@ -56,10 +56,16 @@ namespace MainPower.Osi.Enricher
                 return;
             }
 
+            //Add parallel transformer sets to the import configuration
             IdfTransformer.GenerateParallelSets(Path.Combine(Options.OutputPath, "Parallel Sets.xml"));
             FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
+            //Add line types to the import configuration
             FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Line Types"), new XAttribute("name", "Line Types")));
             File.Copy(Path.Combine(Options.DataPath, "Conductors.xml"), Path.Combine(Options.OutputPath, "Conductors.xml"), true);
+            //Add custom scada linking to the import configuration
+            FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "SCADA"), new XAttribute("name", "Custom SCADA Links")));
+            File.Copy(Path.Combine(Options.DataPath, "CustomSCADALinks.xml"), Path.Combine(Options.OutputPath, "CustomSCADALinks.xml"), true);
+
             ProcessGeographic();
 
             Model.ValidateConnectivity();
@@ -72,7 +78,7 @@ namespace MainPower.Osi.Enricher
             {
 
                 Model.Serialize($"{o.DataPath}\\model");
-                if (o.CheckSwitchFlow)
+                if (true)
                 {
                     //TODO move this into the nodemodel??
                     Info("Verifying connected device upstream side consistency...");
@@ -99,10 +105,8 @@ namespace MainPower.Osi.Enricher
                 {
                     Model.ExportToShapeFile($"{o.OutputPath}\\");
                 }
-                if (o.ExportDeviceInfo)
-                {
-                    Model.ExportDeviceCoordinates();
-                }
+
+                Model.ExportDeviceCoordinates();
                 IdfLine.ExportConductors();
             }
             else

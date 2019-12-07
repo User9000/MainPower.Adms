@@ -1,0 +1,80 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using log4net;
+using log4net.Appender;
+using log4net.Config;
+using log4net.Core;
+using log4net.Layout;
+using log4net.Repository.Hierarchy;
+using static log4net.Appender.ColoredConsoleAppender;
+
+namespace MainPower.Osi.Enricher
+{
+    public static class Logger
+    {
+        public static void Setup(string path, Level level)
+        {
+            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+            hierarchy.Root.RemoveAllAppenders();
+
+            PatternLayout patternLayout = new PatternLayout();
+            patternLayout.ConversionPattern = "%level,%message%newline";
+            patternLayout.ActivateOptions();
+
+            RollingFileAppender roller = new RollingFileAppender();
+            roller.AppendToFile = false;
+            roller.File = Path.Combine(path, "log.csv");
+            roller.Layout = patternLayout;
+            roller.MaxSizeRollBackups = 5;
+            roller.MaximumFileSize = "10GB";
+            roller.RollingStyle = RollingFileAppender.RollingMode.Size;
+            roller.StaticLogFileName = true;
+            roller.ActivateOptions();
+
+            PatternLayout patternLayout2 = new PatternLayout();
+            patternLayout2.ConversionPattern = "%date{HH:mm:ss,fff},%level,%message%newline";
+            patternLayout2.ActivateOptions();
+
+            ColoredConsoleAppender console = new ColoredConsoleAppender();
+            var l1 = new LevelColors
+            {
+                ForeColor = Colors.Green | Colors.HighIntensity,
+                Level = Level.Fatal
+            };
+            var l2 = new LevelColors
+            {
+                ForeColor = Colors.Red | Colors.HighIntensity,
+                Level = Level.Error
+            };
+            var l3 = new LevelColors
+            {
+                ForeColor = Colors.Yellow | Colors.HighIntensity,
+                Level = Level.Warn
+            };
+            var l4 = new LevelColors
+            {
+                ForeColor = Colors.White,
+                Level = Level.Info
+            };
+            var l5 = new LevelColors
+            {
+                ForeColor = Colors.White,
+                Level = Level.Debug
+            };
+
+            console.AddMapping(l1);
+            console.AddMapping(l2);
+            console.AddMapping(l3);
+            console.AddMapping(l4);
+            console.AddMapping(l5);
+            console.Layout = patternLayout2;
+            console.ActivateOptions();
+            hierarchy.Root.Level = level;            
+            BasicConfigurator.Configure(hierarchy, roller, console);
+        }
+    }
+}
