@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     /// <summary>
     /// Represents an IDF Source element

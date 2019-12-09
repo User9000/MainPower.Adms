@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     /// <summary>
     /// Base class for all externally sourced data.

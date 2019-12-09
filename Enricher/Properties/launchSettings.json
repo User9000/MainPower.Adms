@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Enricher2": {
+      "commandName": "Project",
+      "commandLineArgs": "-i \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\idf\\2019-12-01T12.04Z\" -o \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\output\" -d \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\data\" -n   -s"
+    }
+  }
+}

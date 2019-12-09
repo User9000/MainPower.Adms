@@ -7,12 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public class Enricher : ErrorReporter
     {
-        public static Enricher I { get; } = new Enricher();
-
         public Options Options { get; set; }
                
         public int TransformerCount { get; set; }
@@ -24,7 +22,8 @@ namespace MainPower.Osi.Enricher
         public int LoadCount { get; set; }
 
         public Model Model { get; set; } = new Model();
-
+        public FileManager FileManager { get; private set; } = new FileManager();
+        
         public void Go(Options o)
         {
             DateTime start = DateTime.Now;

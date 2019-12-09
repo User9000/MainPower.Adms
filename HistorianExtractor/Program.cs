@@ -5,7 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 
-namespace MainPower.Osi.HistorianExtractor
+namespace MainPower.Adms.HistorianExtractor
 {
     public class Options
     {

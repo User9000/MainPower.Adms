@@ -3,7 +3,7 @@ using System;
 using System.Drawing;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     [MessagePackObject]
     public class ModelFeeder

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     /// <summary>
     /// TODO: subclass IdfDevice to remove all the extra stuff that isn't relevant to groups etc

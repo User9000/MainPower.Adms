@@ -3,7 +3,7 @@ using System.Data;
 using System.Data.SQLite;
 using System.IO;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public class CsvDataSource : TableDataSource
     {

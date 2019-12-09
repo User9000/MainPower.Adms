@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
 
     public class IdfLoad : IdfElement

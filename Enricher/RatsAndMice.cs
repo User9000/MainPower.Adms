@@ -11,7 +11,7 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public enum SymbolPlacement 
     {

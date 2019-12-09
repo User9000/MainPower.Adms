@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     /// <summary>
     /// Conversion routines for Google, TMS, and Microsoft Quadtree tile representations, derived from

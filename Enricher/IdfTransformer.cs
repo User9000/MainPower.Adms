@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public  class IdfTransformer : IdfElement
     {

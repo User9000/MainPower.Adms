@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public class Options
     {

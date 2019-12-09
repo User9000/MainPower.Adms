@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public abstract class DataSource : ErrorReporter
     {

@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace MainPower.Osi.ScadaConverter
+namespace MainPower.Adms.ScadaConverter
 {
     /// <summary>
     /// The TagTransmogrifier converts an InTouch tag name, and converts it into an OSI PointName

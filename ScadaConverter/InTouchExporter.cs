@@ -1,5 +1,5 @@
 ﻿using LumenWorks.Framework.IO.Csv;
-using MainPower.Osi.ScadaConverter;
+using MainPower.Adms.ScadaConverter;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace MainPower.Osi.ScadaConverter
+namespace MainPower.Adms.ScadaConverter
 {
     public class InTouchExporter
     {

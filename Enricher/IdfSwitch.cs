@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     class IdfSwitch : IdfElement
     {
@@ -161,7 +161,7 @@ namespace MainPower.Osi.Enricher
                     case @"MV Isolator\Knife Isolator":
                         //basically a non ganged disconnector e.g. links
                         ProcessDisconnector();
-                        _ganged = IdfFalse;
+                        //_ganged = IdfFalse;
                         //TODO
                         //_loadBreakCapable = IDF_FALSE;
                         break;
@@ -692,7 +692,7 @@ namespace MainPower.Osi.Enricher
                 Warn($"T1 asset number [{T1Id}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
-            _ganged = IdfFalse; //TODO check
+            //_ganged = IdfFalse; //TODO check
             _loadBreakCapable = IdfTrue; //TODO check
             //_maxInterruptAmps = "";
             //_ratedAmps = "";
@@ -708,7 +708,7 @@ namespace MainPower.Osi.Enricher
                 Warn($"T1 asset number [{T1Id}] is not unset");
             //_bidirectional = "";
             //_forwardTripAmps = "";
-            _ganged = IdfFalse; //TODO check
+            //_ganged = IdfFalse; //TODO check
             _loadBreakCapable = IdfTrue; //TODO check
             //_maxInterruptAmps = "";
             //_ratedAmps = "";
@@ -797,7 +797,7 @@ namespace MainPower.Osi.Enricher
 
         private void ProcessHVLinks()
         {
-            _ganged = IdfFalse;
+            //_ganged = IdfFalse;
             //TODO
             //_loadBreakCapable = IDF_FALSE;//TODO
             _ratedAmps = "300";//confirmed by robert
@@ -978,7 +978,7 @@ namespace MainPower.Osi.Enricher
         {
             _bidirectional = IdfTrue;
             _forwardTripAmps = _reverseTripAmps = ValidateFuseTrip(_fuserating);
-            _ganged = IdfFalse;
+            //_ganged = IdfFalse;
             //TODO
             //_loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "10000";//TODO check with sjw
@@ -1016,7 +1016,7 @@ namespace MainPower.Osi.Enricher
         {
             _bidirectional = IdfTrue;
             _forwardTripAmps = _reverseTripAmps = "";
-            _ganged = IdfFalse;
+            //_ganged = IdfFalse;
             //TODO
             //_loadBreakCapable = IDF_FALSE;
             _maxInterruptAmps = "";//TODO check with sjw

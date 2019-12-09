@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     /// <summary>
     /// Marshals external data requests to the appropriate DataSource

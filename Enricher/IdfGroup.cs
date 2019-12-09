@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 { 
     public class IdfGroup : IdfElement
     {
@@ -145,7 +145,8 @@ namespace MainPower.Osi.Enricher
                 var display = group.Value;
                 
                 var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value != SymbolDataLink && x.Elements("dataLink").Any());
-                foreach (var symbol in symbols)
+                //we add new symbols the groups, so take a list to avoid ienum change errors
+                foreach (var symbol in symbols.ToList())
                 {
                     try
                     {
@@ -165,6 +166,12 @@ namespace MainPower.Osi.Enricher
                             {
                                 SetSymbolScadaLink(symbol, device.ScadaKey);
                                 display.Add(CreateEmapDeviceLinkSymbol(symbol, datalink, device.Position));
+                            }
+
+                            if (device.Type == DeviceType.Load && geographic)
+                            {
+                                symbol.SetAttributeValue("z", "1.0");
+                                CopyLoadToPremise(symbol);
                             }
                         }
                         symbol.SetAttributeValue("mpwr_internals", null);
@@ -272,6 +279,48 @@ namespace MainPower.Osi.Enricher
 
         #region Graphic Manipulation Functions
 
+        private void CopyLoadToPremise(XElement symboltocopy)
+        {
+            symboltocopy.SetAttributeValue("overlay", "Overlay_MainPower_Load");
+            string id = symboltocopy.Descendants("dataLink").First().Attribute("id").Value;
+
+            XElement symbol = new XElement(symboltocopy);
+            symbol.Descendants().Remove();
+            symbol.SetAttributeValue("id", symbol.Attribute("id").Value + ",Premise");
+
+            symbol.SetAttributeValue("overlay", "Overlay_MainPower_Premise");
+
+            XElement c = new XElement("command",
+                   new XAttribute("plugin", "ElectraOMS"),
+                   new XAttribute("topic", "view premise details"),
+                   new XAttribute("instance", "Active"),
+                   new XElement("field",
+                       new XAttribute("name", "data link url"),
+                       new XAttribute("value", "@URL")),
+                   new XElement("field",
+                       new XAttribute("name", "data mode"),
+                       new XAttribute("value", "@MODE")),
+                   new XElement("field",
+                       new XAttribute("name", "data instance"),
+                       new XAttribute("value", "@I")
+                   )
+               );
+
+            XElement x = new XElement("dataLink",
+                new XAttribute("dsID", id),
+                new XElement("link",
+                    new XAttribute("d", "ELECTRA_OMS"),
+                    new XAttribute("f", "IsAMIMeter"),
+                    new XAttribute("i", "0"),
+                    new XAttribute("identityType", "Key"),
+                    new XAttribute("o", "OMS_ELECTRIC_PREMISE")
+                )
+            );
+            symbol.Add(x);
+            symbol.Add(c);
+            symboltocopy.Parent.Add(symbol);
+        }
+
         private void SetSymbolScadaLink(XElement symbol, string scadaKey)
         {
             //remove the old datalink, if any
@@ -359,7 +408,7 @@ namespace MainPower.Osi.Enricher
 
             XElement datalink = new XElement("dataLink");
             datalink.Add(new XAttribute("id", id));
-            newsymbol.Add(id);
+            newsymbol.Add(datalink);
 
 
             XElement link = new XElement("link");

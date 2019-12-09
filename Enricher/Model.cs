@@ -9,7 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     [Serializable]
     [MessagePackObject]

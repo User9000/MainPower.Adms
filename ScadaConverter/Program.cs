@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MainPower.Osi.ScadaConverter;
+using MainPower.Adms.ScadaConverter;
 using System.IO;
 using System.IO.Compression;
 
-namespace MainPower.Osi.ScadaConverter
+namespace MainPower.Adms.ScadaConverter
 {
     public class Options
     {

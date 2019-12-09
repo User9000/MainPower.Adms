@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Xml;
 
-namespace MainPower.Osi.EpaFixer
+namespace MainPower.Adms.EpaFixer
 {
     class Program
     {

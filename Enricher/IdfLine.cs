@@ -5,7 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public class IdfLine : IdfElement
     {

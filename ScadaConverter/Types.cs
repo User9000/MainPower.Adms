@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace MainPower.Osi.ScadaConverter
+namespace MainPower.Adms.ScadaConverter
 {
     /// <summary>
     /// Contains key details for a point or tag

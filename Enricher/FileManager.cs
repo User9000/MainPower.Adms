@@ -4,15 +4,13 @@ using System.IO;
 using System.Xml.Linq;
 using System.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     /// <summary>
     /// Reads IDF files and sorts them into groups
     /// </summary>
     public class FileManager : ErrorReporter
     {
-        public static FileManager I { get; } = new FileManager();
-
         public List<IdfFile> DataFiles = new List<IdfFile>();
         public List<IdfFile> GraphicsFiles = new List<IdfFile>();
         public IdfFile ImportConfig = null;

@@ -10,19 +10,19 @@ using log4net.Config;
 using log4net.Core;
 using log4net.Layout;
 using log4net.Repository.Hierarchy;
-using static log4net.Appender.ColoredConsoleAppender;
+using static log4net.Appender.ManagedColoredConsoleAppender;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public static class Logger
     {
         public static void Setup(string path, Level level)
         {
-            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+            Hierarchy hierarchy = (Hierarchy)LogManager.CreateRepository("default");
             hierarchy.Root.RemoveAllAppenders();
 
             PatternLayout patternLayout = new PatternLayout();
-            patternLayout.ConversionPattern = "%level,%message%newline";
+            patternLayout.ConversionPattern = "%date{HH:mm:ss,fff},%level,%message%newline";
             patternLayout.ActivateOptions();
 
             RollingFileAppender roller = new RollingFileAppender();
@@ -36,33 +36,33 @@ namespace MainPower.Osi.Enricher
             roller.ActivateOptions();
 
             PatternLayout patternLayout2 = new PatternLayout();
-            patternLayout2.ConversionPattern = "%date{HH:mm:ss,fff},%level,%message%newline";
+            patternLayout2.ConversionPattern = "%level,%message%newline";
             patternLayout2.ActivateOptions();
 
-            ColoredConsoleAppender console = new ColoredConsoleAppender();
+            ManagedColoredConsoleAppender console = new ManagedColoredConsoleAppender();
             var l1 = new LevelColors
             {
-                ForeColor = Colors.Green | Colors.HighIntensity,
+                ForeColor = ConsoleColor.Green,
                 Level = Level.Fatal
             };
             var l2 = new LevelColors
             {
-                ForeColor = Colors.Red | Colors.HighIntensity,
+                ForeColor = ConsoleColor.Red,
                 Level = Level.Error
             };
             var l3 = new LevelColors
             {
-                ForeColor = Colors.Yellow | Colors.HighIntensity,
+                ForeColor = ConsoleColor.Yellow,
                 Level = Level.Warn
             };
             var l4 = new LevelColors
             {
-                ForeColor = Colors.White,
+                ForeColor = ConsoleColor.White,
                 Level = Level.Info
             };
             var l5 = new LevelColors
             {
-                ForeColor = Colors.White,
+                ForeColor = ConsoleColor.White,
                 Level = Level.Debug
             };
 

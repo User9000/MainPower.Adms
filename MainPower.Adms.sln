@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29201.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enricher", "Enricher\Enricher.csproj", "{4DC82929-03E4-4B7F-B195-02D5FFEFC620}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Enricher", "Enricher\Enricher.csproj", "{4DC82929-03E4-4B7F-B195-02D5FFEFC620}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpaFixer", "EpaFixer\EpaFixer.csproj", "{F5058840-D869-48A2-816A-673A3B1EF908}"
 EndProject
@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Leika2Adms", "Leika2Adms\Le
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoordinateConverter", "CoordinateConverter\CoordinateConverter.csproj", "{7BDE8A53-5764-41B4-9780-A7AC3857BFA9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdfManager", "IdfManager\IdfManager.csproj", "{790BD099-6820-4CCA-B652-90F944B9624C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdfManager", "IdfManager\IdfManager.csproj", "{790BD099-6820-4CCA-B652-90F944B9624C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

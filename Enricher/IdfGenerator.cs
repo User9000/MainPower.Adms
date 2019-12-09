@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Xml.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     public class IdfGenerator : IdfElement
     {
@@ -23,7 +23,7 @@ namespace MainPower.Osi.Enricher
             try
             {
                 //Node.SetAttributeValue(IDF_DEVICE_BASEKV, "0.400");
-                Node.SetAttributeValue("ratedKV", "0.500");
+                Node.SetAttributeValue("ratedKV", "0.4");
                 Node.SetAttributeValue("nominalKW", "1000");
                 Node.SetAttributeValue("nominalKVAR", "50");
                 Node.SetAttributeValue("machineType", GEN_DEFAULT_MACHINE);

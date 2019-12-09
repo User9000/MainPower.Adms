@@ -8,22 +8,13 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
-    class Program
+    static class Program
     {
         private static readonly ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public static string GetLogFileName(string name)
-        {
-            var rootAppender = LogManager.GetRepository()
-                                         .GetAppenders()
-                                         .OfType<RollingFileAppender>()
-                                         .FirstOrDefault(fa => fa.Name == name);
-
-            return rootAppender != null ? rootAppender.File : string.Empty;
-        }
-
+        public static Enricher Enricher { get; private set; } = new Enricher();
         static int Main(string[] args)
         {
             Console.BufferWidth = 320;
@@ -35,38 +26,40 @@ namespace MainPower.Osi.Enricher
                {
                    try
                    {
-                       Logger.Setup(o.OutputPath, Level.Info);
-
                        //clear the output directory
-                       var files = Directory.GetFiles(o.OutputPath, "*.xml");
+                       //need to do this before setting up logging, else we can't delete the old log file
+                       var files = Directory.GetFiles(o.OutputPath);
                        foreach (var file in files)
                        {
                            File.Delete(file);
                        }
-                       Enricher.I.Go(o);
+
+                       //setup logging
+                       Level loglevel = Level.Info;
+                       switch (o.Debug)
+                       {
+                           case 1:
+                               loglevel = Level.Error;
+                               break;
+                           case 2:
+                               loglevel = Level.Warn;
+                               break;
+                           case 3:
+                               loglevel = Level.Info;
+                               break;
+                           case 4:
+                               loglevel = Level.Debug;
+                               break;
+                       }
+                       Logger.Setup(o.OutputPath, loglevel);
+                       Enricher.Go(o);
                        Console.WriteLine("All done....");
                    }
                    catch (Exception ex)
                    {
                        Console.WriteLine(ex.ToString());
                    }
-                   try
-                   {
-                       if (false) {
-                           //copy the input idfs to the log location
-                           string logpath = GetLogFileName("file");
-                           string logfile = Path.GetFileName(logpath);
-                           string zipfile1 = logfile.Replace("enricher", "idf-input").Replace(".csv", ".zip");
-                           string zipfile2 = logfile.Replace("enricher", "idf-output").Replace(".csv", ".zip");
-                           string logdir = Path.GetDirectoryName(logpath);
-                           ZipFile.CreateFromDirectory(o.InputPath, Path.Combine(logdir, zipfile1));
-                           ZipFile.CreateFromDirectory(o.OutputPath, Path.Combine(logdir, zipfile2));
-                       }
-                   }
-                   catch (Exception ex)
-                   {
-                       Console.WriteLine(ex.ToString());
-                   }
+  
                    if (ErrorReporter.Fatals > 0)
                        retCode = 3;
                    else if (ErrorReporter.Errors > 0)

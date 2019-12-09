@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 
 
-namespace MainPower.Osi.Enricher
+namespace MainPower.Adms.Enricher
 {
     [Serializable]
     [MessagePackObject]
