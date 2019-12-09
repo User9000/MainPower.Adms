@@ -1002,7 +1002,7 @@ namespace MainPower.Adms.Enricher
                     }
                 }
             }
-            doc.Save(Path.Combine(Enricher.I.Options.OutputPath, "DeviceInfo.xml"));
+            doc.Save(Path.Combine(Program.Options.OutputPath, "DeviceInfo.xml"));
         }
 
         /// <summary>

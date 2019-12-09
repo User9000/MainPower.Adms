@@ -13,7 +13,7 @@ namespace MainPower.Adms.Enricher
         {
             try
             {
-                Data = Util.GetDataTableFromCsv(Path.Combine(Enricher.I.Options.DataPath, FileName), true);
+                Data = Util.GetDataTableFromCsv(Path.Combine(Program.Options.DataPath, FileName), true);
                 //speed 'select'
                 if (!string.IsNullOrWhiteSpace(IndexColumn))
                 {
@@ -37,7 +37,7 @@ namespace MainPower.Adms.Enricher
             try
             {
                 Data.AcceptChanges();
-                Util.ExportDatatable(Data, Path.Combine(Enricher.I.Options.DataPath, FileName));
+                Util.ExportDatatable(Data, Path.Combine(Program.Options.DataPath, FileName));
                 return true;
             }
             catch (Exception ex)

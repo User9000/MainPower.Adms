@@ -268,7 +268,7 @@ namespace MainPower.Adms.Enricher
                 GenerateDeviceInfo(items);
                 RemoveExtraAttributes();
 
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, _symbol, scadaKey, _orientation);
+                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, _symbol, scadaKey, _orientation);
             }
             catch (Exception ex)
             {

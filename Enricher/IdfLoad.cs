@@ -70,7 +70,7 @@ namespace MainPower.Adms.Enricher
                             break;
                     }
                     Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
-                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Load, symbol);
+                    Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Load, symbol);
                 }
             }
             catch (Exception ex)

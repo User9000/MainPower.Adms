@@ -15,6 +15,9 @@ namespace MainPower.Adms.Enricher
         private static readonly ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public static Enricher Enricher { get; private set; } = new Enricher();
+
+        public static Options Options { get; set; }
+
         static int Main(string[] args)
         {
             Console.BufferWidth = 320;
@@ -26,6 +29,8 @@ namespace MainPower.Adms.Enricher
                {
                    try
                    {
+                       Options = o;
+
                        //clear the output directory
                        //need to do this before setting up logging, else we can't delete the old log file
                        var files = Directory.GetFiles(o.OutputPath);

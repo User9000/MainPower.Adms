@@ -10,9 +10,7 @@ using System.Xml.Linq;
 namespace MainPower.Adms.Enricher
 {
     public class Enricher : ErrorReporter
-    {
-        public Options Options { get; set; }
-               
+    {              
         public int TransformerCount { get; set; }
         public int LineCount { get; set; }
         public int Line5Count { get; set; }
@@ -56,14 +54,14 @@ namespace MainPower.Adms.Enricher
             }
 
             //Add parallel transformer sets to the import configuration
-            IdfTransformer.GenerateParallelSets(Path.Combine(Options.OutputPath, "Parallel Sets.xml"));
-            FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
+            IdfTransformer.GenerateParallelSets(Path.Combine(Program.Options.OutputPath, "Parallel Sets.xml"));
+            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
             //Add line types to the import configuration
-            FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Line Types"), new XAttribute("name", "Line Types")));
-            File.Copy(Path.Combine(Options.DataPath, "Conductors.xml"), Path.Combine(Options.OutputPath, "Conductors.xml"), true);
+            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Line Types"), new XAttribute("name", "Line Types")));
+            File.Copy(Path.Combine(Program.Options.DataPath, "Conductors.xml"), Path.Combine(Program.Options.OutputPath, "Conductors.xml"), true);
             //Add custom scada linking to the import configuration
-            FileManager.I.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "SCADA"), new XAttribute("name", "Custom SCADA Links")));
-            File.Copy(Path.Combine(Options.DataPath, "CustomSCADALinks.xml"), Path.Combine(Options.OutputPath, "CustomSCADALinks.xml"), true);
+            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "SCADA"), new XAttribute("name", "Custom SCADA Links")));
+            File.Copy(Path.Combine(Program.Options.DataPath, "CustomSCADALinks.xml"), Path.Combine(Program.Options.OutputPath, "CustomSCADALinks.xml"), true);
 
             ProcessGeographic();
 
@@ -119,7 +117,7 @@ namespace MainPower.Adms.Enricher
             else
             {
                 Info("Saving the output IDF...");
-                FileManager.I.SaveFiles(o.OutputPath);
+                FileManager.SaveFiles(o.OutputPath);
             }
             TimeSpan runtime = DateTime.Now - start;
             Info($"Stats: Tx:{TransformerCount} Line:{LineCount} Line5:{Line5Count} Line25:{Line25Count} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
@@ -133,19 +131,18 @@ namespace MainPower.Adms.Enricher
                 Warn("Options.Threads was outside the range 1-100, setting to 10");
                 o.Threads = 10;
             }
-            Options = o;
+            //Options = o;
         }
 
         public bool ProcessImportConfiguration()
         {
-            FileManager fm = FileManager.I;
-            if (!fm.Initialize(Options.InputPath))
+            if (!FileManager.Initialize(Program.Options.InputPath))
             {
                 return false;
             }
             var tasks = new List<Task>();
 
-            foreach (var group in fm.Groups.Values)
+            foreach (var group in FileManager.Groups.Values)
             {
                 try
                 {
@@ -154,7 +151,7 @@ namespace MainPower.Adms.Enricher
                     Model.RemoveGroup(group.Id);
                     
                     //No point running 1000 threads at once
-                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Options.Threads)
+                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Program.Options.Threads)
                         Thread.Sleep(100);
                     tasks.Add(Task.Run((Action)group.Process));
                 }
@@ -174,12 +171,12 @@ namespace MainPower.Adms.Enricher
             Info("Processing graphics...");
             var tasks = new List<Task>();
 
-            foreach (var group in FileManager.I.Groups.Values)
+            foreach (var group in Program.Enricher.FileManager.Groups.Values)
             {
                 try
                 {
                     //No point running 1000 threads at once
-                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Options.Threads)
+                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Program.Options.Threads)
                         Thread.Sleep(100);
                     tasks.Add(Task.Run((Action)group.ProcessGraphics));
                 }
@@ -197,12 +194,12 @@ namespace MainPower.Adms.Enricher
             Info("Processing geographic information...");
             var tasks = new List<Task>();
 
-            foreach (var group in FileManager.I.Groups.Values)
+            foreach (var group in FileManager.Groups.Values)
             {
                 try
                 {
                     //No point running 1000 threads at once
-                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Options.Threads)
+                    while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Program.Options.Threads)
                         Thread.Sleep(100);
                     tasks.Add(Task.Run((Action)group.ProcessGeographic));
                 }

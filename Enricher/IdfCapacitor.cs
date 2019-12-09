@@ -23,7 +23,7 @@ namespace MainPower.Adms.Enricher
             {
                 //TODO: backport to extractor
                 //SetAllNominalStates();
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.ShuntCapacitor, SYMBOL_CAPACITOR);
+                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.ShuntCapacitor, SYMBOL_CAPACITOR);
                 //TODO: backport to extractor
                 Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV)?.Value);
             }

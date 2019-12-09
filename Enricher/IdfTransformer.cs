@@ -344,9 +344,9 @@ namespace MainPower.Adms.Enricher
                 RemoveExtraAttributes();
 
                 if (_vGroup == "ZN")
-                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.EarthingTransformer, _symbolName);
+                    Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.EarthingTransformer, _symbolName);
                 else
-                    Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, _symbolName, null, SymbolPlacement.Left, _phaseshift, _dkva);
+                    Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, _symbolName, null, SymbolPlacement.Left, _phaseshift, _dkva);
 
 
             }

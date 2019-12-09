@@ -17,7 +17,7 @@ namespace MainPower.Adms.Enricher
                 var dev = Node.Attribute(IdfFeederDevice)?.Value;
                 if (!string.IsNullOrWhiteSpace(dev))
                 {
-                    Enricher.I.Model.AddFeeder(Id, Name, dev, ParentGroup.Id);
+                    Program.Enricher.Model.AddFeeder(Id, Name, dev, ParentGroup.Id);
                 }
             }
             catch (Exception ex)

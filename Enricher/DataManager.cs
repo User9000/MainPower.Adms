@@ -97,7 +97,7 @@ namespace MainPower.Adms.Enricher
                     TypeNameHandling = TypeNameHandling.Auto,
                     TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple
                 };
-                Util.SerializeNewtonsoft(Path.Combine(Enricher.I.Options.DataPath, file), Datasets, s);
+                Util.SerializeNewtonsoft(Path.Combine(Program.Options.DataPath, file), Datasets, s);
             }
             catch (Exception ex)
             {
@@ -219,7 +219,7 @@ namespace MainPower.Adms.Enricher
                 Datasets.Add(nameof(OsiScadaSetpoint), source);
                 source = new SqliteSource()
                 {
-                    ConnectionString = @$"Data Source={Path.Combine(Enricher.I.Options.DataPath, "adms.db")};Version=3;",
+                    ConnectionString = @$"Data Source={Path.Combine(Program.Options.DataPath, "adms.db")};Version=3;",
                     Table = "Switch",
                     Name = "AdmsSwitch",
                     IndexColumn = "SwitchNumber",
@@ -228,7 +228,7 @@ namespace MainPower.Adms.Enricher
                 Datasets.Add(nameof(AdmsSwitch), source);
                 source = new SqliteSource()
                 {
-                    ConnectionString = @$"Data Source={Path.Combine(Enricher.I.Options.DataPath, "adms.db")};Version=3;",
+                    ConnectionString = @$"Data Source={Path.Combine(Program.Options.DataPath, "adms.db")};Version=3;",
                     Table = "Transformer",
                     Name = "AdmsTransformer",
                     IndexColumn = "AssetNumber",
@@ -237,7 +237,7 @@ namespace MainPower.Adms.Enricher
                 Datasets.Add(nameof(AdmsTransformer), source);
                 source = new SqliteSource()
                 {
-                    ConnectionString = @$"Data Source={Path.Combine(Enricher.I.Options.DataPath, "adms.db")};Version=3;",
+                    ConnectionString = @$"Data Source={Path.Combine(Program.Options.DataPath, "adms.db")};Version=3;",
                     Table = "Source",
                     Name = "AdmsSource",
                     IndexColumn = "Name",

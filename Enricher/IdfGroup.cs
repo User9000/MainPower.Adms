@@ -78,46 +78,46 @@ namespace MainPower.Adms.Enricher
                 {
                     case "Switch":
                         d = new IdfSwitch(node, this);
-                        Enricher.I.SwitchCount++;
+                        Program.Enricher.SwitchCount++;
                         break;
                     case "Transformer":
                         d = new IdfTransformer(node, this);
-                        Enricher.I.TransformerCount++;
+                        Program.Enricher.TransformerCount++;
                         break;
                     case "Line":
-                        Enricher.I.LineCount++;
+                        Program.Enricher.LineCount++;
                         d = new IdfLine(node, this);
                         break;
                     case "Load":
-                        Enricher.I.LoadCount++;
+                        Program.Enricher.LoadCount++;
                         d = new IdfLoad(node, this);
                         break;
                     case "Feeder":
-                        Enricher.I.LoadCount++;
+                        Program.Enricher.LoadCount++;
                         d = new IdfFeeder(node, this);
                         break;
                     case "Circuit":
-                        Enricher.I.LoadCount++;
+                        Program.Enricher.LoadCount++;
                         d = new IdfCircuit(node, this);
                         break;
                     case "Regulator":
-                        Enricher.I.LoadCount++;
+                        Program.Enricher.LoadCount++;
                         d = new IdfRegulator(node, this);
                         break;
                     case "Substation":
-                        Enricher.I.LoadCount++;
+                        Program.Enricher.LoadCount++;
                         d = new IdfSubstation(node, this);
                         break;
                     case "Capacitor":
-                        Enricher.I.CapCount++;
+                        Program.Enricher.CapCount++;
                         d = new IdfCapacitor(node, this);
                         break;
                     case "Area":
-                        Enricher.I.LoadCount++;
+                        Program.Enricher.LoadCount++;
                         d = new IdfArea(node, this);
                         break;
                     case "Region":
-                        Enricher.I.LoadCount++;
+                        Program.Enricher.LoadCount++;
                         d = new IdfRegion(node, this);
                         break;
                     case "Source":
@@ -152,7 +152,7 @@ namespace MainPower.Adms.Enricher
                     {
                         //we can assume that datalinks will be of the id type, not the dsID type
                         var datalink = symbol.Element("dataLink").Attribute("id").Value;
-                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
                             //set the symbol, size etc
@@ -188,7 +188,7 @@ namespace MainPower.Adms.Enricher
                         //we can assume that datalinks will be of the id type, not the dsID type
                         //TODO: john needs to set the data link in schematics
                         var datalink = line.Element("colorLink").Attribute("id").Value;
-                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
                             if (device.Type == DeviceType.Line)
@@ -224,7 +224,7 @@ namespace MainPower.Adms.Enricher
                     {
                         //we can assume that datalinks will be of the id type, not the dsID type
                         var datalink = symbol.Element("dataLink").Attribute("id").Value;
-                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
                             bool internals = symbol.Attribute("mpwr_internals")?.Value == "True";
@@ -252,7 +252,7 @@ namespace MainPower.Adms.Enricher
                         //we can assume that datalinks will be of the id type, not the dsID type
                         //TODO: john needs to set the data link in schematics
                         var datalink = line.Element("colorLink").Attribute("id").Value;
-                        var device = Enricher.I.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
+                        var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
                             bool internals = line.Attribute("mpwr_internals")?.Value == "True";

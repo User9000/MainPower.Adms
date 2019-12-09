@@ -23,7 +23,7 @@ namespace MainPower.Adms.Enricher
             {
                 Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV).Value);
                 Node.SetAttributeValue(IdfTransformerType, RegulatorDefaultType);
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Regulator, IdfRegulatorSymbol);
+                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Regulator, IdfRegulatorSymbol);
                 RemoveExtraAttributes();
             }
             catch (Exception ex)

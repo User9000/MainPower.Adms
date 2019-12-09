@@ -37,7 +37,7 @@ namespace MainPower.Adms.Enricher
                         LoadConductorTypes();
                 }
 
-                Enricher.I.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line);               
+                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line);               
                 bool isBusbar = Node.Attribute("lineType")?.Value.Contains("BUSBAR") ?? false;
                 string lineType = LineBusbar;
                 string phase_conductor = Node.Attribute(GisPhaseConductor)?.Value;
@@ -93,9 +93,9 @@ namespace MainPower.Adms.Enricher
                 }
 
                 if (!isBusbar && length <= 25)
-                    Enricher.I.Line25Count++;
+                    Program.Enricher.Line25Count++;
                 if (!isBusbar && length <= 5)
-                    Enricher.I.Line5Count++;
+                    Program.Enricher.Line5Count++;
 
                 var conductor = (voltage, S1Phases, lineType, phase_conductor ?? "", neutral_conductor ?? "", Name.StartsWith("Service"));
 
@@ -159,12 +159,12 @@ namespace MainPower.Adms.Enricher
             }
 
             dt.DefaultView.Sort = "Count desc";
-            Util.ExportDatatable(dt.DefaultView.ToTable(), Path.Combine(Enricher.I.Options.OutputPath, "Conductors.csv"));
+            Util.ExportDatatable(dt.DefaultView.ToTable(), Path.Combine(Program.Options.OutputPath, "Conductors.csv"));
         }
 
         private void LoadConductorTypes()
         {
-            _conductorTypes = Util.GetDataTableFromCsv(Path.Combine(Enricher.I.Options.DataPath, "Conductors.csv"), true);
+            _conductorTypes = Util.GetDataTableFromCsv(Path.Combine(Program.Options.DataPath, "Conductors.csv"), true);
         }
 
         private string GetConductorId(double voltage, int phases, string pconductor, string nconductor)
