@@ -13,6 +13,14 @@ using System.Text;
 
 namespace MainPower.Adms.Enricher
 {
+    public enum SearchMode
+    {
+        Exact,
+        Contains,
+        StartsWith,
+        EndsWith
+    }
+
     public enum SymbolPlacement 
     {
         Top,

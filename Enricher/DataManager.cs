@@ -219,7 +219,7 @@ namespace MainPower.Adms.Enricher
                 Datasets.Add(nameof(OsiScadaSetpoint), source);
                 source = new SqliteSource()
                 {
-                    ConnectionString = @$"Data Source={Path.Combine(Program.Options.DataPath, "adms.db")};Version=3;",
+                    Database = "adms.db",
                     Table = "Switch",
                     Name = "AdmsSwitch",
                     IndexColumn = "SwitchNumber",
@@ -228,7 +228,7 @@ namespace MainPower.Adms.Enricher
                 Datasets.Add(nameof(AdmsSwitch), source);
                 source = new SqliteSource()
                 {
-                    ConnectionString = @$"Data Source={Path.Combine(Program.Options.DataPath, "adms.db")};Version=3;",
+                    Database = "adms.db",
                     Table = "Transformer",
                     Name = "AdmsTransformer",
                     IndexColumn = "AssetNumber",
@@ -237,7 +237,7 @@ namespace MainPower.Adms.Enricher
                 Datasets.Add(nameof(AdmsTransformer), source);
                 source = new SqliteSource()
                 {
-                    ConnectionString = @$"Data Source={Path.Combine(Program.Options.DataPath, "adms.db")};Version=3;",
+                    Database = "adms.db",
                     Table = "Source",
                     Name = "AdmsSource",
                     IndexColumn = "Name",
