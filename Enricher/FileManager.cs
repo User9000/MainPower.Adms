@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
 using System.Linq;
+using System.Text;
 
 namespace MainPower.Adms.Enricher
 {
@@ -18,6 +19,7 @@ namespace MainPower.Adms.Enricher
 
         public bool Initialize(string path)
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Info("Sorting idfs...");
             //Read all the xml files in the directory
             var files = Directory.GetFiles(path, "*.xml", SearchOption.TopDirectoryOnly);

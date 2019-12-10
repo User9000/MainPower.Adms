@@ -16,9 +16,9 @@ namespace MainPower.Adms.Enricher
         private const double SymbolScaleSwitchHV = 17;
         private const double SymbolScaleSwitchLV = 3;
         private const double SymbolScaleSwitchInternals = 0.2;
-        private const double SymbolScaleSwitchSLD = 100;
+        private const double SymbolScaleSwitchSLD = 10;
         private const double SymbolScaleTransformerGIS = 0.3;
-        private const double SymbolScaleTransformerSLD = 100;
+        private const double SymbolScaleTransformerSLD = 20;
 
         private XElement _dataGroup = null;
         private Dictionary<string, XElement> _displayGroups = new Dictionary<string, XElement>();
@@ -181,7 +181,7 @@ namespace MainPower.Adms.Enricher
                         Fatal($"Uncaught exception processing symbol: {ex.Message}");
                     }
                 }
-                var lines = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Line" && x.Elements("dataLink").Any());
+                var lines = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Line" && x.Elements("colorLink").Any());
                 foreach (var line in lines)
                 {
                     try {
@@ -202,6 +202,27 @@ namespace MainPower.Adms.Enricher
                     catch (Exception ex)
                     {
                         Fatal($"Uncaught exception processing line: {ex.Message}");
+                    }
+                }
+                
+                var texts = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Text");
+                foreach (var text in texts)
+                {
+                    try
+                    {
+                        var val = text.Attribute("text")?.Value;
+                        if (val == null)
+                        {
+                            text.SetAttributeValue("text", "ERR");
+                        }
+                        if (!geographic)
+                        {
+                            text.SetAttributeValue("fontSize", "50");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Fatal($"Uncaught exception processing text: {ex.Message}");
                     }
                 }
             }
@@ -229,9 +250,11 @@ namespace MainPower.Adms.Enricher
                         {
                             bool internals = symbol.Attribute("mpwr_internals")?.Value == "True";
                             List<Point> points = new List<Point>();
-                            Point p = new Point();
-                            p.X = double.Parse(symbol.Attribute("x").Value);
-                            p.Y = double.Parse(symbol.Attribute("y").Value);
+                            Point p = new Point
+                            {
+                                X = double.Parse(symbol.Attribute("x").Value),
+                                Y = double.Parse(symbol.Attribute("y").Value)
+                            };
                             p = TranslatePoint(p);
                             points.Add(p);
                             device.Geometry = points;
@@ -449,8 +472,11 @@ namespace MainPower.Adms.Enricher
                         scale = SymbolScaleSwitchSLD;
                     break;
                 case DeviceType.Transformer:
+                case DeviceType.EarthingTransformer:
                     if (gis)
                         scale = SymbolScaleTransformerGIS;
+                    else if (internals)
+                        scale = SymbolScaleTransformerSLD;
                     else
                         scale = SymbolScaleTransformerSLD;
                     rotation = 0;
@@ -459,13 +485,13 @@ namespace MainPower.Adms.Enricher
             }
 
             if (!scale.Equals(double.NaN))
-                symbol.SetAttributeValue("scale", scale.ToString("N3"));
+                symbol.SetAttributeValue("scale", scale.ToString("F3"));
             if (!rotation.Equals(double.NaN))
-                symbol.SetAttributeValue("rotation", rotation.ToString("N0"));
+                symbol.SetAttributeValue("rotation", rotation.ToString("F0"));
             if (!z.Equals(double.NaN))
-                symbol.SetAttributeValue("z", z.ToString("N1"));
+                symbol.SetAttributeValue("z", z.ToString("F1"));
             if (!maxSize.Equals(double.NaN))
-                symbol.SetAttributeValue("maxSize", maxSize.ToString("N3"));
+                symbol.SetAttributeValue("maxSize", maxSize.ToString("F3"));
         }
 
         /// <summary>

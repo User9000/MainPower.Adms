@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using log4net;
@@ -18,7 +19,7 @@ namespace MainPower.Adms.Enricher
     {
         public static void Setup(string path, Level level)
         {
-            Hierarchy hierarchy = (Hierarchy)LogManager.CreateRepository("default");
+            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository(Assembly.GetEntryAssembly());
             hierarchy.Root.RemoveAllAppenders();
 
             PatternLayout patternLayout = new PatternLayout();

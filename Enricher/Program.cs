@@ -31,6 +31,10 @@ namespace MainPower.Adms.Enricher
                    {
                        Options = o;
 
+                       //Create the output directory
+                       //TODO: handle failures
+                       Directory.CreateDirectory(o.OutputPath);
+
                        //clear the output directory
                        //need to do this before setting up logging, else we can't delete the old log file
                        var files = Directory.GetFiles(o.OutputPath);

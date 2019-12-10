@@ -74,7 +74,7 @@ namespace MainPower.Adms.Enricher
             if (Fatals == 0)
             {
 
-                Model.Serialize($"{o.DataPath}\\model");
+                Model.Serialize($"{o.OutputPath}\\model");
                 if (true)
                 {
                     //TODO move this into the nodemodel??
