@@ -62,6 +62,9 @@ namespace MainPower.Adms.Enricher
             //Add custom scada linking to the import configuration
             FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "SCADA"), new XAttribute("name", "Custom SCADA Links")));
             File.Copy(Path.Combine(Program.Options.DataPath, "CustomSCADALinks.xml"), Path.Combine(Program.Options.OutputPath, "CustomSCADALinks.xml"), true);
+            //Add bookmarks to the import configuration
+            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Bookmarks"), new XAttribute("name", "Bookmarks")));
+            File.Copy(Path.Combine(Program.Options.DataPath, "Bookmarks.xml"), Path.Combine(Program.Options.OutputPath, "Bookmarks.xml"), true);
 
             ProcessGeographic();
 

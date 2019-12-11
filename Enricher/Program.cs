@@ -68,15 +68,31 @@ namespace MainPower.Adms.Enricher
                    {
                        Console.WriteLine(ex.ToString());
                    }
-  
+                   EnricherResult result = new EnricherResult();
+
                    if (ErrorReporter.Fatals > 0)
-                       retCode = 3;
+                       result.Result = 3;
                    else if (ErrorReporter.Errors > 0)
-                       retCode = 2;
+                       result.Result = 2;
                    else if (ErrorReporter.Warns > 0)
-                       retCode = 1;
+                       result.Result = 1;
                    else
-                       retCode = 0;
+                       result.Result = 0;
+
+                   result.Fatals = ErrorReporter.Fatals;
+                   result.Errors = ErrorReporter.Errors;
+                   result.Warnings = ErrorReporter.Warns;
+                   result.Time = DateTime.Now;
+                   try
+                   {
+                       Util.SerializeNewtonsoft(Path.Combine(Options.OutputPath, "result.json"), result);
+                       Util.SerializeNewtonsoft(Path.Combine(Options.OutputPath, "lastrunoptions.json"), Options);
+                   }
+                   catch (Exception ex)
+                   {
+                       ex.ToString();
+                   }
+
                    if (o.PauseBeforeQuit)
                        Console.ReadKey();
                });

@@ -91,7 +91,7 @@ namespace MainPower.Adms.Enricher
 
         protected const string IdfTrue = "True";
         protected const string IdfFalse = "False";
-        protected const string AorDefault = "1";
+        protected const string AorDefault = "2";
         protected const string ScadaName = "Name";
 
         #endregion
@@ -123,7 +123,10 @@ namespace MainPower.Adms.Enricher
             {
                 node.SetAttributeValue(IdfElementAorGroup, AorDefault);
                 node.SetAttributeValue(IdfViolations, IdfTrue);
+                //TODO: change this depending on voltage, either HV or LV
                 node.SetAttributeValue(IdfLimits, "Limits,System");
+
+
             }
         }
 

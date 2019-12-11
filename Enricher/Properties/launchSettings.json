@@ -2,7 +2,7 @@
   "profiles": {
     "Enricher": {
       "commandName": "Project",
-      "commandLineArgs": "-i \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\idf\\20191128_114906\" -o \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\idf\\20191128_114906\\output\" -d \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\data\" -n   -s"
+      "commandLineArgs": "-i \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\idf\\20191211_112654\" -o \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\idf\\20191211_112654\\output\" -d \"C:\\Users\\hsc\\Downloads\\adms\\enricher\\data\" -n   -s"
     }
   }
 }

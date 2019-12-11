@@ -1,12 +1,54 @@
-﻿<Window x:Class="IdfManager.MainWindow"
+﻿<Window x:Class="MainPower.Adms.IdfManager.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IdfManager"
+        xmlns:local="clr-namespace:MainPower.Adms.IdfManager"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-
+        <Menu Height="25" VerticalAlignment="Top">
+            <MenuItem Header="File" Height="25">
+                <MenuItem Header="Rescan Idf Path" />
+                <MenuItem Header="Settings" />
+                <MenuItem Header="Exit" />
+            </MenuItem>
+        </Menu>
+        <Grid Margin="0,25,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" />
+            <ListBox/>
+            <Grid Grid.Column="2">
+                <GroupBox Header="Last Enricher Result" Margin="4,0,10,0" Height="107" VerticalAlignment="Top">
+                    <Grid>
+                        <Label Content="Result:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="47" RenderTransformOrigin="0.502,1.958"/>
+                        <Label Content="Stats:" HorizontalAlignment="Left" Margin="10,36,0,0" VerticalAlignment="Top" Width="47" RenderTransformOrigin="0.502,1.958"/>
+                        <Label Content="Text" HorizontalAlignment="Left" Margin="62,36,0,0" VerticalAlignment="Top" Width="47" RenderTransformOrigin="0.502,1.958"/>
+                        <Label Content="Text" HorizontalAlignment="Left" Margin="57,10,0,0" VerticalAlignment="Top" Width="47" RenderTransformOrigin="0.502,1.958"/>
+                        <Button Content="Open Log" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Width="99"/>
+                    </Grid>
+                </GroupBox>
+                <GroupBox Header="Enricher Options" Margin="4,112,10,5">
+                    <Grid>
+                        <CheckBox Content="New model" HorizontalAlignment="Left" Margin="10,10,0,243" Height="16"/>
+                        <Label Content="Input Model:" HorizontalAlignment="Left" Margin="10,31,0,0" VerticalAlignment="Top" Width="81"/>
+                        <ComboBox HorizontalAlignment="Left" Margin="96,33,0,0" VerticalAlignment="Top" Width="162" SelectedIndex="0">
+                            <ComboBoxItem Content="Latest successful export" />
+                            <ComboBoxItem Content="Manually specified" />
+                        </ComboBox>
+                        <ComboBox HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Width="248"/>
+                        <Label Content="Threads:" HorizontalAlignment="Left" Margin="10,89,0,0" VerticalAlignment="Top" Width="81"/>
+                        <TextBox HorizontalAlignment="Left" Margin="96,93,0,0" Text="10" TextWrapping="Wrap" VerticalAlignment="Top" Width="162"/>
+                        <Label Content="Debug Level:" HorizontalAlignment="Left" Margin="10,113,0,0" VerticalAlignment="Top" Width="81"/>
+                        <TextBox HorizontalAlignment="Left" Margin="96,117,0,0" Text="3" TextWrapping="Wrap" VerticalAlignment="Top" Width="162"/>
+                        <CheckBox Content="Export Shape Files" HorizontalAlignment="Left" Margin="10,144,0,109" Height="16"/>
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>
