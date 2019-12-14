@@ -796,11 +796,12 @@ namespace MainPower.Adms.Enricher
                 if (set.d.Type == DeviceType.Switch && tx)
                 {
                     //if the switch is already in the model with a different color, then use the existing one
-                    if (set.d.Color != ColorTranslator.ToHtml(currentColor))
-                        currentColor = ColorTranslator.FromHtml(set.d.Color);
+                   if (set.d.Color != ColorTranslator.ToHtml(currentColor) && !string.IsNullOrWhiteSpace(set.d.Color))
+                         currentColor = ColorTranslator.FromHtml(set.d.Color);
                     else
                         currentColor = RandomColor();
                 }
+                //var t = Color.Empty;
 
                 //set device feeder and color
                 set.d.NominalFeeder = currentFeeder;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -17,9 +18,17 @@ namespace MainPower.Adms.IdfManager
     /// </summary>
     public partial class SettingsWindow : Window
     {
-        public SettingsWindow()
+        MainViewModel _model;
+        public SettingsWindow(MainViewModel model)
         {
             InitializeComponent();
+            this.DataContext = _model = model;
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Util.SerializeNewtonsoft("settings.json", _model.Settings);
+            this.Close();
         }
     }
 }

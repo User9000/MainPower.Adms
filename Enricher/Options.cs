@@ -22,7 +22,7 @@ namespace MainPower.Adms.Enricher
         [Option('n', "newmodel", HelpText = "Start with a blank model", Default = false)]
         public bool BlankModel { get; set; }
 
-        [Option('p', "pause", HelpText = "Pause before quitting", Default = true)]
+        [Option('p', HelpText = "Pause before quitting", Default = true)]
         public bool PauseBeforeQuit { get; set; }
 
         [Option('s', "exportshp", HelpText = "Export shape files", Default = true)]

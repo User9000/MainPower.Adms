@@ -170,7 +170,7 @@ namespace MainPower.Adms.Enricher
 
                             if (device.Type == DeviceType.Load && geographic)
                             {
-                                symbol.SetAttributeValue("z", "1.0");
+                                symbol.SetAttributeValue("scale", "1.0");
                                 CopyLoadToPremise(symbol);
                             }
                         }

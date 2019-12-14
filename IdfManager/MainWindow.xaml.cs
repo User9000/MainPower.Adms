@@ -24,5 +24,21 @@ namespace MainPower.Adms.IdfManager
         {
             InitializeComponent();
         }
+
+        private void mnuScanIdfs_Click(object sender, RoutedEventArgs e)
+        {
+            _model.ScanIdfs();
+        }
+
+        private void mnuSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var set = new SettingsWindow((MainViewModel)this.DataContext);
+            set.ShowDialog();
+        }
+
+        private void mnuGenerateConductors_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

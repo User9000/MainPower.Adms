@@ -21,8 +21,10 @@ namespace MainPower.Adms.Enricher
         static int Main(string[] args)
         {
             Console.BufferWidth = 320;
-            
-            int retCode = 3;
+
+            EnricherResult result = new EnricherResult();
+            int retCode = result.Result = 3;
+            result.Time = DateTime.Now;
 
             var r = Parser.Default.ParseArguments<Options>(args)
                .WithParsed(o =>
@@ -62,13 +64,12 @@ namespace MainPower.Adms.Enricher
                        }
                        Logger.Setup(o.OutputPath, loglevel);
                        Enricher.Go(o);
-                       Console.WriteLine("All done....");
+                       Console.WriteLine("All done...");
                    }
                    catch (Exception ex)
                    {
                        Console.WriteLine(ex.ToString());
                    }
-                   EnricherResult result = new EnricherResult();
 
                    if (ErrorReporter.Fatals > 0)
                        result.Result = 3;
@@ -83,19 +84,20 @@ namespace MainPower.Adms.Enricher
                    result.Errors = ErrorReporter.Errors;
                    result.Warnings = ErrorReporter.Warns;
                    result.Time = DateTime.Now;
-                   try
-                   {
-                       Util.SerializeNewtonsoft(Path.Combine(Options.OutputPath, "result.json"), result);
-                       Util.SerializeNewtonsoft(Path.Combine(Options.OutputPath, "lastrunoptions.json"), Options);
-                   }
-                   catch (Exception ex)
-                   {
-                       ex.ToString();
-                   }
-
-                   if (o.PauseBeforeQuit)
-                       Console.ReadKey();
                });
+            try
+            {
+                Util.SerializeNewtonsoft(Path.Combine(Options.OutputPath, "result.json"), result);
+                Util.SerializeNewtonsoft(Path.Combine(Options.OutputPath, "lastrunoptions.json"), Options);
+            }
+            catch (Exception ex)
+            {
+                ex.ToString();
+            }
+            //TODO: bit hacky, but chances are the other arguments won't conatin -p
+            if (string.Join(' ', args).Contains(" -p"))
+                Console.ReadKey();
+
             return retCode;
         }
     }
