@@ -81,6 +81,10 @@ namespace MainPower.Adms.Enricher
         [Key(18)]
         public SymbolPlacement Position { get; set; }
 
+
+        [Key(19)]
+        public bool Swer { get; set; }
+
         /// <summary>
         /// Phasing (in clock units) of phase index 1
         /// </summary>
@@ -98,6 +102,14 @@ namespace MainPower.Adms.Enricher
 
         [IgnoreMember]
         public int Upstream { get; set; }
+        [IgnoreMember]
+        public int Downstream
+        {
+            get
+            {
+                return Upstream == 0 ? 0 : Upstream == 1 ? 2 : 1;
+            }
+        }
 
         [IgnoreMember]
         public ModelNode UpstreamNode

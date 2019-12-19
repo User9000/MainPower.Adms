@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MainPower.Adms.IdfManager"
         mc:Ignorable="d"
-        Title="Idf Manager" Height="450" Width="800">
+        Title="Idf Manager" Height="494" Width="800">
     <Window.DataContext >
         <local:MainViewModel x:Name="_model"/>
     </Window.DataContext>
@@ -13,7 +13,7 @@
         <Menu Height="25" VerticalAlignment="Top">
             <MenuItem Header="File" Height="25">
                 <MenuItem Header="Rescan Idf Path" Click="mnuScanIdfs_Click"/>
-                <MenuItem Header="Generate new conductors" Click="mnuGenerateConductors_Click"/>
+                <MenuItem Header="Generate new conductors" Command="{Binding RunLeika}" />
                 <MenuItem Header="Settings" Click="mnuSettings_Click" />
                 <MenuItem Header="Exit" />
             </MenuItem>

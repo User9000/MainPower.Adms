@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using MicroMvvm;
 using Newtonsoft.Json;
 
@@ -21,6 +22,8 @@ namespace MainPower.Adms.IdfManager
         public Settings Settings { get; set; }
         public IdfBundle SelectedBundle { get; set; }
         public IdfBundle LatestModel { get; set; }
+
+        private Process _p;
 
         #region CopyToPdsCommand
         void CopyToPdsExecute(object o)
@@ -54,6 +57,39 @@ namespace MainPower.Adms.IdfManager
         #endregion
 
 
+        #region RunLeikaCommand 
+        void RunLeikaExecute(object o)
+        {
+            try
+            {
+                string arguments = "";
+                arguments += $" -l \"{Path.Combine(Settings.EnricherDataPath, "Leika")}\"";
+                arguments += $" -o \"{Path.Combine(Settings.EnricherDataPath, "Conductors.xml")}\"";
+                arguments += $" -c \"{Path.Combine(Settings.EnricherDataPath, "Conductors.csv")}\"";
+                
+                using Process p = new Process()
+                {
+                    StartInfo =
+                {
+                    FileName = Settings.Leika2AdmsPath,
+                    Arguments = arguments,
+                }
+                };
+                p.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
+        
+        bool CanRunLeikaExecute(object o)
+        {
+            return true;
+        }
+
+        public ICommand RunLeika { get { return new RelayCommand<object>(RunLeikaExecute, CanRunLeikaExecute); } }
+        #endregion
 
         #region RunEnricherCommand 
         void RunEnricherExecute(object o)
@@ -91,7 +127,7 @@ namespace MainPower.Adms.IdfManager
                 else
                     throw new Exception("Could not locate any input model.");
 
-                using Process p = new Process()
+                _p = new Process()
                 {
                     StartInfo =
                 {
@@ -99,12 +135,21 @@ namespace MainPower.Adms.IdfManager
                     Arguments = arguments,
                 }
                 };
-                p.Start();
+
+                _p.Start();
+                _p.EnableRaisingEvents = true;
+                _p.Exited += EnricherExit;
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
             }
+        }
+
+        private void EnricherExit(object sender, EventArgs e)
+        {
+            ScanIdfs();
+            _p.Dispose();
         }
 
         bool CanRunEnricherExecute(object o)
@@ -126,27 +171,30 @@ namespace MainPower.Adms.IdfManager
 
         public void ScanIdfs()
         {
-            IdfBundles.Clear();
-            ValidModels.Clear();
-            try
-            {
-                DirectoryInfo d = new DirectoryInfo(Settings.IdfFileShare);
-                foreach (var i in d.GetDirectories())
-                {
-                    var idf = new IdfBundle(i.FullName)
-                    {
-                        Name = i.Name
-                    };
-                    IdfBundles.Add(idf);
-                    if (idf.EnricherResult.Success)
-                        ValidModels.Add(idf);
-                }
-                LatestModel = (from m in ValidModels select m).OrderByDescending(x => x.EnricherResult.Time).FirstOrDefault();
-            }
-            catch (Exception ex)
-            {
-                
-            }
+           Application.Current.Dispatcher.Invoke(() =>
+           {
+               IdfBundles.Clear();
+               ValidModels.Clear();
+               try
+               {
+                   DirectoryInfo d = new DirectoryInfo(Settings.IdfFileShare);
+                   foreach (var i in d.GetDirectories())
+                   {
+                       var idf = new IdfBundle(i.FullName)
+                       {
+                           Name = i.Name
+                       };
+                       IdfBundles.Add(idf);
+                       if (idf.EnricherResult.Success)
+                           ValidModels.Add(idf);
+                   }
+                   LatestModel = (from m in ValidModels select m).OrderByDescending(x => x.EnricherResult.Time).FirstOrDefault();
+               }
+               catch (Exception ex)
+               {
+
+               }
+           });
         }
     }
 }

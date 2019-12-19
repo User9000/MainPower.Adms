@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoordinateConverter", "Coor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdfManager", "IdfManager\IdfManager.csproj", "{790BD099-6820-4CCA-B652-90F944B9624C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningConverter", "LightningConverter\LightningConverter.csproj", "{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +83,14 @@ Global
 		{790BD099-6820-4CCA-B652-90F944B9624C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{790BD099-6820-4CCA-B652-90F944B9624C}.Release|x86.ActiveCfg = Release|Any CPU
 		{790BD099-6820-4CCA-B652-90F944B9624C}.Release|x86.Build.0 = Release|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Debug|x86.Build.0 = Debug|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Release|x86.ActiveCfg = Release|Any CPU
+		{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

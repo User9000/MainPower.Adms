@@ -14,6 +14,8 @@ namespace MainPower.Adms.Enricher
         private const string GisDisplayName = "MainPower";
 
         private const double SymbolScaleSwitchHV = 17;
+        private const double SymbolScaleRegulator = 13;
+        private const double SymbolScaleTrannyPole = 17;
         private const double SymbolScaleSwitchLV = 3;
         private const double SymbolScaleSwitchInternals = 0.2;
         private const double SymbolScaleSwitchSLD = 10;
@@ -165,22 +167,33 @@ namespace MainPower.Adms.Enricher
                             if (!string.IsNullOrWhiteSpace(device.ScadaKey))
                             {
                                 SetSymbolScadaLink(symbol, device.ScadaKey);
-                                display.Add(CreateEmapDeviceLinkSymbol(symbol, datalink, device.Position));
+                                if (geographic)
+                                    display.Add(CreateEmapDeviceLinkSymbol(symbol, datalink, device.Position));
                             }
-
+                           
                             if (device.Type == DeviceType.Load && geographic)
                             {
                                 symbol.SetAttributeValue("scale", "1.0");
                                 CopyLoadToPremise(symbol);
                             }
                         }
-                        symbol.SetAttributeValue("mpwr_internals", null);
                     }
                     catch (Exception ex)
                     {
                         Fatal($"Uncaught exception processing symbol: {ex.Message}");
                     }
                 }
+
+                //TODO: john should be doing this 
+                //set the scaling of the tranny pole symbols
+                symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value == "Symbol 35");
+                foreach (var symbol in symbols.ToList())
+                {
+                    symbol.SetAttributeValue("scale", SymbolScaleTrannyPole);
+                    symbol.SetAttributeValue("maxSize", "30");
+                    symbol.SetAttributeValue("mpwr_internals", null);
+                }
+
                 var lines = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Line" && x.Elements("colorLink").Any());
                 foreach (var line in lines)
                 {
@@ -304,14 +317,14 @@ namespace MainPower.Adms.Enricher
 
         private void CopyLoadToPremise(XElement symboltocopy)
         {
-            symboltocopy.SetAttributeValue("overlay", "Overlay_MainPower_Load");
+            symboltocopy.SetAttributeValue("overlay", "Overlay_Load_mainpower");
             string id = symboltocopy.Descendants("dataLink").First().Attribute("id").Value;
 
             XElement symbol = new XElement(symboltocopy);
             symbol.Descendants().Remove();
             symbol.SetAttributeValue("id", symbol.Attribute("id").Value + ",Premise");
 
-            symbol.SetAttributeValue("overlay", "Overlay_MainPower_Premise");
+            symbol.SetAttributeValue("overlay", "Overlay_Premise_mainpower");
 
             XElement c = new XElement("command",
                    new XAttribute("plugin", "ElectraOMS"),
@@ -482,6 +495,10 @@ namespace MainPower.Adms.Enricher
                     rotation = 0;
                     z = 4;
                     break;
+                case DeviceType.Regulator:
+                    //these are only int he geographic
+                    scale = SymbolScaleRegulator;
+                    break;
             }
 
             if (!scale.Equals(double.NaN))
@@ -533,13 +550,12 @@ namespace MainPower.Adms.Enricher
             }
             line.SetAttributeValue("width", width);
 
+            line.SetAttributeValue("flowDirection", "Forward");
+            line.SetAttributeValue("flowStyle", "Arrow");
+            line.SetAttributeValue("flowSubStyle", "Solid");
             //add the flowlink
             if (!line.Descendants("flowLink").Any())
             {
-                line.SetAttributeValue("flowDirection", "Forward");
-                line.SetAttributeValue("flowStyle", "Arrow");
-                line.SetAttributeValue("flowSubStyle", "Solid");
-
                 XElement x = new XElement("flowLink",
                     new XAttribute("id", id),
                     new XElement("link",

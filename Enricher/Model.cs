@@ -553,8 +553,7 @@ namespace MainPower.Adms.Enricher
                     set.d.SP2S.Add(s, new PFDetail());
 
                 var openSwitch = !set.d.SwitchState && set.d.Type == DeviceType.Switch;
-                //if (set.d.Name == "CUL GXP T1")
-                //    Debugger.Break();
+
                 //we are coming in from side 1
                 if (set.d.Node1 == set.n)
                 {
@@ -638,13 +637,16 @@ namespace MainPower.Adms.Enricher
                     }
                 }
 
+
+
                 //for non transformers, loads and generators check that we have the same phases on both sides
-                if (d.Type != DeviceType.Transformer && d.Type != DeviceType.Load && d.Type != DeviceType.Generator && d.Type != DeviceType.ShuntCapacitor)
+                if (d.Type != DeviceType.Transformer && d.Type != DeviceType.Load && d.Type != DeviceType.Generator && d.Type != DeviceType.ShuntCapacitor && d.Type != DeviceType.EarthingTransformer)
                 {
                     for (int i = 0; i < 3; i++)
                     {
                         if (d.PhaseID[iUp, i] != d.PhaseID[iDown, i])
                         {
+                            Debugger.Launch(); 
                             Error($"Phasing on index {i + 1} is not consistent on both sides of the device", d);
                         }
                     }
@@ -655,12 +657,13 @@ namespace MainPower.Adms.Enricher
                 //for single phase transformers we shouldn't see phases assigned to the unused HV phase(s)
                 if (d.Type == DeviceType.Transformer)
                 {
+                    /*
                     //TODO: remove
                     if (CountPhases(d.PhaseID, 0) == 1)
                     {
                         Err("Was not expecting SWER transformer in VS", d.Id, d.Name);
-                        return;
-                    }
+                        continue;
+                    }*/
 
                     //count up the HV phases to determine if the transformer is three phase
                     bool threephase = true;
@@ -878,14 +881,16 @@ namespace MainPower.Adms.Enricher
             //n - the node we are tracing in from
             //ud - the device the trace came from
             //tx - the nearest upstream transformer
-            Queue<(ModelDevice d, ModelNode n, ModelDevice ud, ModelDevice tx)> stack = new Queue<(ModelDevice, ModelNode, ModelDevice, ModelDevice)>();
-            stack.Enqueue((d, d.Node1, null, null));
+            //single - are we on a single phase network?
+            Queue<(ModelDevice d, ModelNode n, ModelDevice ud, ModelDevice tx, bool single)> stack = new Queue<(ModelDevice, ModelNode, ModelDevice, ModelDevice, bool)>();
+            stack.Enqueue((d, d.Node1, null, null, false));
             do
             {
                 //trace boilerplace start
                 loop++;
                 var set = stack.Dequeue();
                 ModelNode traceNode = null;
+                bool single = set.single;
                 //if we have been here before then continue
                 if (set.d.Trace)
                     continue;
@@ -896,8 +901,20 @@ namespace MainPower.Adms.Enricher
 
                 ModelDevice tx = set.tx;
                 //if we are going through a distribution transformer, then set tx
+                //TODO: should we filter on secondary voltage here?
                 if (set.d.Type == DeviceType.Transformer)
+                {
                     tx = set.d;
+
+                    if (!single && CountPhases(set.d.PhaseID, (short)(set.d.Upstream - 1)) == 1)
+                        Warn("Was not expecting SWER transformer here", set.d);
+
+                    //if the downstream side of the transformer has only one phase, then we are now on a single phase network
+                    if (CountPhases(set.d.PhaseID, (short)(set.d.Downstream - 1)) == 1)
+                        single = true;
+                    else
+                        single = false;
+                }
                 //if we are going through a load, then add it to the tranny map
                 else if (set.d.Type == DeviceType.Load)
                 {
@@ -931,7 +948,7 @@ namespace MainPower.Adms.Enricher
                     {
                         if (dd != set.d && dd.UpstreamNode == traceNode)
                         {
-                            stack.Enqueue((dd, traceNode, set.d, tx));
+                            stack.Enqueue((dd, traceNode, set.d, tx, single));
                         }
                     }
                 }

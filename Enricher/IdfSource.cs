@@ -77,7 +77,7 @@ namespace MainPower.Adms.Enricher
                     }
                     ParentGroup.AddGroupElement(x);
                 }
-                Program.Enricher.Model.AddSource(Node, Id);
+                Program.Enricher.Model.AddSource(Node, ParentGroup.Id);
             }
             catch (Exception ex)
             {
