@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using CommandLine;
 
-namespace Leika2Adms
+namespace MainPower.Adms.Leika2Adms
 {
     class Program
     {

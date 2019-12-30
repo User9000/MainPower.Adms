@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 
-namespace Leika2Adms
+namespace MainPower.Adms.Leika2Adms
 {
     public class Options
     {

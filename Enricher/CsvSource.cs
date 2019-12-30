@@ -8,13 +8,17 @@ namespace MainPower.Adms.Enricher
     public class CsvDataSource : TableDataSource
     {
         public string FileName { get; set; }
+        public bool IsOsiFormat { get; set; } = false;
 
         protected override bool OnInitialize()
         {
             try
             {
-                Data = Util.GetDataTableFromCsv(Path.Combine(Program.Options.DataPath, FileName), true);
-                //speed 'select'
+                if (IsOsiFormat)
+                    Data = Util.GetDataTableFromOsiDbdump(Path.Combine(Program.Options.DataPath, FileName));
+                else 
+                    Data = Util.GetDataTableFromCsv(Path.Combine(Program.Options.DataPath, FileName), true);
+
                 if (!string.IsNullOrWhiteSpace(IndexColumn))
                 {
                     Data.PrimaryKey = new DataColumn[1] { Data.Columns[IndexColumn] };
@@ -30,23 +34,6 @@ namespace MainPower.Adms.Enricher
                 Fatal(ex.Message);
                 return false;
             }
-        }
-
-        public override bool Save<T>()
-        {
-            try
-            {
-                Data.AcceptChanges();
-                Util.ExportDatatable(Data, Path.Combine(Program.Options.DataPath, FileName));
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Err(ex.Message);
-                return false;
-            }
-
-
         }
     }
     

@@ -65,29 +65,5 @@ namespace MainPower.Adms.Enricher
                 return null;
             }
         }
-
-
-        public override bool SetVale<T>(object indexValue, string columnName, object val)
-        {
-            try
-            {
-                string c = Data.Columns[IndexColumn].DataType == typeof(string) ? "'" : "";
-
-                var result = Data.Select($"[{IndexColumn}] = {c}{indexValue.ToString()}{c}");
-                foreach (var r in result)
-                {
-                    r[columnName] = val;
-                }
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Err(ex.Message);
-                return false;
-            }
-
-        }
-
-
     }
 }

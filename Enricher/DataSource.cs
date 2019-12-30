@@ -16,8 +16,5 @@ namespace MainPower.Adms.Enricher
         protected abstract bool OnInitialize();
         public abstract T RequestRecord<T>(string id) where T : DataType, new();
         public abstract T RequestRecord<T>(string resourceIndexValue, string id, SearchMode searchMode = SearchMode.Exact) where T : DataType, new();
-        public abstract bool SetVale<T>(object indexValue, string columnName, object val) where T : DataType, new();
-        public abstract bool Save<T>() where T : DataType, new();
-
     }
 }

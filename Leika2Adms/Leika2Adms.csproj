@@ -5,6 +5,7 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <ApplicationIcon />
     <StartupObject />
+    <RootNamespace>MainPower.Adms.Leika2Adms</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

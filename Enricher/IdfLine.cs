@@ -180,7 +180,7 @@ namespace MainPower.Adms.Enricher
             else
                 nconductor = $"[Neutral Conductor] = '{nconductor}'";
 
-            var result = _conductorTypes.Select($"[ADMS] = 'TRUE' AND [Voltage] = {voltage} AND [Phases] = {phases} AND {pconductor} AND {nconductor}");
+            var result = _conductorTypes.Select($"[ADMS] = 'TRUE' AND [Voltage] = '{voltage}' AND [Phases] = '{phases}' AND {pconductor} AND {nconductor}");
             if (result.Length == 0)
             {
                 return null;

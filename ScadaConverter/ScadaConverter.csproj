@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{B703EA50-AF84-4EBD-A41B-7465CFCDC99F}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>MainPower.Osi.ScadaConverter</RootNamespace>
+    <RootNamespace>MainPower.Adms.ScadaConverter</RootNamespace>
     <AssemblyName>ScadaConverter</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

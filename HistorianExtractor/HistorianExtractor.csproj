@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{A6B80AF4-FAE7-4E6C-97F6-EF9301BEA118}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>MainPower.Osi.HistorianExtractor</RootNamespace>
+    <RootNamespace>MainPower.Adms.HistorianExtractor</RootNamespace>
     <AssemblyName>HistorianExtractor</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

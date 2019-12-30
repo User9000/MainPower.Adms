@@ -47,27 +47,36 @@ namespace MainPower.Adms.Enricher
         /// <returns></returns>
         public static DataTable GetDataTableFromCsv(string path, bool isFirstRowHeader)
         {
+
             path = Path.GetFullPath(path);
-            string header = isFirstRowHeader ? "Yes" : "No";
 
-            string pathOnly = Path.GetDirectoryName(path);
-            string fileName = Path.GetFileName(path);
+            var adapter = new GenericParsing.GenericParserAdapter(path);
+            adapter.FirstRowHasHeader = true;
+            DataTable dt = adapter.GetDataTable();
+            return dt;
+        }
 
-            string sql = @"SELECT * FROM [" + fileName + "]";
+        /// <summary>
+        /// Reads a OSI table dbdump returns a DataTable
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public static DataTable GetDataTableFromOsiDbdump(string path)
+        {
 
-            using (OleDbConnection connection = new OleDbConnection(
-                      @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + pathOnly +
-                      ";Extended Properties=\"Text;HDR=" + header + ";FMT=Delimited\""))
-            using (OleDbCommand command = new OleDbCommand(sql, connection))
-            using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
+            path = Path.GetFullPath(path);
+            using StreamReader reader = File.OpenText(path);
+            reader.ReadLine();
+            reader.ReadLine();
+            reader.ReadLine();
+            reader.ReadLine();
+            reader.ReadLine();
+            var adapter = new GenericParsing.GenericParserAdapter(reader)
             {
-                DataTable dataTable = new DataTable
-                {   
-                    Locale = CultureInfo.CurrentCulture
-                };
-                adapter.Fill(dataTable);
-                return dataTable;
-            }
+                FirstRowHasHeader = true
+            };
+            DataTable dt = adapter.GetDataTable();
+            return dt;
         }
 
         /// <summary>

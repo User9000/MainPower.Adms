@@ -436,7 +436,7 @@ namespace MainPower.Adms.Enricher
                 var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts B", _scadaSearchMode);
                 if (s1BRVolts != null && phase3)
                 {
-                    x.SetAttributeValue($"s{us}p3KV", bAmps.Key);
+                    x.SetAttributeValue($"s{us}p3KV", s1BRVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
                     hasVoltsus = true;
                 }

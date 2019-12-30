@@ -8,11 +8,7 @@ namespace MainPower.Adms.Lightning
     {
         static void Main(string[] args)
         {
-            //
-
-            JArray inputarray = Util.DeserializeNewtonsoft(@"C:\Users\hsc\Downloads\lightninginput.txt");
-
-            //JArray inputarray = Util.GetLightningDataFromMetservice();
+            JArray inputarray = Util.DeserializeNewtonsoft(@"lightninginput.txt");
             List<object> templist = new List<object>();
             string output;
 
@@ -22,24 +18,16 @@ namespace MainPower.Adms.Lightning
                 var dt = dto.LocalDateTime;
                 var i = new
                 {
-                    attributes = new
-                    {
-                        timeMillis = item["timeMillis"],
-                        latitude = item["latitude"],
-                        longitude = item["longitude"],
-                        direction = item["direction"],
-                        current = item["current"],
-                        datetime = $"{dt.ToShortDateString()} {dt.ToShortTimeString()}"
-                    }
+                    timeMillis = item["timeMillis"],
+                    latitude = item["latitude"],
+                    longitude = item["longitude"],
+                    direction = item["direction"],
+                    current = item["current"],
+                    datetime = $"{dt.ToShortDateString()} {dt.ToShortTimeString()}"
                 };
                 templist.Add(i);
             }
-            //output = Util.ToJson(templist);
-
-
-            Util.SerializeNewtonsoft(@"C:\users\hsc\downloads\lightningoutput.txt", templist);
-
-            
+            Util.SerializeNewtonsoft(@"lightningoutput.txt", templist);           
         }
     }
 }

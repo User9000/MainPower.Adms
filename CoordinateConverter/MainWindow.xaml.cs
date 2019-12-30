@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace CoordinateConverter
+namespace MainPower.Adms.CoordinateConverter
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml

@@ -12,13 +12,6 @@ namespace MainPower.Adms.Enricher
         public string Database { get; set; }
         public string Table { get; set; }
 
-        public override bool Save<T>()
-        {
-            //TODO implement this
-            //throw new NotImplementedException();
-            return true;
-        }
-
         protected override bool OnInitialize()
         {
             try
