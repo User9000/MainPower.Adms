@@ -125,12 +125,9 @@ namespace MainPower.Adms.Enricher
                 node.SetAttributeValue(IdfViolations, IdfTrue);
                 //TODO: change this depending on voltage, either HV or LV
                 node.SetAttributeValue(IdfLimits, "Limits,System");
-
-
             }
         }
 
-        /*
         /// <summary>
         /// Check that at least one phase is set on side 1
         /// TODO: to be removed
@@ -138,12 +135,7 @@ namespace MainPower.Adms.Enricher
         protected void CheckPhasesSide1Only()
         {
             if (S1Phases == 0)
-            {
-                Err("All side 1 phases are null, defaulted to 3 phase");
-                Node.SetAttributeValue(IdfDeviceS1PhaseId1, "1");
-                Node.SetAttributeValue(IdfDeviceS1PhaseId2, "2");
-                Node.SetAttributeValue(IdfDeviceS1PhaseId3, "3");
-            }
+                Err("All side 1 phases are null");
         }
 
         /// <summary>
@@ -154,25 +146,9 @@ namespace MainPower.Adms.Enricher
         {
             CheckPhasesSide1Only();
             if (S2Phases == 0)
-            {
-                Err("All side 2 phases are null, defaulted to 3 phase");
-                Node.SetAttributeValue(IdfDeviceS2PhaseId1, "1");
-                Node.SetAttributeValue(IdfDeviceS2PhaseId2, "2");
-                Node.SetAttributeValue(IdfDeviceS2PhaseId3, "3");
-            }
+                Err("All side 2 phases are null");
         }
 
-        /// <summary>
-        /// Set all the nominal state attribues to True
-        /// TODO: to be removed
-        /// </summary>
-        protected void SetAllNominalStates()
-        {
-            Node.SetAttributeValue(IdfDeviceNomState1, IdfTrue);
-            Node.SetAttributeValue(IdfDeviceNomState2, IdfTrue);
-            Node.SetAttributeValue(IdfDeviceNomState3, IdfTrue);
-        }
-        */
 
         /// <summary>
         /// Updates the id attribute

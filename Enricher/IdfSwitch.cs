@@ -144,7 +144,7 @@ namespace MainPower.Adms.Enricher
                 //TODO: long term I think we should probably force exact matches via the ScadaId field on the AdmsSwitch dataset
                 _scadaName = $" {Name}";
 
-                //CheckPhases();
+                CheckPhases();
 
                 //var geo = ParentGroup.GetSymbolGeometry(Id);
 

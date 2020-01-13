@@ -39,9 +39,11 @@ namespace MainPower.Adms.Enricher
                         result = Data.Select($"[{columnName}] LIKE '*{id}'");
                         break;
                     case SearchMode.StartsWith:
-                        throw new NotImplementedException();
+                        result = Data.Select($"[{columnName}] LIKE '{id}*'");
+                        break;
                     case SearchMode.Contains:
-                        throw new NotImplementedException();
+                        result = Data.Select($"[{columnName}] LIKE '*{id}*'");
+                        break;
                     default:
                         throw new NotImplementedException();
                 }

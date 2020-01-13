@@ -38,6 +38,8 @@ namespace MainPower.Adms.Enricher
                         LoadConductorTypes();
                 }
 
+                CheckPhases();
+
                 Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line);               
                 bool isBusbar = Node.Attribute("lineType")?.Value.Contains("BUSBAR") ?? false;
                 string lineType = LineBusbar;

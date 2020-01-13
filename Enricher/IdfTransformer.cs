@@ -334,6 +334,10 @@ namespace MainPower.Adms.Enricher
                     Node.SetAttributeValue(IdfDeviceS2Node, null);
                     Node.SetAttributeValue(IdfTxS2RatedkV, "1");
                 }
+                else
+                {
+                    CheckPhases();
+                }
 
                 //ParentGroup.SetSymbolNameByDataLink(Id, _symbolName, SymbolTxScale, SymbolTxScaleInternals, SymbolTxRotation);
 
