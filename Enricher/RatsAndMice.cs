@@ -76,6 +76,12 @@ namespace MainPower.Adms.Enricher
                 FirstRowHasHeader = true
             };
             DataTable dt = adapter.GetDataTable();
+            //delete any empty keys at the end of the table
+            while (string.IsNullOrWhiteSpace(dt.Rows[dt.Rows.Count - 1]["Key"].ToString()))
+            {
+                dt.Rows[dt.Rows.Count - 1].Delete();
+            }
+            
             return dt;
         }
 

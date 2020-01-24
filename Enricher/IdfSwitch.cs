@@ -179,6 +179,7 @@ namespace MainPower.Adms.Enricher
                     case @"MV Isolator\Circuit Breaker - Line":
                     case @"MV Line Switch\Recloser":
                     case @"MV Line Switch\Circuit Breaker - Line":
+                    case @"MV Line Switch\Circuit Breaker - Substation Feeder":
                         ProcessCircuitBreaker();
                         break;
                     case @"MV Isolator\Earth Switch":
@@ -206,19 +207,30 @@ namespace MainPower.Adms.Enricher
                         break;
                     //LV Line Switch
                     case @"LV Line Switch\OH LV Open Point":
+                    case @"LV Line Switch\LV Link":
+                    case @"LV Line Switch\LV Switch":
+                    case @"LV Line Switch\"://TODO: seem to be streetlight switches
+                    case @"LV Line Switch\Knife Isolator":
                     case @"LV Isolator\LV Circuit Breaker"://TODO
+                    case @"LV Isolator\LV Switch":
                         ProcessLVSwitch();
                         break;
                     case @"LV Line Switch\LV Fuse": //pole fuse
+                    case @"LV Line Switch\Streetlight - Relay": //streetlight
+                    case @"LV Line Switch\Streetlight - Photocell": //streetlight
+                    case @"LV Line Switch\OH LV Fuse": //streetlight
                     case @"LV Isolator\LV Fuse"://TODO //indoor panel
                     case @"LV Isolator\LV Switch Fuse"://TODO //indoor panel
                     case @"LV Isolator\LV Switch Link"://TODO //indoor pabel
                     case @"LV Isolator\LV Link"://TODO //pole fuse link
                     case @"LV Isolator\LV Direct Connector": //direct connection
-                    case @"LV Isolator\Streetlight - Relay":
+                    case @"LV Isolator\Streetlight - Relay": //streetlight
+                    case @"LV Isolator\": //streetlight
                         ProcessLVFuse();
                         break;
                     //Others
+                    case @"LV Line Switch\Service Fuse":
+                    case @"LV Isolator\Service Fuse":
                     case @"Service Fuse":
                         ProcessServiceFuse();
                         break;
@@ -603,9 +615,11 @@ namespace MainPower.Adms.Enricher
 
 #region Switch Type Processing
         
-    
         private void SetSymbol(OsiScadaStatus p, string normal, string quad)
         {
+            _symbol = normal;
+            return;
+            
             if (p != null)
             {
                 if (p.QuadState)
@@ -976,6 +990,12 @@ namespace MainPower.Adms.Enricher
         }
         private void ProcessHVFuse()
         {
+            if (_fuserating == "L")
+            {
+                Warn("GIS switch type is fuse, but fuse rating says links");
+                ProcessHVLinks();
+                return;
+            }
             _bidirectional = IdfTrue;
             _forwardTripAmps = _reverseTripAmps = ValidateFuseTrip(_fuserating);
             //_ganged = IdfFalse;
@@ -1099,17 +1119,18 @@ namespace MainPower.Adms.Enricher
                 Info($"T1 max interrupt amps is unset");
                 return "";
             }
-            Regex r = new Regex("[0-9]+(?=kA)");
+            //bit lazy, match all numbers and decimals and let double.parse do the work
+            Regex r = new Regex("([0-9]|\\.)+");
             var match = r.Match(amps);
             if (match.Success)
             {
-                return (int.Parse(match.Value) * 1000).ToString();
-            }
-            else
-            {
-                Warn( $"Could not parse T1 max interrupt amps [{amps}]");
-                return "";
-            }
+                if (double.TryParse(match.Value, out double result))
+                {
+                    return (result * 1000).ToString();
+                }
+            }                
+            Warn( $"Could not parse T1 max interrupt amps [{amps}]");
+            return "";
         }
 
         private void ValidateSwitchNumber(string swno, params string[] swnos)
@@ -1183,7 +1204,9 @@ namespace MainPower.Adms.Enricher
                 Info( "GIS fuse rating is unset");
                 return "";
             }
-            Regex r = new Regex("[0-9]+(?=(T|K))");
+            //sometimes the fuse type isnt included
+            //Regex r = new Regex("[0-9]+(?=(T|K|F))");
+            Regex r = new Regex("[0-9]+");
             var match = r.Match(fuserating);
             if (match.Success)
             {

@@ -154,18 +154,20 @@ namespace MainPower.Adms.Enricher
                 source = new CsvDataSource()
                 {
                     Name = "ScadaStatus",
-                    FileName = "ScadaStatus.csv",
+                    FileName = "SCADA_STATUS.csv",
                     IndexColumn = "Key",
-                    InitializeFailIsFatal = true
+                    InitializeFailIsFatal = true,
+                    IsOsiFormat = true
                 };
                 Datasets.Add(nameof(OsiScadaStatus), source);
 
                 source = new CsvDataSource()
                 {
                     Name = "ScadaAnalog",
-                    FileName = "ScadaAnalog.csv",
+                    FileName = "SCADA_ANALOG.csv",
                     IndexColumn = "Key",
-                    InitializeFailIsFatal = true
+                    InitializeFailIsFatal = true,
+                    IsOsiFormat = true
                 };
                 Datasets.Add(nameof(OsiScadaAnalog), source);
 
@@ -173,8 +175,9 @@ namespace MainPower.Adms.Enricher
                 {
                     Name = "ScadaAccumulator",
                     IndexColumn = "Key",
-                    FileName = "ScadaAccumulator.csv",
-                    InitializeFailIsFatal = true
+                    FileName = "SCADA_ACCUM.csv",
+                    InitializeFailIsFatal = true,
+                    IsOsiFormat = true
                 };
                 Datasets.Add(nameof(OsiScadaAccumulator), source);
 
@@ -182,8 +185,9 @@ namespace MainPower.Adms.Enricher
                 {
                     Name = "ScadaSetpoint",
                     IndexColumn = "Key",
-                    FileName = "ScadaSetpoint.csv",
-                    InitializeFailIsFatal = true
+                    FileName = "SCADA_SETPOINT.csv",
+                    InitializeFailIsFatal = true,
+                    IsOsiFormat = true
                 };
                 Datasets.Add(nameof(OsiScadaSetpoint), source);
                 source = new SqliteSource()

@@ -36,14 +36,25 @@ namespace MainPower.Adms.Enricher
                        //Create the output directory
                        //TODO: handle failures
                        Directory.CreateDirectory(o.OutputPath);
-
+                       bool deleteFailed = false;
                        //clear the output directory
                        //need to do this before setting up logging, else we can't delete the old log file
                        var files = Directory.GetFiles(o.OutputPath);
                        foreach (var file in files)
                        {
-                           File.Delete(file);
+                           try
+                           {
+                               File.Delete(file);
+                           }
+                           catch (Exception ex)
+                           {
+                               deleteFailed = true;
+                               ErrorReporter.StaticFatal(ex.Message, typeof(Program));
+                           }
                        }
+                       //if there were failures then no point continuing
+                       if (deleteFailed)
+                           throw new Exception("Failed to clean output directory");
 
                        //setup logging
                        Level loglevel = Level.Info;
@@ -68,6 +79,8 @@ namespace MainPower.Adms.Enricher
                    }
                    catch (Exception ex)
                    {
+                       ErrorReporter.StaticFatal(ex.Message, typeof(Program));
+                       //print this one to the console as logging isn't guarantted to be working
                        Console.WriteLine(ex.ToString());
                    }
 

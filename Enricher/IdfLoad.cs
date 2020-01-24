@@ -31,7 +31,7 @@ namespace MainPower.Adms.Enricher
                 string symbol = "";
                 ParentGroup.UpdateLinkId(Id, Name);
                 UpdateId(Name);
-                //SetAllNominalStates();
+                CheckPhasesSide1Only();
 
                 if (Name.StartsWith("Streetlight"))
                 {

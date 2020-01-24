@@ -135,9 +135,13 @@ namespace MainPower.Adms.Enricher
         protected void CheckPhasesSide1Only()
         {
             if (S1Phases == 0)
+            {
                 Err("All side 1 phases are null");
+                Node.SetAttributeValue(IdfDeviceS1PhaseId1, "1");
+                Node.SetAttributeValue(IdfDeviceS1PhaseId2, "2");
+                Node.SetAttributeValue(IdfDeviceS1PhaseId3, "3");
+            }
         }
-
         /// <summary>
         /// Check that all at least one phase is set
         /// TODO: to be removed
@@ -146,7 +150,12 @@ namespace MainPower.Adms.Enricher
         {
             CheckPhasesSide1Only();
             if (S2Phases == 0)
+            {
                 Err("All side 2 phases are null");
+                Node.SetAttributeValue(IdfDeviceS2PhaseId1, "1");
+                Node.SetAttributeValue(IdfDeviceS2PhaseId2, "2");
+                Node.SetAttributeValue(IdfDeviceS2PhaseId3, "3");
+            }
         }
 
 

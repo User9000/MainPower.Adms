@@ -454,6 +454,8 @@ namespace MainPower.Adms.Enricher
                     _symbolName = SymbolTxYyn;
                     _phaseshift = 0;
                     return;
+                //I'll allow both - YNa0 is preferred
+                case "YNa0":
                 case "Yna0":
                     _s1ConnectionType = IdfTxWindingWyeG;
                     _s2ConnectionType = IdfTxWindingWyeG;
@@ -467,7 +469,12 @@ namespace MainPower.Adms.Enricher
                     _phaseshift = 0;
                     return;
                 case "Single":
+                case "Single Phase":
+                case "1 phase":
+                case "1PH":
+                case "1ph":
                 case "Ii0":
+                    //TODO: I think we need to change the winding types depending on SWER/NON SWER
                     _s1ConnectionType = IdfTxWindingDelta;
                     _s2ConnectionType = IdfTxWindingWyeG;
                     _symbolName = SymbolTxIi0;
@@ -478,6 +485,7 @@ namespace MainPower.Adms.Enricher
                         _phaseshift = 11;
                     return;
                 case "Ii6":
+                    //TODO: do wee actually need to handle this case or is it handles by the phasing?
                     _s1ConnectionType = IdfTxWindingDelta;
                     _s2ConnectionType = IdfTxWindingWyeG;
                     _symbolName = SymbolTxIi0;

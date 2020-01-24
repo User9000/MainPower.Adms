@@ -151,7 +151,11 @@ namespace MainPower.Adms.Enricher
                 {
                     if (group.NoData)
                         continue;
-                    Model.RemoveGroup(group.Id);
+                    //removing the group from the model is not required for new models so lets skip it as it is an expensive operation
+                    
+                    //TODO: reinstate
+                    if (!Program.Options.BlankModel)
+                        Model.RemoveGroup(group.Id);
                     
                     //No point running 1000 threads at once
                     while (tasks.Where(t => t.Status == TaskStatus.Running).Count() > Program.Options.Threads)

@@ -153,7 +153,13 @@ namespace MainPower.Adms.Enricher
                     try
                     {
                         //we can assume that datalinks will be of the id type, not the dsID type
-                        var datalink = symbol.Element("dataLink").Attribute("id").Value;
+                        //nope. no we cannot assume that
+                        var datalink = symbol.Element("dataLink").Attribute("id")?.Value;
+                        if (string.IsNullOrWhiteSpace(datalink))
+                        {
+                            //probably a premise
+                            continue;
+                        }
                         var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
@@ -164,18 +170,28 @@ namespace MainPower.Adms.Enricher
                             }
 
                             //set scada link and emap link symbol
+                            //TODO: removed scada links - too complicated and confusing
+                            /*
                             if (!string.IsNullOrWhiteSpace(device.ScadaKey))
                             {
                                 SetSymbolScadaLink(symbol, device.ScadaKey);
                                 if (geographic)
                                     display.Add(CreateEmapDeviceLinkSymbol(symbol, datalink, device.Position));
                             }
-                           
+                           */
+                           /*
                             if (device.Type == DeviceType.Load && geographic)
                             {
                                 symbol.SetAttributeValue("scale", "1.0");
                                 CopyLoadToPremise(symbol);
                             }
+                            */
+                        }
+                        else
+                        {
+                            //the datalink isn't valid, so lets remove it
+                            Err($"Removing invalid datalink [{datalink}] from symbol [{symbol.Attribute("id")?.Value}] in display file [{group.Key}]");
+                            symbol.Element("dataLink")?.Remove();
                         }
                     }
                     catch (Exception ex)
@@ -208,7 +224,13 @@ namespace MainPower.Adms.Enricher
                                 SetLineStyle(line, datalink, device.Base1kV, device.Color, device.Name.StartsWith("Service"));
                             else
                                 Warn("Expected device type is Line.", device.Id, device.Name);
-
+                        }
+                        else
+                        {
+                            Err($"Removing invalid data/flow/color links [{datalink}] from line [{line.Attribute("id")?.Value}] in display file [{group.Key}]");
+                            line.Element("dataLink")?.Remove();
+                            line.Element("colorLink")?.Remove();
+                            line.Element("flowLink")?.Remove();
                         }
                         line.SetAttributeValue("mpwr_internals", null);
                     }
@@ -257,7 +279,12 @@ namespace MainPower.Adms.Enricher
                     try
                     {
                         //we can assume that datalinks will be of the id type, not the dsID type
-                        var datalink = symbol.Element("dataLink").Attribute("id").Value;
+                        var datalink = symbol.Element("dataLink").Attribute("id")?.Value;
+                        if (string.IsNullOrWhiteSpace(datalink))
+                        {
+                            //probably a premise
+                            continue;
+                        }
                         var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
@@ -331,13 +358,13 @@ namespace MainPower.Adms.Enricher
                    new XAttribute("topic", "view premise details"),
                    new XAttribute("instance", "Active"),
                    new XElement("field",
-                       new XAttribute("name", "data link url"),
+                       new XAttribute("name", "Data Link URL"),
                        new XAttribute("value", "@URL")),
                    new XElement("field",
-                       new XAttribute("name", "data mode"),
+                       new XAttribute("name", "Data Mode"),
                        new XAttribute("value", "@MODE")),
                    new XElement("field",
-                       new XAttribute("name", "data instance"),
+                       new XAttribute("name", "Data Instance"),
                        new XAttribute("value", "@I")
                    )
                );

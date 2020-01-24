@@ -39,7 +39,6 @@ namespace MainPower.Adms.Enricher
         [Key(3)]
         public Dictionary<string, ModelFeeder> Feeders { get; set; } = new Dictionary<string, ModelFeeder>();
 
-
         /// <summary>
         /// The number of disconnected devices
         /// </summary>
@@ -261,6 +260,7 @@ namespace MainPower.Adms.Enricher
 
         /// <summary>
         /// Removes all devices in a group from the model
+        /// TODO: this is an expensive operation... maybe we should track groups as a separate Dictionary<groupid, list<device>> for speeeeed
         /// </summary>
         /// <param name="id">The group id</param>        
         public void RemoveGroup(string id)
@@ -277,7 +277,6 @@ namespace MainPower.Adms.Enricher
                         {
                             Sources.Remove(s.Id);
                         }
-                        CleanOrphanNodes();
                     }
             lock (Feeders)
             {
@@ -295,26 +294,19 @@ namespace MainPower.Adms.Enricher
         /// <param name="d"></param>
         private void RemoveDevice(ModelDevice d)
         {
-            lock (Devices)
+            lock (Devices) lock (Nodes)
             {
+                //remove the device from node1
                 d.Node1?.Devices.Remove(d);
-                d.Node2?.Devices.Remove(d);
-                Devices.Remove(d.Id);
-            }
-        }
+                //if node1 has no devices left, then remvoe the node
+                if (d.Node1?.Devices.Count == 0)
+                    Nodes.Remove(d.Node1.Id);
 
-        /// <summary>
-        /// Searches the model for nodes with no devices, then removes them
-        /// </summary>
-        private void CleanOrphanNodes()
-        {
-            lock (Nodes)
-            {
-                var nodes = from n in Nodes.Values where n.Devices.Count == 0 select n;
-                foreach (var node in nodes.ToList())
-                {
-                    Nodes.Remove(node.Id);
-                }
+                d.Node2?.Devices.Remove(d);
+                if (d.Node2?.Devices.Count == 0)
+                    Nodes.Remove(d.Node2.Id);
+
+                Devices.Remove(d.Id);               
             }
         }
 
