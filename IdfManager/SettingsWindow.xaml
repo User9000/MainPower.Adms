@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MainPower.Adms.IdfManager"
         mc:Ignorable="d"
-        Title="SettingsWindow" Height="184" Width="476" WindowStartupLocation="CenterOwner" SizeToContent="WidthAndHeight">
+        Title="SettingsWindow" Height="249" Width="476" WindowStartupLocation="CenterOwner" SizeToContent="WidthAndHeight">
     <Grid>
         <Label Content="Enricher Path" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
         <TextBox Margin="126,14,10,0" Text="{Binding Settings.EnricherPath}" TextWrapping="Wrap" VerticalAlignment="Top"/>
@@ -13,10 +13,22 @@
         <TextBox Margin="126,37,10,0" Text="{Binding Settings.Leika2AdmsPath}" TextWrapping="Wrap" VerticalAlignment="Top"/>
         <Label Content="Idf Path" HorizontalAlignment="Left" Margin="10,56,0,0" VerticalAlignment="Top"/>
         <TextBox Margin="126,60,10,0" Text="{Binding Settings.IdfFileShare}" TextWrapping="Wrap" VerticalAlignment="Top"/>
-        <Button Content="Save &amp; Close" Margin="0,129,10,0" Click="Button_Click" HorizontalAlignment="Right" Width="93" Height="20" VerticalAlignment="Top"/>
+        <Button Content="Save &amp; Close" Margin="0,0,10,6" Click="Button_Click" HorizontalAlignment="Right" Width="93" Height="20" VerticalAlignment="Bottom"/>
         <Label Content="Enricher Data Path" HorizontalAlignment="Left" Margin="10,79,0,0" VerticalAlignment="Top"/>
         <TextBox Margin="126,83,10,0" Text="{Binding Settings.EnricherDataPath}" TextWrapping="Wrap" VerticalAlignment="Top"/>
         <Label Content="Maestro Int. Path" HorizontalAlignment="Left" Margin="10,102,0,0" VerticalAlignment="Top"/>
         <TextBox Margin="126,106,10,0" Text="{Binding Settings.MaestroIntermediatePath}" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <ListBox Margin="126,129,10,51" ItemsSource="{Binding Settings.DestinationTargets}" SelectedItem="{Binding SelectedTarget}">
+            <ListBox.Resources>
+                <DataTemplate DataType="{x:Type local:DestinationTarget}">
+                    <TextBlock Text="{Binding Caption}"/>
+                </DataTemplate>
+            </ListBox.Resources>
+        </ListBox>
+        <Label Content="IDF Destinations" HorizontalAlignment="Left" Margin="10,129,0,0" VerticalAlignment="Top" Height="27" Width="107"/>
+        <Button Content="Add New" HorizontalAlignment="Left" Margin="15,156,0,0" VerticalAlignment="Top" Width="102" Command="{Binding AddNewTarget}"/>
+        <TextBox Margin="126,0,267,33" Text="{Binding SelectedTarget.Name}" Height="18" VerticalAlignment="Bottom"/>
+        <TextBox Margin="209,0,10,33" Text="{Binding SelectedTarget.Path}" VerticalAlignment="Bottom"/>
+        <Button Content="Delete" HorizontalAlignment="Left" Margin="15,181,0,0" VerticalAlignment="Top" Width="102" Command="{Binding DeleteTarget}"/>
     </Grid>
 </Window>

@@ -260,20 +260,13 @@ namespace MainPower.Adms.Enricher
                 if (!string.IsNullOrWhiteSpace(_faultProtectionAttrs))
                     Node.SetAttributeValue(IdfSwitchFaultProtectionAttrs, _faultProtectionAttrs);
 
-                //need to do this before the SCADA linking otherwise the datalink will be replaced
-                //if (_baseKv.StartsWith("0.4"))
-                //    ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IdfScaleGeographicLV, IdfScaleInternals);
-                //else
-                //    ParentGroup.SetSymbolNameByDataLink(Id, _symbol, IdfScaleGeographicHV, IdfScaleInternals);
                 //TODO tidy this up
                 var scada = GenerateScadaLinking();
                 string scadaKey = null;
                 if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
                 {
-                    //ParentGroup.CreateDataLinkSymbol(Id, _orientation);
                     ParentGroup.AddGroupElement(scada.Item2);
                     scadaKey = scada.Item1;
-                    //ParentGroup.AddScadaDatalink(Id, scada.Item1);
                 }
                 List<KeyValuePair<string, string>> items = new List<KeyValuePair<string, string>>();
                 items.Add(new KeyValuePair<string, string>("GIS Switch Type", _gisswitchtype.Length > 39 ? _gisswitchtype.Substring(0,39): _gisswitchtype));
@@ -395,17 +388,7 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
                     x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
                     x.SetAttributeValue($"s{ds}AggregateKVAR", "");
-                }
-                /*
-                var pf = Enricher.Singleton.GetScadaAnalogPointInfo($"{Name} PF");
-
-                if (bAmps != null)
-                {
-                    x.SetAttributeValue("s1p3Amps", bAmps.Key);
-                    x.SetAttributeValue("s1p3AmpsUCF", "1");
-                }
-                */
-                
+                }                
 
                 var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts R", _scadaSearchMode);
                 if (s1RYVolts != null && phase1)

@@ -37,10 +37,10 @@
                     <Grid DataContext="{Binding SelectedItem, ElementName=_bundles}">
                         <Label Content="Result:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="47" RenderTransformOrigin="0.502,1.958"/>
                         <Label Content="{Binding EnricherResult.ResultMessage}" HorizontalAlignment="Left" Margin="57,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.502,1.958"/>
-                        
+
                         <Label Content="Stats:" HorizontalAlignment="Left" Margin="10,36,0,0" VerticalAlignment="Top" Width="47" RenderTransformOrigin="0.502,1.958"/>
                         <Label Content="{Binding EnricherResult.StatsMessage}" HorizontalAlignment="Left" Margin="57,36,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.502,1.958"/>
-                        
+
                         <Label Content="Time:" HorizontalAlignment="Left" Margin="10,59,0,0" VerticalAlignment="Top" Width="47" RenderTransformOrigin="0.502,1.958"/>
                         <Label Content="{Binding EnricherResult.Time}" HorizontalAlignment="Left" Margin="57,59,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.502,1.958"/>
 
@@ -50,7 +50,7 @@
                 <GroupBox Header="Enricher Options" Margin="4,145,10,5">
                     <Grid>
                         <CheckBox Content="New model" HorizontalAlignment="Left" Margin="10,10,0,0" Height="16" IsChecked="{Binding EnricherOptions.NewModel}" VerticalAlignment="Top"/>
-                        <ComboBox HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="248" ItemsSource="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=DataContext.ValidModels}"  SelectedItem="{Binding EnricherOptions.Model}"/>
+                        <ComboBox HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="248" ItemsSource="{Binding ValidModels}"  SelectedItem="{Binding EnricherOptions.Model}"/>
                         <Label Content="Threads:" HorizontalAlignment="Left" Margin="10,79,0,0" VerticalAlignment="Top" Width="81"/>
                         <TextBox HorizontalAlignment="Left" Margin="96,83,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="162" Text="{Binding EnricherOptions.Threads}" />
                         <Label Content="Debug Level:" HorizontalAlignment="Left" Margin="10,103,0,0" VerticalAlignment="Top" Width="81"/>
@@ -60,7 +60,14 @@
                         <CheckBox Content="Use latest model" HorizontalAlignment="Left" Margin="10,31,0,0" Height="16" IsChecked="{Binding EnricherOptions.UseLatestModel}" VerticalAlignment="Top"/>
                         <Label Content="{Binding LatestModel}" HorizontalAlignment="Left" Margin="134,25,0,0" VerticalAlignment="Top"/>
                         <CheckBox Content="Pause on completion" HorizontalAlignment="Left" Margin="10,155,0,0" Height="16" IsChecked="{Binding EnricherOptions.PauseOnCompletion}" VerticalAlignment="Top"/>
-                        <Button Content="Copy to PDS" HorizontalAlignment="Left" Margin="10,203,0,0" VerticalAlignment="Top" Width="248" Command="{Binding CopyToPds}"/>
+                        <Button Content="Copy to Target" HorizontalAlignment="Left" Margin="10,230,0,0" VerticalAlignment="Top" Width="248" Command="{Binding CopyToTarget}"/>
+                        <ComboBox HorizontalAlignment="Left" Margin="10,203,0,0" VerticalAlignment="Top" Width="248" ItemsSource="{Binding Settings.DestinationTargets}" SelectedValue="{Binding SelectedTarget}">
+                            <ComboBox.Resources>
+                                <DataTemplate DataType="{x:Type local:DestinationTarget}">
+                                    <TextBlock Text="{Binding Caption}"/>
+                                </DataTemplate>
+                            </ComboBox.Resources>
+                        </ComboBox>
                     </Grid>
                 </GroupBox>
             </Grid>

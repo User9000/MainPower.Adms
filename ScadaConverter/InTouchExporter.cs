@@ -616,13 +616,14 @@ namespace MainPower.Adms.ScadaConverter
                     p.Units = dt.Rows[i]["EngUnits"] as string;
                     p.ScaleFactor = 1;
                     if (!memoryTagFile)
-                    {                        
+                    {
                         r1 = double.Parse(dt.Rows[i]["MinRaw"].ToString());
                         r2 = double.Parse(dt.Rows[i]["MaxRaw"].ToString());
                         e1 = double.Parse(dt.Rows[i]["MinEU"].ToString());
                         e2 = double.Parse(dt.Rows[i]["MaxEU"].ToString());
-                        p.ScaleFactor = (e2 - e1) / (r2 - r1);
-                        p.Offset = e1 - p.ScaleFactor * r1;
+                        p.ScaleFactor = ((e2 - e1) / (r2 - r1));
+                        p.Offset = (e1 - p.ScaleFactor * r1).RoundToSignificantDigits(3);
+                        p.ScaleFactor = p.ScaleFactor.RoundToSignificantDigits(4);
                     }
                     //alarms
                     p.WwLimits[0] = dt.Rows[i]["LoLoAlarmState"].ToString() == "On";
@@ -633,25 +634,25 @@ namespace MainPower.Adms.ScadaConverter
                     if (p.WwLimits[0])
                     {
                         //LoLo maps to Limit3.Low
-                        p.LowLimits[PointDetail.LIMIT3] = dt.Rows[i]["LoLoAlarmValue"].ToString();
+                        p.LowLimits[PointDetail.LIMIT3] = dt.Rows[i]["LoLoAlarmValue"].ToString();// double.Parse(dt.Rows[i]["LoLoAlarmValue"].ToString()).ToString("N4");
                         p.ELimits[PointDetail.LIMIT3] = true;
                     }
                     if (p.WwLimits[1])
                     {
                         //Lo maps to Limit2.Low
-                        p.LowLimits[PointDetail.LIMIT2] = dt.Rows[i]["LoAlarmValue"].ToString();
+                        p.LowLimits[PointDetail.LIMIT2] = dt.Rows[i]["LoAlarmValue"].ToString();// double.Parse(dt.Rows[i]["LoAlarmValue"].ToString()).ToString("N4"); ;
                         p.ELimits[PointDetail.LIMIT2] = true;
                     }
                     if (p.WwLimits[2])
                     {
                         //Hi maps to Limit2.High
-                        p.HighLimits[PointDetail.LIMIT2] = dt.Rows[i]["HiAlarmValue"].ToString();
+                        p.HighLimits[PointDetail.LIMIT2] = dt.Rows[i]["HiAlarmValue"].ToString();// double.Parse(dt.Rows[i]["HiAlarmValue"].ToString()).ToString("N4"); ;
                         p.ELimits[PointDetail.LIMIT2] = true;
                     }
                     if (p.WwLimits[3])
                     {
                         //HiHi maps to Limit3.High
-                        p.HighLimits[PointDetail.LIMIT3] = dt.Rows[i]["HiHiAlarmValue"].ToString();
+                        p.HighLimits[PointDetail.LIMIT3] = dt.Rows[i]["HiHiAlarmValue"].ToString();//double.Parse(dt.Rows[i]["HiHiAlarmValue"].ToString()).ToString("N4"); ;
                         p.ELimits[PointDetail.LIMIT3] = true;
                     }
                 }
@@ -703,6 +704,8 @@ namespace MainPower.Adms.ScadaConverter
                 }
                 else
                 {
+                   
+                    
                     dt.Rows[i]["EngUnits"] = result.Units;
                     dt.Rows[i]["Scale"] = result.ScaleFactor.ToString("N7");
                     dt.Rows[i]["Offset"] = result.Offset.ToString("N7");

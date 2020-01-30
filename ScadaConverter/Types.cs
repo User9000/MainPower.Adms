@@ -322,27 +322,23 @@ namespace MainPower.Adms.ScadaConverter
         /// <returns></returns>
         public static DataTable GetDataTableFromCsv(string path, bool isFirstRowHeader)
         {
+
             path = Path.GetFullPath(path);
-            string header = isFirstRowHeader ? "Yes" : "No";
 
-            string pathOnly = Path.GetDirectoryName(path);
-            string fileName = Path.GetFileName(path);
+            var adapter = new GenericParsing.GenericParserAdapter(path);
+            adapter.FirstRowHasHeader = true;
+            DataTable dt = adapter.GetDataTable();
+            return dt;
+        }
 
-            string sql = @"SELECT * FROM [" + fileName + "]";
 
-            using (OleDbConnection connection = new OleDbConnection(
-                      @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + pathOnly +
-                      ";Extended Properties=\"Text;HDR=" + header + ";FMT=Delimited\""))
-            using (OleDbCommand command = new OleDbCommand(sql, connection))
-            using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-            {
-                DataTable dataTable = new DataTable
-                {
-                    Locale = CultureInfo.CurrentCulture
-                };
-                adapter.Fill(dataTable);
-                return dataTable;
-            }
+        public static double RoundToSignificantDigits(this double d, int digits)
+        {
+            if (d == 0)
+                return 0;
+
+            double scale = Math.Pow(10, Math.Floor(Math.Log10(Math.Abs(d))) + 1);
+            return scale * Math.Round(d / scale, digits);
         }
     }
 }

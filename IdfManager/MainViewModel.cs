@@ -19,14 +19,15 @@ namespace MainPower.Adms.IdfManager
         public ObservableCollection<IdfBundle> ValidModels { get; set; } = new ObservableCollection<IdfBundle>();
 
         public EnricherOptions EnricherOptions { get; set; }
+        public DestinationTarget SelectedTarget { get; set; }
         public Settings Settings { get; set; }
         public IdfBundle SelectedBundle { get; set; }
         public IdfBundle LatestModel { get; set; }
 
         private Process _p;
 
-        #region CopyToPdsCommand
-        void CopyToPdsExecute(object o)
+        #region CopyToTargetCommand
+        void CopyToTargetExecute(object o)
         {
             try
             {
@@ -48,14 +49,49 @@ namespace MainPower.Adms.IdfManager
 
         }
 
-        bool CanCopyToPdsExecute(object o)
+        bool CanCopyToTargetExecute(object o)
         {
-            return SelectedBundle?.EnricherResult.Success ?? false;
+            return (SelectedBundle?.EnricherResult.Success ?? false) && !string.IsNullOrWhiteSpace(SelectedTarget?.Path);
         }
 
-        public ICommand CopyToPds { get { return new RelayCommand<object>(CopyToPdsExecute, CanCopyToPdsExecute); } }
+        public ICommand CopyToTarget { get { return new RelayCommand<object>(CopyToTargetExecute, CanCopyToTargetExecute); } }
         #endregion
 
+        #region AddNewTarget Command
+        void AddNewTargetExecute(object o)
+        {
+            Settings.DestinationTargets.Add(new DestinationTarget() { Name = "New Target", Path = "New Path" });
+        }
+
+        bool CanAddNewTargetExecute(object o)
+        {
+            return true;
+        }
+
+        public ICommand AddNewTarget { get { return new RelayCommand<object>(AddNewTargetExecute, CanAddNewTargetExecute); } }
+        #endregion
+
+        #region DeleteTarget Command
+        void DeleteTargetExecute(object o)
+        {
+            try
+            {
+                Settings.DestinationTargets.Remove(SelectedTarget);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
+
+
+        bool CanDeleteTargetExecute(object o)
+        {
+            return true;
+        }
+
+        public ICommand DeleteTarget { get { return new RelayCommand<object>(DeleteTargetExecute, CanDeleteTargetExecute); } }
+        #endregion
 
         #region RunLeikaCommand 
         void RunLeikaExecute(object o)

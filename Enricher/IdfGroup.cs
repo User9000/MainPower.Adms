@@ -158,7 +158,13 @@ namespace MainPower.Adms.Enricher
                         if (string.IsNullOrWhiteSpace(datalink))
                         {
                             //probably a premise
-                            continue;
+                            datalink = symbol.Element("dataLink").Attribute("dsID")?.Value;
+                            if (string.IsNullOrWhiteSpace(datalink))
+                            {
+                                //no datalink id at all, not much we can do with that
+                                Err($"Data link id/dsID was missing for symbol {symbol.Attribute("id")?.Value} in display {group.Value}");
+                                continue;
+                            }
                         }
                         var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
@@ -525,6 +531,9 @@ namespace MainPower.Adms.Enricher
                 case DeviceType.Regulator:
                     //these are only int he geographic
                     scale = SymbolScaleRegulator;
+                    break;
+                case DeviceType.Load:
+                    scale =2;
                     break;
             }
 
