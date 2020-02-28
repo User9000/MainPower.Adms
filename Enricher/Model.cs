@@ -42,6 +42,7 @@ namespace MainPower.Adms.Enricher
         /// <summary>
         /// The number of disconnected devices
         /// </summary>
+        [IgnoreMember]
         public int DisconnectedCount
         {
             get
@@ -54,6 +55,7 @@ namespace MainPower.Adms.Enricher
         /// <summary>
         /// The number of deenergized devices
         /// </summary>
+        [IgnoreMember]
         public int DeenergizedCount
         {
             get
@@ -62,6 +64,7 @@ namespace MainPower.Adms.Enricher
                 return devices.Count();
             }
         }
+        [IgnoreMember]
         public int TxCount
         {
             get
@@ -69,6 +72,7 @@ namespace MainPower.Adms.Enricher
                 return Devices.Values.Where(d => d.Type == DeviceType.Transformer || d.Type == DeviceType.EarthingTransformer).Count();
             }
         }
+        [IgnoreMember]
         public int LineCount
         {
             get
@@ -76,6 +80,7 @@ namespace MainPower.Adms.Enricher
                 return Devices.Values.Where(d => d.Type == DeviceType.Line).Count();
             }
         }
+        [IgnoreMember]
         public int Line5Count
         {
             get
@@ -83,6 +88,7 @@ namespace MainPower.Adms.Enricher
                 return Devices.Values.Where(d => d.Type == DeviceType.Line && !d.Name.Contains("Bus") && d.Length <= 5).Count();
             }
         }
+        [IgnoreMember]
         public int Line25Count
         {
             get
@@ -90,6 +96,7 @@ namespace MainPower.Adms.Enricher
                 return Devices.Values.Where(d => d.Type == DeviceType.Line && !d.Name.Contains("Bus") && d.Length <= 25).Count();
             }
         }
+        [IgnoreMember]
         public int LoadCount
         {
             get
@@ -97,6 +104,7 @@ namespace MainPower.Adms.Enricher
                 return Devices.Values.Where(d => d.Type == DeviceType.Load).Count();
             }
         }
+        [IgnoreMember]
         public int SwitchCount
         {
             get
@@ -104,13 +112,14 @@ namespace MainPower.Adms.Enricher
                 return Devices.Values.Where(d => d.Type == DeviceType.Switch).Count();
             }
         }
+        [IgnoreMember]
         public int FeederCount
         {
             get
             {
                 return Feeders.Count;            }
         }
-      
+        [IgnoreMember]
         public int RegCount
         {
             get
