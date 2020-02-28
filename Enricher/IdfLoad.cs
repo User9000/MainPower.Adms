@@ -28,7 +28,6 @@ namespace MainPower.Adms.Enricher
         {
             try
             {
-                Info("I'm a load");
                 string symbol = "";
                 ParentGroup.UpdateLinkId(Id, Name);
                 UpdateId(Name);
