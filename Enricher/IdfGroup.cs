@@ -10,12 +10,13 @@ namespace MainPower.Adms.Enricher
 { 
     public class IdfGroup : IdfElement
     {
-        private const string SymbolDataLink = "Symbol 23";
+        //private const string SymbolDataLink = "Symbol 23";
         private const string GisDisplayName = "MainPower";
 
-        private const double SymbolScaleSwitchHV = 17;
+        private const double SymbolScaleSwitchHV = 20;
         private const double SymbolScaleRegulator = 13;
         private const double SymbolScaleTrannyPole = 17;
+        private const double SymbolScalePole = 3;
         private const double SymbolScaleSwitchLV = 3;
         private const double SymbolScaleSwitchInternals = 0.2;
         private const double SymbolScaleSwitchSLD = 10;
@@ -80,46 +81,35 @@ namespace MainPower.Adms.Enricher
                 {
                     case "Switch":
                         d = new IdfSwitch(node, this);
-                        Program.Enricher.SwitchCount++;
                         break;
                     case "Transformer":
                         d = new IdfTransformer(node, this);
-                        Program.Enricher.TransformerCount++;
                         break;
                     case "Line":
-                        Program.Enricher.LineCount++;
                         d = new IdfLine(node, this);
                         break;
                     case "Load":
-                        Program.Enricher.LoadCount++;
                         d = new IdfLoad(node, this);
                         break;
                     case "Feeder":
-                        Program.Enricher.LoadCount++;
                         d = new IdfFeeder(node, this);
                         break;
                     case "Circuit":
-                        Program.Enricher.LoadCount++;
                         d = new IdfCircuit(node, this);
                         break;
                     case "Regulator":
-                        Program.Enricher.LoadCount++;
                         d = new IdfRegulator(node, this);
                         break;
                     case "Substation":
-                        Program.Enricher.LoadCount++;
                         d = new IdfSubstation(node, this);
                         break;
                     case "Capacitor":
-                        Program.Enricher.CapCount++;
                         d = new IdfCapacitor(node, this);
                         break;
                     case "Area":
-                        Program.Enricher.LoadCount++;
                         d = new IdfArea(node, this);
                         break;
                     case "Region":
-                        Program.Enricher.LoadCount++;
                         d = new IdfRegion(node, this);
                         break;
                     case "Source":
@@ -136,7 +126,6 @@ namespace MainPower.Adms.Enricher
                     d.Process();
                 }
             }
-            //DeleteInternals();
         }
 
         public void ProcessGraphics()
@@ -146,7 +135,7 @@ namespace MainPower.Adms.Enricher
                 var geographic = group.Key == GisDisplayName;
                 var display = group.Value;
                 
-                var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value != SymbolDataLink && x.Elements("dataLink").Any());
+                var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Elements("dataLink").Any());
                 //we add new symbols the groups, so take a list to avoid ienum change errors
                 foreach (var symbol in symbols.ToList())
                 {
@@ -162,7 +151,7 @@ namespace MainPower.Adms.Enricher
                             if (string.IsNullOrWhiteSpace(datalink))
                             {
                                 //no datalink id at all, not much we can do with that
-                                Err($"Data link id/dsID was missing for symbol {symbol.Attribute("id")?.Value} in display {group.Value}");
+                                Err($"Data link id/dsID was missing for symbol {symbol.Attribute("id")?.Value} in display {group.Key}");
                                 continue;
                             }
                         }
@@ -174,24 +163,6 @@ namespace MainPower.Adms.Enricher
                             {
                                 SetSymbol(symbol, device, geographic);
                             }
-
-                            //set scada link and emap link symbol
-                            //TODO: removed scada links - too complicated and confusing
-                            /*
-                            if (!string.IsNullOrWhiteSpace(device.ScadaKey))
-                            {
-                                SetSymbolScadaLink(symbol, device.ScadaKey);
-                                if (geographic)
-                                    display.Add(CreateEmapDeviceLinkSymbol(symbol, datalink, device.Position));
-                            }
-                           */
-                           /*
-                            if (device.Type == DeviceType.Load && geographic)
-                            {
-                                symbol.SetAttributeValue("scale", "1.0");
-                                CopyLoadToPremise(symbol);
-                            }
-                            */
                         }
                         else
                         {
@@ -216,13 +187,31 @@ namespace MainPower.Adms.Enricher
                     symbol.SetAttributeValue("mpwr_internals", null);
                 }
 
+                //TODO: john should be doing this 
+                //set the scaling of the pole symbols
+                symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value == "Symbol 23");
+                foreach (var symbol in symbols.ToList())
+                {
+                    symbol.SetAttributeValue("scale", SymbolScalePole);
+                    symbol.SetAttributeValue("maxSize", "30");    
+                }
+
                 var lines = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Line" && x.Elements("colorLink").Any());
                 foreach (var line in lines)
                 {
                     try {
                         //we can assume that datalinks will be of the id type, not the dsID type
                         //TODO: john needs to set the data link in schematics
-                        var datalink = line.Element("colorLink").Attribute("id").Value;
+                        var datalink = line.Element("colorLink").Attribute("id")?.Value;
+                        if (string.IsNullOrWhiteSpace(datalink))
+                        {
+                            Err($"Color link id was missing for line {line.Attribute("id")?.Value} in display { group.Key} - removing all data/flow/color links");
+                            line.Element("dataLink")?.Remove();
+                            line.Element("colorLink")?.Remove();
+                            line.Element("flowLink")?.Remove();
+                            continue;
+                        }
+
                         var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
@@ -279,7 +268,7 @@ namespace MainPower.Adms.Enricher
                 if (!geographic)
                     continue;
 
-                var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Attribute("name")?.Value != SymbolDataLink && x.Elements("dataLink").Any());
+                var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Elements("dataLink").Any());
                 foreach (var symbol in symbols)
                 {
                     try
@@ -407,7 +396,7 @@ namespace MainPower.Adms.Enricher
             );
             symbol.Add(x);
         }
-        
+        /*
         private XElement CreateEmapDeviceLinkSymbol(XElement symbol, string id, SymbolPlacement position)
         {
             double x = double.Parse(symbol.Attribute("x").Value);
@@ -490,7 +479,7 @@ namespace MainPower.Adms.Enricher
 
             return newsymbol;
         }
-
+        */
         private void SetSymbol(XElement symbol, ModelDevice device, bool gis)
         {
 

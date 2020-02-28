@@ -11,14 +11,6 @@ namespace MainPower.Adms.Enricher
 {
     public class Enricher : ErrorReporter
     {              
-        public int TransformerCount { get; set; }
-        public int LineCount { get; set; }
-        public int Line5Count { get; set; }
-        public int Line25Count { get; set; }
-        public int CapCount { get; set; }
-        public int SwitchCount { get; set; }
-        public int LoadCount { get; set; }
-
         public Model Model { get; set; } = new Model();
         public FileManager FileManager { get; private set; } = new FileManager();
         
@@ -54,18 +46,15 @@ namespace MainPower.Adms.Enricher
             }
 
             //Add parallel transformer sets to the import configuration
-            IdfTransformer.GenerateParallelSets(Path.Combine(Program.Options.OutputPath, "Parallel Sets.xml"));
             FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
             //Add line types to the import configuration
             FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Line Types"), new XAttribute("name", "Line Types")));
-            File.Copy(Path.Combine(Program.Options.DataPath, "Conductors.xml"), Path.Combine(Program.Options.OutputPath, "Conductors.xml"), true);
             //Add custom scada linking to the import configuration
             FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "SCADA"), new XAttribute("name", "Custom SCADA Links")));
-            File.Copy(Path.Combine(Program.Options.DataPath, "CustomSCADALinks.xml"), Path.Combine(Program.Options.OutputPath, "CustomSCADALinks.xml"), true);
             //Add bookmarks to the import configuration
             FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Bookmarks"), new XAttribute("name", "Bookmarks")));
-            File.Copy(Path.Combine(Program.Options.DataPath, "Bookmarks.xml"), Path.Combine(Program.Options.OutputPath, "Bookmarks.xml"), true);
-
+            
+            
             ProcessGeographic();
 
             Model.ValidateConnectivity();
@@ -121,9 +110,17 @@ namespace MainPower.Adms.Enricher
             {
                 Info("Saving the output IDF...");
                 FileManager.SaveFiles(o.OutputPath);
+
+                //TODO: this is a temporary measure
+                File.Copy(Path.Combine(Program.Options.DataPath, "ExternalInfo.xml"), Path.Combine(Program.Options.OutputPath, "ExternalInfo.xml"), true);
+                File.Copy(Path.Combine(Program.Options.DataPath, "Parallel Sets.xml"), Path.Combine(Program.Options.OutputPath, "Parallel Sets.xml"), true);
+                File.Copy(Path.Combine(Program.Options.DataPath, "Conductors.xml"), Path.Combine(Program.Options.OutputPath, "Conductors.xml"), true);
+                File.Copy(Path.Combine(Program.Options.DataPath, "CustomSCADALinks.xml"), Path.Combine(Program.Options.OutputPath, "CustomSCADALinks.xml"), true);
+                File.Copy(Path.Combine(Program.Options.DataPath, "Bookmarks.xml"), Path.Combine(Program.Options.OutputPath, "Bookmarks.xml"), true);
+
             }
             TimeSpan runtime = DateTime.Now - start;
-            Info($"Stats: Tx:{TransformerCount} Line:{LineCount} Line5:{Line5Count} Line25:{Line25Count} Load:{LoadCount} Switch:{SwitchCount} Runtime:{runtime.TotalMinutes} min");
+            Info($"Stats: Tx:{Model.TxCount} Line:{Model.LineCount} Line5:{Model.Line5Count} Line25:{Model.Line25Count} Load:{Model.LoadCount} Switch:{Model.SwitchCount} Reg:{Model.RegCount} Feeder:{Model.FeederCount} Runtime:{runtime.TotalMinutes} min");
             Info($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
         }
 

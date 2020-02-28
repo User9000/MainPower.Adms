@@ -42,7 +42,6 @@ namespace MainPower.Adms.Enricher
         /// <summary>
         /// The number of disconnected devices
         /// </summary>
-        [IgnoreMember]
         public int DisconnectedCount
         {
             get
@@ -55,13 +54,68 @@ namespace MainPower.Adms.Enricher
         /// <summary>
         /// The number of deenergized devices
         /// </summary>
-        [IgnoreMember]
         public int DeenergizedCount
         {
             get
             {
                 var devices = from d in Devices.Values where d.SP2S.Count == 0 select d;
                 return devices.Count();
+            }
+        }
+        public int TxCount
+        {
+            get
+            {
+                return Devices.Values.Where(d => d.Type == DeviceType.Transformer || d.Type == DeviceType.EarthingTransformer).Count();
+            }
+        }
+        public int LineCount
+        {
+            get
+            {
+                return Devices.Values.Where(d => d.Type == DeviceType.Line).Count();
+            }
+        }
+        public int Line5Count
+        {
+            get
+            {
+                return Devices.Values.Where(d => d.Type == DeviceType.Line && !d.Name.Contains("Bus") && d.Length <= 5).Count();
+            }
+        }
+        public int Line25Count
+        {
+            get
+            {
+                return Devices.Values.Where(d => d.Type == DeviceType.Line && !d.Name.Contains("Bus") && d.Length <= 25).Count();
+            }
+        }
+        public int LoadCount
+        {
+            get
+            {
+                return Devices.Values.Where(d => d.Type == DeviceType.Load).Count();
+            }
+        }
+        public int SwitchCount
+        {
+            get
+            {
+                return Devices.Values.Where(d => d.Type == DeviceType.Switch).Count();
+            }
+        }
+        public int FeederCount
+        {
+            get
+            {
+                return Feeders.Count;            }
+        }
+      
+        public int RegCount
+        {
+            get
+            {
+                return Devices.Values.Where(d => d.Type == DeviceType.Regulator).Count();
             }
         }
 
@@ -778,7 +832,7 @@ namespace MainPower.Adms.Enricher
                 }
 
                 //if we are going through a distribution transformer, then set the tx flag to true
-                if (set.d.Type == DeviceType.Transformer && set.d.Base2kV == 0.4)
+                if (set.d.Type == DeviceType.Transformer && set.d.Base2kV == 0.4 && set.d.Downstream == 2)
                     tx = true;
 
                 //if we are not in internals, then clear the tx flag

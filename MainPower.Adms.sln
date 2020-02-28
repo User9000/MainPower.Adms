@@ -19,7 +19,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdfManager", "IdfManager\Id
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightningConverter", "LightningConverter\LightningConverter.csproj", "{86BABAFE-2992-4FFE-BD4B-FCDB30D03B08}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdfCleaner", "IdfCleaner\IdfCleaner.csproj", "{7A46BBF0-8275-4D14-BB92-99D90B351F9D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdfCleaner", "IdfCleaner\IdfCleaner.csproj", "{7A46BBF0-8275-4D14-BB92-99D90B351F9D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtractManager", "ExtractManager\ExtractManager.csproj", "{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rtu2Adms", "Rtu2Adms\Rtu2Adms.csproj", "{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -101,6 +105,22 @@ Global
 		{7A46BBF0-8275-4D14-BB92-99D90B351F9D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7A46BBF0-8275-4D14-BB92-99D90B351F9D}.Release|x86.ActiveCfg = Release|Any CPU
 		{7A46BBF0-8275-4D14-BB92-99D90B351F9D}.Release|x86.Build.0 = Release|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Debug|x86.Build.0 = Debug|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Release|x86.ActiveCfg = Release|Any CPU
+		{D5BBCDAA-F804-4B3F-BA15-A5078F1D2029}.Release|x86.Build.0 = Release|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Debug|x86.Build.0 = Debug|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Release|x86.ActiveCfg = Release|Any CPU
+		{9CACB30A-65C5-49C0-BE8D-A5ACCED2FD91}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

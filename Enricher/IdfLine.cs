@@ -32,10 +32,13 @@ namespace MainPower.Adms.Enricher
         {
             try
             {
-                lock (_conductors)
+
+                if (_conductorTypes == null)
                 {
-                    if (_conductorTypes == null)
+                    lock (_conductors)
+                    {
                         LoadConductorTypes();
+                    }
                 }
 
                 CheckPhases();
@@ -94,11 +97,6 @@ namespace MainPower.Adms.Enricher
                 {
                     length = 0;
                 }
-
-                if (!isBusbar && length <= 25)
-                    Program.Enricher.Line25Count++;
-                if (!isBusbar && length <= 5)
-                    Program.Enricher.Line5Count++;
 
                 var conductor = (voltage, S1Phases, lineType, phase_conductor ?? "", neutral_conductor ?? "", Name.StartsWith("Service"));
 

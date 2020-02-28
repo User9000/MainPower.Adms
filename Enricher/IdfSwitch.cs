@@ -77,6 +77,7 @@ namespace MainPower.Adms.Enricher
         private const string AdmsSwitchBlockFeederPropagation = "BlockFeederPropagation";
         private const string AdmsSwitchScadaId = "ScadaId";
         private const string AdmsSwitchOrientation = "Orientation";
+        private const string AdmsSwitchSkipScada = "NoAutoScadaLinking";
 
         private const string IdfSwitchScadaP1State = "p1State";
         private const string IdfSwitchScadaP2State = "p2State";
@@ -261,12 +262,21 @@ namespace MainPower.Adms.Enricher
                     Node.SetAttributeValue(IdfSwitchFaultProtectionAttrs, _faultProtectionAttrs);
 
                 //TODO tidy this up
-                var scada = GenerateScadaLinking();
+                //TODO make db constants the same as IdfConstants
                 string scadaKey = null;
-                if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
+                if (_admsAsset?[AdmsSwitchSkipScada] != IdfTrue)
                 {
-                    ParentGroup.AddGroupElement(scada.Item2);
-                    scadaKey = scada.Item1;
+                    var scada = GenerateScadaLinking();
+                    
+                    if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
+                    {
+                        ParentGroup.AddGroupElement(scada.Item2);
+                        scadaKey = scada.Item1;
+                    }
+                }
+                else
+                {
+                    Info("Skipping automatic SCADA linking");
                 }
                 List<KeyValuePair<string, string>> items = new List<KeyValuePair<string, string>>();
                 items.Add(new KeyValuePair<string, string>("GIS Switch Type", _gisswitchtype.Length > 39 ? _gisswitchtype.Substring(0,39): _gisswitchtype));
@@ -287,7 +297,8 @@ namespace MainPower.Adms.Enricher
             Node.SetAttributeValue(GisSwitchType, null);
             Node.SetAttributeValue(GisT1Asset, null);
         }
-
+        
+        //TODO: this return value is gross
         private (string,XElement) GenerateScadaLinking()
         {
             bool hasVoltsus = false, hasVoltsds = false;
@@ -488,8 +499,8 @@ namespace MainPower.Adms.Enricher
                 }
 
                 var lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Lockout", _scadaSearchMode);
-                if (lockout == null)
-                    lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip4 OC", _scadaSearchMode);
+                //if (lockout == null)
+                //    lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip4 OC", _scadaSearchMode);
                 if (lockout != null)
                 {
                     if (phase1)
@@ -523,10 +534,9 @@ namespace MainPower.Adms.Enricher
                 //OCPModeNormal = 1
                 //p1OCPMode = Watchdog 
                 //p1FaultCurrent = fault current
-                //p1TripFaultSignal = lockout
-
+                //p1TripFaultSignal = lockout - or should it be the per phase trip flags?
                 //p1FaultInd = for directional devices is the side 1 fault indication, otherwise non directional
-                //p1FaultInd2 = for directional devices is the side 2 fault indication, otherwise non directional
+                //p1FaultInd2 = for directional devices is the side 2 fault indication, otherwise not required
 
                 var p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot RØ Fault", _scadaSearchMode);
                 if (p1Fault != null)
