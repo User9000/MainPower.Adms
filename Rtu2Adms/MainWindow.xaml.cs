@@ -15,7 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Rtu2Adms
+namespace MainPower.Adms.Rtu2Adms
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -32,10 +32,8 @@ namespace Rtu2Adms
             OpenFileDialog d = new OpenFileDialog();
             if (d.ShowDialog() ?? false)
             {
-                SCD5200TagReader r = new SCD5200TagReader(d.FileName);
-                r.ReadIeds();
-                r.ProcessTags();
-                Debugger.Break();
+                ScdRtu r = new ScdRtu(d.FileName);
+                DataContext = r;
             }
         }
     }

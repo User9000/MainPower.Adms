@@ -4,10 +4,12 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWPF>true</UseWPF>
+    <RootNamespace>MainPower.Adms.Rtu2Adms</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="LumenWorksCsvReader" Version="4.0.0" />
+    <PackageReference Include="PropertyChanged.Fody" Version="3.2.6" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
@@ -10,15 +11,17 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace Rtu2Adms
+namespace MainPower.Adms.Rtu2Adms
 {
-    public class RtuPoint
+    public class RtuPoint : INotifyPropertyChanged
     {
         public string Name { get; set; }
         public PointType Type { get; set; }
         public int Index { get; set; }
         public Device SourceDevice { get; set; }
         public int SourceIndex { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 
     public enum PointType
@@ -43,14 +46,16 @@ namespace Rtu2Adms
         Rtu,
     }
 
-    public class Device
+    public class Device : INotifyPropertyChanged
     {
         public DeviceType Type { get; set; }
         public string Name { get; set; }
         public ObservableCollection<RtuPoint> Points { get; private set; } = new ObservableCollection<RtuPoint>();
+
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 
-    public class ScdRtu
+    public class ScdRtu  : INotifyPropertyChanged
     {
         public ObservableCollection<Device> DnpSlaves { get; set; } = new ObservableCollection<Device>();
         public ObservableCollection<Device> Ieds { get; set; } = new ObservableCollection<Device>();
@@ -62,13 +67,14 @@ namespace Rtu2Adms
         private Dictionary<string, Device> _tagDeviceMap = new Dictionary<string, Device>();
 
         private static readonly Device Rtu = new Device() { Name = "RTU", Type = DeviceType.Rtu };
-        
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public ScdRtu(string filename)
         {
-            _config = filename;
-            _configData = File.ReadAllLines(_config);
-            _rtuName = _configData[0].Trim(new char[] { '"', '1', ' ' });
+            RtuConfigFile = filename;
+            _configData = File.ReadAllLines(RtuConfigFile);
+            RtuName = _configData[0].Trim(new char[] { '"', '1', ' ' });
             ReadIeds();
             ProcessTags();
         }
@@ -226,7 +232,7 @@ namespace Rtu2Adms
             return Rtu;
         }
 
-        public void ReadIeds()
+        private void ReadIeds()
         {
             //Note: This is real hacky.  If we start to want too much more detail it 
             //would probably be better to invest the time to create a full config parser.
@@ -373,18 +379,6 @@ namespace Rtu2Adms
             }
         }
 
-        public static void GenerateRTUTagInfo(string path = @".\")
-        {
-
-
-            var files = Directory.GetFiles(path + @"rtu\", "*.cfg");
-            foreach (var file in files)
-            {
-                ScdRtu rtu = new ScdRtu(file);
-                rtu.ReadIeds();
-                rtu.ProcessTags();
-            }
-        }
     }
 }
              
