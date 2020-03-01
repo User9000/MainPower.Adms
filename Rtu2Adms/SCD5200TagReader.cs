@@ -10,29 +10,70 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace MainPower.Adms.ScadaConverter
+namespace Rtu2Adms
 {
     public class RtuPoint
     {
-
+        public string Name { get; set; }
+        public PointType Type { get; set; }
+        public int Index { get; set; }
+        public Device SourceDevice { get; set; }
+        public int SourceIndex { get; set; }
     }
+
+    public enum PointType
+    {
+        DI,
+        DO,
+        AI,
+        AO,
+        CO,
+        NS,
+        FC
+    }
+
+    public enum DeviceType
+    {
+        DnpSlaveSerial,
+        DnpSlaveEthernet,
+        DnpSerialIed,
+        DnpEthernetIed,
+        ModbusSerialIed,
+        ModbusEthernetIed,
+        Rtu,
+    }
+
+    public class Device
+    {
+        public DeviceType Type { get; set; }
+        public string Name { get; set; }
+        public ObservableCollection<RtuPoint> Points { get; private set; } = new ObservableCollection<RtuPoint>();
+    }
+
 
     public class SCD5200TagReader
     {
-        public ObservableCollection<RtuPoint> Points { get; set; } = new ObservableCollection<RtuPoint>();
-        private readonly string _config;
+        public ObservableCollection<Device> DnpSlaves { get; set; } = new ObservableCollection<Device>();
+        public ObservableCollection<Device> Ieds { get; set; } = new ObservableCollection<Device>();
+        public string RtuName { get; private set; }
+        public string RtuConfigFile { get; private set; }
+        
         private string[] _configData;
-        private Dictionary<string, string> _tagDeviceMap = new Dictionary<string, string>();
-        private string _rtuName;
+
+        private Dictionary<string, Device> _tagDeviceMap = new Dictionary<string, Device>();
+
+        private static readonly Device Rtu = new Device() { Name = "RTU", Type = DeviceType.Rtu };
+        
 
         public SCD5200TagReader(string filename)
         {
-            _config = filename;
-            _configData = File.ReadAllLines(_config);
-            _rtuName = _configData[0].Trim(new char[] { '"', '1', ' ' });
+            RtuConfigFile= filename;
+            //TODO: error handling
+            _configData = File.ReadAllLines(RtuConfigFile);
+            RtuName = _configData[0].Trim(new char[] { '"', '1', ' ' });
         }
 
-        public void ProcessTags(DataTable dt)
+        public void ProcessTags()
         {
             for (int i = 0; i < _configData.Length; i++)
             {
@@ -42,12 +83,16 @@ namespace MainPower.Adms.ScadaConverter
                     string[] items = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     if (items.Length == 3 || items.Length == 4)
                     {
+                        Device device = new Device();
+                        DnpSlaves.Add(device);
+                        device.Type = DeviceType.DnpSlaveEthernet;
                         int offset = 26;//offset for an ethernet config
                         string isiteth = _configData[i + 3];
                         if (isiteth.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length > 2)
                         {
                             //we have serial
                             offset = 22;
+                            device.Type = DeviceType.DnpSlaveSerial;
                         }
                         string[] itemcounts1 = _configData[i + offset].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                         int[] itemcounts2 = new int[itemcounts1.Length];
@@ -71,101 +116,73 @@ namespace MainPower.Adms.ScadaConverter
 
                         for (int j = i + offset + 1; j < itemcounts2[0]; j++)
                         {
-                            string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            var row = dt.NewRow();
-                            row["RTUName"] = _rtuName;
-                            row["TagName"] = tag[8].Trim(new char[] { '"' });
-                            row["Type"] = "DI";
-                            row["Index"] = int.Parse(tag[0]);
-                            row["RelayName"] = "";
-                            row["RelayAddress"] = "";
-                            row["ScaleFactor"] = "";
-                            row["DeviceIndex"] = LookupTagDevice(row["TagName"] as string);
-                            dt.Rows.Add(row);
+                            RtuPoint p = new RtuPoint();
+                            string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);                         
+                            p.Name = tag[8].Trim(new char[] { '"' });
+                            p.Type = PointType.DI;
+                            p.Index = int.Parse(tag[0]);
+                            p.SourceDevice = LookupTagDevice(p.Name);
+                            device.Points.Add(p);
                         }
                         for (int j = itemcounts2[0]; j < itemcounts2[1]; j++)
                         {
-                            string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            var row = dt.NewRow();
-                            row["RTUName"] = _rtuName;
-                            row["TagName"] = tag[8].Trim(new char[] { '"' });
-                            row["Type"] = "DO";
-                            row["Index"] = int.Parse(tag[0]);
-                            row["RelayName"] = "";
-                            row["RelayAddress"] = "";
-                            row["ScaleFactor"] = "";
-                            row["DeviceIndex"] = LookupTagDevice(row["TagName"] as string);
-                            dt.Rows.Add(row);
+                            RtuPoint p = new RtuPoint();
+                            string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);                         
+                            p.Name = tag[8].Trim(new char[] { '"' });
+                            p.Type = PointType.DO;
+                            p.Index = int.Parse(tag[0]);
+                            p.SourceDevice = LookupTagDevice(p.Name);
+                            device.Points.Add(p);
                         }
                         for (int j = itemcounts2[1]; j < itemcounts2[2]; j++)
                         {
+                            RtuPoint p = new RtuPoint();
                             string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            var row = dt.NewRow();
-                            row["RTUName"] = _rtuName;
-                            row["TagName"] = tag[8].Trim(new char[] { '"' });
-                            row["Type"] = "CO";
-                            row["Index"] = int.Parse(tag[0]);
-                            row["RelayName"] = "";
-                            row["RelayAddress"] = "";
-                            row["ScaleFactor"] = "";
-                            row["DeviceIndex"] = LookupTagDevice(row["TagName"] as string);
-                            dt.Rows.Add(row);
+                            p.Name = tag[8].Trim(new char[] { '"' });
+                            p.Type = PointType.CO;
+                            p.Index = int.Parse(tag[0]);
+                            p.SourceDevice = LookupTagDevice(p.Name);
+                            device.Points.Add(p);
                         }
                         for (int j = itemcounts2[2]; j < itemcounts2[3]; j++)
                         {
+                            RtuPoint p = new RtuPoint();
                             string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            var row = dt.NewRow();
-                            row["RTUName"] = _rtuName;
-                            row["TagName"] = tag[8].Trim(new char[] { '"' });
-                            row["Type"] = "FC";
-                            row["Index"] = int.Parse(tag[0]);
-                            row["RelayName"] = "";
-                            row["RelayAddress"] = "";
-                            row["ScaleFactor"] = "";
-                            row["DeviceIndex"] = LookupTagDevice(row["TagName"] as string);
-                            dt.Rows.Add(row);
+                            p.Name = tag[8].Trim(new char[] { '"' });
+                            p.Type = PointType.FC;
+                            p.Index = int.Parse(tag[0]);
+                            p.SourceDevice = LookupTagDevice(p.Name);
+                            device.Points.Add(p);
                         }
                         for (int j = itemcounts2[3]; j < itemcounts2[4]; j++)
                         {
+                            RtuPoint p = new RtuPoint();
                             string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            var row = dt.NewRow();
-                            row["RTUName"] = _rtuName;
-                            row["TagName"] = tag[8].Trim(new char[] { '"' });
-                            row["Type"] = "AI";
-                            row["Index"] = int.Parse(tag[0]);
-                            row["RelayName"] = "";
-                            row["RelayAddress"] = "";
-                            row["ScaleFactor"] = "";
-                            row["DeviceIndex"] = LookupTagDevice(row["TagName"] as string);
-                            dt.Rows.Add(row);
+                            p.Name = tag[8].Trim(new char[] { '"' });
+                            p.Type = PointType.AI;
+                            p.Index = int.Parse(tag[0]);
+                            p.SourceDevice = LookupTagDevice(p.Name);
+                            device.Points.Add(p);
                         }
                         for (int j = itemcounts2[4]; j < itemcounts2[5]; j++)
                         {
+                            RtuPoint p = new RtuPoint();
                             string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            var row = dt.NewRow();
-                            row["RTUName"] = _rtuName;
-                            row["TagName"] = tag[8].Trim(new char[] { '"' });
-                            row["Type"] = "NS";
-                            row["Index"] = int.Parse(tag[0]);
-                            row["RelayName"] = "";
-                            row["RelayAddress"] = "";
-                            row["ScaleFactor"] = "";
-                            row["DeviceIndex"] = LookupTagDevice(row["TagName"] as string);
-                            dt.Rows.Add(row);
+                            p.Name = tag[8].Trim(new char[] { '"' });
+                            p.Type = PointType.NS;
+                            p.Index = int.Parse(tag[0]);
+                            p.SourceDevice = LookupTagDevice(p.Name);
+                            device.Points.Add(p);
                         }
                         for (int j = itemcounts2[5]; j < itemcounts2[6]; j++)
                         {
+                            RtuPoint p = new RtuPoint();
                             string[] tag = _configData[j].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            var row = dt.NewRow();
-                            row["RTUName"] = _rtuName;
-                            row["TagName"] = tag[8].Trim(new char[] { '"' });
-                            row["Type"] = "AO";
-                            row["Index"] = int.Parse(tag[0]);
-                            row["RelayName"] = "";
-                            row["RelayAddress"] = "";
-                            row["ScaleFactor"] = "";
-                            row["DeviceIndex"] = LookupTagDevice(row["TagName"] as string);
-                            dt.Rows.Add(row);
+                            p.Name = tag[8].Trim(new char[] { '"' });
+                            p.Type = PointType.AO;
+                            p.Index = int.Parse(tag[0]);
+                            p.SourceDevice = LookupTagDevice(p.Name);
+                            device.Points.Add(p);
                         }
                         break;
                     }
@@ -173,7 +190,7 @@ namespace MainPower.Adms.ScadaConverter
             }
         }
 
-        private object LookupTagDevice(string name)
+        private Device LookupTagDevice(string name)
         {
             List<string> names = new List<string>();
             names.Add(name);
@@ -206,7 +223,7 @@ namespace MainPower.Adms.ScadaConverter
                 if (_tagDeviceMap.ContainsKey(n.ToLower()))
                     return _tagDeviceMap[n.ToLower()];
             }
-            return "RTU";
+            return Rtu;
         }
 
         public void ReadIeds()
@@ -245,6 +262,12 @@ namespace MainPower.Adms.ScadaConverter
 
         private void ParseModbusDevice(int v, string device)
         {
+            Device d = new Device()
+            {
+                Name = device,
+                Type = DeviceType.ModbusSerialIed
+            };
+            Ieds.Add(d);
             Regex r2 = new Regex("\"([^\"]*)\"");
 
             for (int i = 0; i < 5; i++)
@@ -254,10 +277,8 @@ namespace MainPower.Adms.ScadaConverter
 
                 if (!string.IsNullOrWhiteSpace(tag))
                 {
-                    //Console.WriteLine($"{tag}");
-                    _tagDeviceMap.Add(tag.ToLower(), $"{_rtuName}.{device}");
+                    _tagDeviceMap.Add(tag.ToLower(), d);
                 }
-
             }
 
             for (int i = v + 17; i < _configData.Length; i++)
@@ -272,8 +293,7 @@ namespace MainPower.Adms.ScadaConverter
 
                     if (!string.IsNullOrWhiteSpace(tag))
                     {
-                        //Console.WriteLine($"{tag}");
-                        _tagDeviceMap.Add(tag.ToLower(), $"{_rtuName}.{device}");
+                        _tagDeviceMap.Add(tag.ToLower(), d);
                     }
                 }
             }
@@ -290,19 +310,30 @@ namespace MainPower.Adms.ScadaConverter
         private void ParseDnpEthernetDevice(int v)
         {
             string deviceName = _configData[v + 4].Trim(new char[] { '"' });
-            //Console.WriteLine($"Parsing Ethernet Dnp Device {_rtuName}.{deviceName}...");
-            ParseDnpDevicePoints(v + 8, deviceName);
+            Device d = new Device()
+            {
+                Name = deviceName,
+                Type = DeviceType.DnpSlaveEthernet
+            };
+            Ieds.Add(d);
+            ParseDnpDevicePoints(v + 8, d);
 
         }
 
         private void ParseDnpSerialDevice(int v)
         {
             string deviceName = _configData[v + 1].Trim(new char[] { '"' });
+            Device d = new Device()
+            {
+                Name = deviceName,
+                Type = DeviceType.DnpSlaveSerial
+            };
+            Ieds.Add(d);
             //Console.WriteLine($"Parsing Serial Dnp Device {_rtuName}.{deviceName}...");
-            ParseDnpDevicePoints(v + 5, deviceName);
+            ParseDnpDevicePoints(v + 5, d);
         }
 
-        private void ParseDnpDevicePoints(int v, string device)
+        private void ParseDnpDevicePoints(int v, Device device)
         {
             Regex r1 = new Regex("^[0-9]+");
             Regex r2 = new Regex("\"([^\"]*)\"");
@@ -314,8 +345,7 @@ namespace MainPower.Adms.ScadaConverter
 
                 if (!string.IsNullOrWhiteSpace(tag))
                 {
-                    //Console.WriteLine($"{tag}");
-                    _tagDeviceMap.Add(tag.ToLower(), $"{_rtuName}.{device}");
+                    _tagDeviceMap.Add(tag.ToLower(), device);
                 }
             }
 
@@ -338,54 +368,22 @@ namespace MainPower.Adms.ScadaConverter
                 if (!string.IsNullOrWhiteSpace(tag))
                 {
                     //Console.WriteLine($"{tag}");
-                    _tagDeviceMap.Add(tag.ToLower(), $"{_rtuName}.{device}");
+                    _tagDeviceMap.Add(tag.ToLower(), device);
                 }
             }
         }
 
         public static void GenerateRTUTagInfo(string path = @".\")
         {
-            var overrideFile = path + "_equipmentoverrides.csv";
-            DataTable dt = new DataTable();
-            dt.Columns.Add("RTUName");
-            dt.Columns.Add("TagName");
-            dt.Columns.Add("Type");
-            dt.Columns.Add("Index");
-            dt.Columns.Add("RelayName");
-            dt.Columns.Add("RelayAddress");
-            dt.Columns.Add("ScaleFactor");
-            dt.Columns.Add("DeviceIndex");
+
 
             var files = Directory.GetFiles(path + @"rtu\", "*.cfg");
             foreach (var file in files)
             {
                 SCD5200TagReader rtu = new SCD5200TagReader(file);
                 rtu.ReadIeds();
-                rtu.ProcessTags(dt);
+                rtu.ProcessTags();
             }
-
-            //override the equipment from the equipment map
-            Dictionary<string, string> overrides = new Dictionary<string, string>();
-            using (CachedCsvReader csv = new CachedCsvReader(new StreamReader(new FileStream(overrideFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)), true))
-            {
-                while (csv.ReadNextRecord())
-                {
-                    overrides.Add(csv["OldEquipment"], csv["NewEquipment"]);
-                }
-            }
-
-            for (int i = 0; i < dt.Rows.Count; i++)
-            {
-                string tagName = dt.Rows[i]["TagName"] as string;
-                string equipment = dt.Rows[i]["DeviceIndex"] as string;
-
-                if (overrides.ContainsKey(equipment))
-                    dt.Rows[i]["RelayName"] = overrides[equipment];
-                else
-                    //TODO: won't need this after sorting out deviceindexdebarcle
-                    dt.Rows[i]["RelayName"] = equipment;
-            }
-
         }
     }
 }

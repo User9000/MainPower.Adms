@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +25,18 @@ namespace Rtu2Adms
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog d = new OpenFileDialog();
+            if (d.ShowDialog() ?? false)
+            {
+                SCD5200TagReader r = new SCD5200TagReader(d.FileName);
+                r.ReadIeds();
+                r.ProcessTags();
+                Debugger.Break();
+            }
         }
     }
 }
