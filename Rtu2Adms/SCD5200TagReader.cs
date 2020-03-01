@@ -17,7 +17,7 @@ namespace MainPower.Adms.ScadaConverter
 
     }
 
-    public class SCD5200TagReader
+    public class ScdRtu
     {
         public ObservableCollection<RtuPoint> Points { get; set; } = new ObservableCollection<RtuPoint>();
         private readonly string _config;
@@ -25,14 +25,16 @@ namespace MainPower.Adms.ScadaConverter
         private Dictionary<string, string> _tagDeviceMap = new Dictionary<string, string>();
         private string _rtuName;
 
-        public SCD5200TagReader(string filename)
+        public ScdRtu(string filename)
         {
             _config = filename;
             _configData = File.ReadAllLines(_config);
             _rtuName = _configData[0].Trim(new char[] { '"', '1', ' ' });
+            ReadIeds();
+            ProcessTags();
         }
 
-        public void ProcessTags(DataTable dt)
+        private void ProcessTags()
         {
             for (int i = 0; i < _configData.Length; i++)
             {
@@ -359,7 +361,7 @@ namespace MainPower.Adms.ScadaConverter
             var files = Directory.GetFiles(path + @"rtu\", "*.cfg");
             foreach (var file in files)
             {
-                SCD5200TagReader rtu = new SCD5200TagReader(file);
+                ScdRtu rtu = new ScdRtu(file);
                 rtu.ReadIeds();
                 rtu.ProcessTags(dt);
             }
