@@ -66,6 +66,28 @@ namespace MainPower.Adms.IdfManager
         }
 
         public ICommand OpenLog { get { return new RelayCommand<object>(OpenLogExecute, CanOpenLogExecute); } }
+
+        void ViewInExplorerExecute(object o)
+        {
+
+            using Process p = new Process
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = "explorer.exe",
+                    UseShellExecute = true,
+                    Arguments = Path
+                }
+            };
+            p.Start();
+        }
+
+        bool CanViewInExplorerExecute(object o)
+        {
+            return Directory.Exists(Path);
+        }
+
+        public ICommand ViewInExplorer { get { return new RelayCommand<object>(ViewInExplorerExecute, CanViewInExplorerExecute); } }
         #endregion
 
         public override string ToString()

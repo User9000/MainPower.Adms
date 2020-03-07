@@ -94,7 +94,7 @@ namespace MainPower.Adms.Enricher
                     case "Feeder":
                         d = new IdfFeeder(node, this);
                         break;
-                    case "Circuit":
+                    case "Substation Circuit":
                         d = new IdfCircuit(node, this);
                         break;
                     case "Regulator":

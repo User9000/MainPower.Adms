@@ -17,9 +17,11 @@ namespace MainPower.Adms.ScadaConverter
         private string[] _configData;
         private Dictionary<string, string> _tagDeviceMap = new Dictionary<string, string>();
         private string _rtuName;
+        private bool _scd6000 = false;
 
         public SCD5200TagReader(string filename)
         {
+            _scd6000 = filename.EndsWith("_scd6000.cfg");
             _config = filename;
             _configData = File.ReadAllLines(_config);
             _rtuName = _configData[0].Trim(new char[] { '"', '1', ' ' });
@@ -35,12 +37,12 @@ namespace MainPower.Adms.ScadaConverter
                     string[] items = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     if (items.Length == 3 || items.Length == 4)
                     {
-                        int offset = 26;//offset for an ethernet config
+                        int offset =  26;//offset for an ethernet config
                         string isiteth = _configData[i + 3];
                         if (isiteth.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length > 2)
                         {
                             //we have serial
-                            offset = 22;
+                            offset = _scd6000 ? 25 : 22;
                         }
                         string[] itemcounts1 = _configData[i + offset].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                         int[] itemcounts2 = new int[itemcounts1.Length];
@@ -208,7 +210,7 @@ namespace MainPower.Adms.ScadaConverter
             //would probably be better to invest the time to create a full config parser.
 
             //Stage 1: Hunt for Modbus devices
-            Regex r1 = new Regex("^1\r\n[A-Z0-9a-z] 0 \"([^\"]*)\"", RegexOptions.Multiline);
+            Regex r1 = new Regex("^1\r\n[A-Z0-9a-z]{1,3} 0 \"([^\"]*)\"", RegexOptions.Multiline);
             Regex r2 = new Regex("\"([^\"]*)\"");
             var m1 = r1.Matches(string.Join("\r\n", _configData));
             var modbus = new Dictionary<string, string>();
@@ -238,11 +240,13 @@ namespace MainPower.Adms.ScadaConverter
 
         private void ParseModbusDevice(int v, string device)
         {
+            bool eth = _configData[v + 1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length == 3;
             Regex r2 = new Regex("\"([^\"]*)\"");
+            int offset = eth ? 3 : 2;
 
             for (int i = 0; i < 5; i++)
             {
-                string line = _configData[v + 2 + i];
+                string line = _configData[v + offset + i];
                 string tag = r2.Match(line).Value.Trim(new char[] { '"' });
 
                 if (!string.IsNullOrWhiteSpace(tag))
@@ -253,7 +257,7 @@ namespace MainPower.Adms.ScadaConverter
 
             }
 
-            for (int i = v + 17; i < _configData.Length; i++)
+            for (int i = v + 15 + offset; i < _configData.Length; i++)
             {
                 if (_configData[i].Split().Length < 7)
                     break;
@@ -311,8 +315,8 @@ namespace MainPower.Adms.ScadaConverter
                     _tagDeviceMap.Add(tag.ToLower(), $"{_rtuName}.{device}");
                 }
             }
-
-            string[] data = _configData[v + 15].Trim().Split();
+            int offset = _scd6000 ? 34 : 15;
+            string[] data = _configData[v + offset].Trim().Split();
             int[] idata = new int[data.Length];
             int totaltags = 0;
 
@@ -323,7 +327,7 @@ namespace MainPower.Adms.ScadaConverter
             }
             totaltags -= idata[0]; //the first one is the offset to start of data
 
-            for (int i = v + 16 + idata[0]; i < v + 16 + idata[0] + totaltags; i++)
+            for (int i = v + offset + 1 + idata[0]; i < v + offset + 1 + idata[0] + totaltags; i++)
             {
                 string line = _configData[i];
                 string tag = r2.Match(line).Value.Trim(new char[] { '"' }); ;

@@ -339,6 +339,8 @@ namespace MainPower.Adms.Enricher
                 string us = _nominalUpstreamSide;
                 string ds = us == "1" ? "2" : "1";
 
+                /* 
+                 * we should probably just ignore amps telemtry
                 var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Amps RØ", _scadaSearchMode);
                 if (rAmps != null && phase1)
                 {                        
@@ -357,50 +359,336 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
                     x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
                 }
+                */
+
+                x.SetAttributeValue($"s{us}p1Amps", "");
+                x.SetAttributeValue($"s{us}p1AmpsUCF", "");
+                x.SetAttributeValue($"s{us}p2Amps", "");
+                x.SetAttributeValue($"s{us}p2AmpsUCF", "");
+                x.SetAttributeValue($"s{us}p3Amps", "");
+                x.SetAttributeValue($"s{us}p3AmpsUCF", "");
 
                 //when it comes to load telemetry, priority goes
-                //1. Metering
-                //2. Local kW/MW
-                var kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW", _scadaSearchMode);
-                if (kw != null)
-                {
-                    x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
-                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1000");
-                    x.SetAttributeValue($"s{ds}AggregateKW", "");
-                }
-                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kW", _scadaSearchMode)) != null)
-                {
-                    x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
-                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1");
-                    x.SetAttributeValue($"s{ds}AggregateKW", "");
-                }
-                else if ((kw = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} MW", _scadaSearchMode)) != null)
-                {
-                    x.SetAttributeValue($"s{us}AggregateKW", kw.Key);
-                    x.SetAttributeValue($"s{us}AggregateKWUCF", "1000");
-                    x.SetAttributeValue($"s{ds}AggregateKW", "");
-                }
+                //1. Per phase metering MW, then kW
+                //2. Aggregate metering MW, then kw
+                //3. Per phase local kW/MW
+                //4. Aggregate local kW/MW
+                //if using per phase telemtry, all present phases must have telemetry
 
-                var kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Mvar", _scadaSearchMode);
-                if (kvar != null)
-                {
-                    x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
-                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
-                    x.SetAttributeValue($"s{ds}AggregateKVAR", "");
-                }
-                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kvar", _scadaSearchMode)) != null)
-                {
-                    x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
-                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1");
-                    x.SetAttributeValue($"s{ds}AggregateKVAR", "");
-                }
-                else if ((kvar = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Mvar", _scadaSearchMode)) != null)
-                {
-                    x.SetAttributeValue($"s{us}AggregateKVAR", kvar.Key);
-                    x.SetAttributeValue($"s{us}AggregateKVARUCF", "1000");
-                    x.SetAttributeValue($"s{ds}AggregateKVAR", "");
-                }                
+                //look for per phase metering data
+                (OsiScadaAnalog Point, string Ucf) red = (null,""), yellow= (null, ""), blue = (null, ""), aggregate = (null, "");
+                bool havePerPhase = true;
 
+                #region KW SCADA LINKING LOGIC EWW
+
+                //1. Check for per phase metering
+                if (phase1)
+                {
+                    red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW RØ", _scadaSearchMode), "1000");
+                    if (red.Point == null)
+                        red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kW RØ", _scadaSearchMode), "1");
+                    if (red.Point == null)
+                        havePerPhase = false;
+                }
+                if (phase2 && havePerPhase)
+                {
+                    yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW YØ", _scadaSearchMode), "1000");
+                    if (yellow.Point == null)
+                        yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kW YØ", _scadaSearchMode), "1");
+                    if (yellow.Point == null)
+                        havePerPhase = false;
+                }
+                if (phase3 && havePerPhase)
+                {
+                    blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW BØ", _scadaSearchMode), "1000");
+                    if (blue.Point == null)
+                        blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kW BØ", _scadaSearchMode), "1");
+                    if (blue.Point == null)
+                        havePerPhase = false;
+                }
+                if (havePerPhase)
+                {
+                    //write out per phase attributes
+                    //we will assume that switches to not change number of phases throughout their lifetime, this is an extreme edge case
+                    //that can be fixed manually
+                    if (phase1)
+                    {
+                        x.SetAttributeValue($"s{us}p1KW", red.Point.Key);
+                        x.SetAttributeValue($"s{us}p1KWUCF", red.Ucf);
+                        x.SetAttributeValue($"s{ds}p1KW", "");
+                    }
+                    if (phase2)
+                    {
+                        x.SetAttributeValue($"s{us}p2KW", yellow.Point.Key);
+                        x.SetAttributeValue($"s{us}p2KWUCF", yellow.Ucf);
+                        x.SetAttributeValue($"s{ds}p2KW", "");
+                    }
+                    if (phase3)
+                    {
+                        x.SetAttributeValue($"s{us}p3KW", blue.Point.Key);
+                        x.SetAttributeValue($"s{us}p3KWUCF", blue.Ucf);
+                        x.SetAttributeValue($"s{ds}p3KW", "");
+                    }
+                    //we also have to null the aggregate values in case they were used previously
+                    x.SetAttributeValue($"s{us}AggregateKW", "");
+                    x.SetAttributeValue($"s{ds}AggregateKW", "");
+                }
+                else
+                {
+                    //2. look for aggregate metering
+                    aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW", _scadaSearchMode), "1000");
+                    if (aggregate.Point == null)
+                        aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kW", _scadaSearchMode), "1");
+                    if (aggregate.Point != null)
+                    {
+                        //write out aggregate attributes
+                        x.SetAttributeValue($"s{us}AggregateKW", aggregate.Point.Key);
+                        x.SetAttributeValue($"s{us}AggregateKWUCF", aggregate.Ucf);
+                        x.SetAttributeValue($"s{ds}AggregateKW", "");
+                        //we also have to null the phase values in case it changed from single phase to three phase
+                        x.SetAttributeValue($"s{us}p1KW", "");
+                        x.SetAttributeValue($"s{ds}p1KW", "");
+                        x.SetAttributeValue($"s{us}p2KW", "");
+                        x.SetAttributeValue($"s{ds}p2KW", "");
+                        x.SetAttributeValue($"s{us}p3KW", "");
+                        x.SetAttributeValue($"s{ds}p3KW", "");
+                    }
+                    else
+                    {
+                        //3. look for per phase local values
+                        //reset variables
+                        havePerPhase = true;
+                        if (phase1)
+                        {
+                            red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} MW RØ", _scadaSearchMode), "1000");
+                            if (red.Point == null)
+                                red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kW RØ", _scadaSearchMode), "1");
+                            if (red.Point == null)
+                                havePerPhase = false;
+                        }
+                        if (phase2 && havePerPhase)
+                        {
+                            yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} MW YØ", _scadaSearchMode), "1000");
+                            if (yellow.Point == null)
+                                yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kW YØ", _scadaSearchMode), "1");
+                            if (yellow.Point == null)
+                                havePerPhase = false;
+                        }
+                        if (phase3 && havePerPhase)
+                        {
+                            blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} MW BØ", _scadaSearchMode), "1000");
+                            if (blue.Point == null)
+                                blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kW BØ", _scadaSearchMode), "1");
+                            if (blue.Point == null)
+                                havePerPhase = false;
+                        }
+                        if (havePerPhase)
+                        {
+                            //write out per phase attributes
+                            //we will assume that switches to not change number of phases throughout their lifetime, this is an extreme edge case
+                            //that can be fixed manually
+                            if (phase1)
+                            {
+                                x.SetAttributeValue($"s{us}p1KW", red.Point.Key);
+                                x.SetAttributeValue($"s{us}p1KWUCF", red.Ucf);
+                                x.SetAttributeValue($"s{ds}p1KW", "");
+                            }
+                            if (phase2)
+                            {
+                                x.SetAttributeValue($"s{us}p2KW", yellow.Point.Key);
+                                x.SetAttributeValue($"s{us}p2KWUCF", yellow.Ucf);
+                                x.SetAttributeValue($"s{ds}p2KW", "");
+                            }
+                            if (phase3)
+                            {
+                                x.SetAttributeValue($"s{us}p3KW", blue.Point.Key);
+                                x.SetAttributeValue($"s{us}p3KWUCF", blue.Ucf);
+                                x.SetAttributeValue($"s{ds}p3KW", "");
+                            }
+                            //we also have to null the aggregate values in case they were used previously
+                            x.SetAttributeValue($"s{us}AggregateKW", "");
+                            x.SetAttributeValue($"s{ds}AggregateKW", "");
+                        }
+                        else
+                        {
+                            //look for aggregate metering
+                            aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} MW", _scadaSearchMode), "1000");
+                            if (aggregate.Point == null)
+                                aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kW", _scadaSearchMode), "1");
+                            if (aggregate.Point != null)
+                            {
+                                //write out aggregate attributes
+                                x.SetAttributeValue($"s{us}AggregateKW", aggregate.Point.Key);
+                                x.SetAttributeValue($"s{us}AggregateKWUCF", aggregate.Ucf);
+                                x.SetAttributeValue($"s{ds}AggregateKW", "");
+                                //we also have to null the phase values in case it changed from single phase to three phase
+                                x.SetAttributeValue($"s{us}p1KW", "");
+                                x.SetAttributeValue($"s{ds}p1KW", "");
+                                x.SetAttributeValue($"s{us}p2KW", "");
+                                x.SetAttributeValue($"s{ds}p2KW", "");
+                                x.SetAttributeValue($"s{us}p3KW", "");
+                                x.SetAttributeValue($"s{ds}p3KW", "");
+                            }
+                        }
+                    }
+                }
+                #endregion
+
+                #region KVAR SCADA LINKING LOGIC ALSO EWW
+                //1. Check for per phase metering
+                if (phase1)
+                {
+                    red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Mvar RØ", _scadaSearchMode), "1000");
+                    if (red.Point == null)
+                        red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kvar RØ", _scadaSearchMode), "1");
+                    if (red.Point == null)
+                        havePerPhase = false;
+                }
+                if (phase2 && havePerPhase)
+                {
+                    yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Mvar YØ", _scadaSearchMode), "1000");
+                    if (yellow.Point == null)
+                        yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kvar YØ", _scadaSearchMode), "1");
+                    if (yellow.Point == null)
+                        havePerPhase = false;
+                }
+                if (phase3 && havePerPhase)
+                {
+                    blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Mvar BØ", _scadaSearchMode), "1000");
+                    if (blue.Point == null)
+                        blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kvar BØ", _scadaSearchMode), "1");
+                    if (blue.Point == null)
+                        havePerPhase = false;
+                }
+                if (havePerPhase)
+                {
+                    //write out per phase attributes
+                    //we will assume that switches to not change number of phases throughout their lifetime, this is an extreme edge case
+                    //that can be fixed manually
+                    if (phase1)
+                    {
+                        x.SetAttributeValue($"s{us}p1KVAR", red.Point.Key);
+                        x.SetAttributeValue($"s{us}p1KVARUCF", red.Ucf);
+                        x.SetAttributeValue($"s{ds}p1KVAR", "");
+                    }
+                    if (phase2)
+                    {
+                        x.SetAttributeValue($"s{us}p2KVAR", yellow.Point.Key);
+                        x.SetAttributeValue($"s{us}p2KVARUCF", yellow.Ucf);
+                        x.SetAttributeValue($"s{ds}p2KVAR", "");
+                    }
+                    if (phase3)
+                    {
+                        x.SetAttributeValue($"s{us}p3KVAR", blue.Point.Key);
+                        x.SetAttributeValue($"s{us}p3KVARUCF", blue.Ucf);
+                        x.SetAttributeValue($"s{ds}p3KVAR", "");
+                    }
+                    //we also have to null the aggregate values in case they were used previously
+                    x.SetAttributeValue($"s{us}AggregateKVAR", "");
+                    x.SetAttributeValue($"s{ds}AggregateKVAR", "");
+                }
+                else
+                {
+                    //2. look for aggregate metering
+                    aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Mvar", _scadaSearchMode), "1000");
+                    if (aggregate.Point == null)
+                        aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kvar", _scadaSearchMode), "1");
+                    if (aggregate.Point != null)
+                    {
+                        //write out aggregate attributes
+                        x.SetAttributeValue($"s{us}AggregateKVAR", aggregate.Point.Key);
+                        x.SetAttributeValue($"s{us}AggregateKVARUCF", aggregate.Ucf);
+                        x.SetAttributeValue($"s{ds}AggregateKVAR", "");
+                        //we also have to null the phase values in case it changed from single phase to three phase
+                        x.SetAttributeValue($"s{us}p1KVAR", "");
+                        x.SetAttributeValue($"s{ds}p1KVAR", "");
+                        x.SetAttributeValue($"s{us}p2KVAR", "");
+                        x.SetAttributeValue($"s{ds}p2KVAR", "");
+                        x.SetAttributeValue($"s{us}p3KVAR", "");
+                        x.SetAttributeValue($"s{ds}p3KVAR", "");
+                    }
+                    else
+                    {
+                        //3. look for per phase local values
+                        //reset variables
+                        havePerPhase = true;
+                        if (phase1)
+                        {
+                            red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Mvar RØ", _scadaSearchMode), "1000");
+                            if (red.Point == null)
+                                red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kvar RØ", _scadaSearchMode), "1");
+                            if (red.Point == null)
+                                havePerPhase = false;
+                        }
+                        if (phase2 && havePerPhase)
+                        {
+                            yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Mvar YØ", _scadaSearchMode), "1000");
+                            if (yellow.Point == null)
+                                yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kvar YØ", _scadaSearchMode), "1");
+                            if (yellow.Point == null)
+                                havePerPhase = false;
+                        }
+                        if (phase3 && havePerPhase)
+                        {
+                            blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Mvar BØ", _scadaSearchMode), "1000");
+                            if (blue.Point == null)
+                                blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kvar BØ", _scadaSearchMode), "1");
+                            if (blue.Point == null)
+                                havePerPhase = false;
+                        }
+                        if (havePerPhase)
+                        {
+                            //write out per phase attributes
+                            //we will assume that switches to not change number of phases throughout their lifetime, this is an extreme edge case
+                            //that can be fixed manually
+                            if (phase1)
+                            {
+                                x.SetAttributeValue($"s{us}p1KVAR", red.Point.Key);
+                                x.SetAttributeValue($"s{us}p1KVARUCF", red.Ucf);
+                                x.SetAttributeValue($"s{ds}p1KVAR", "");
+                            }
+                            if (phase2)
+                            {
+                                x.SetAttributeValue($"s{us}p2KVAR", yellow.Point.Key);
+                                x.SetAttributeValue($"s{us}p2KVARUCF", yellow.Ucf);
+                                x.SetAttributeValue($"s{ds}p2KVAR", "");
+                            }
+                            if (phase3)
+                            {
+                                x.SetAttributeValue($"s{us}p3KVAR", blue.Point.Key);
+                                x.SetAttributeValue($"s{us}p3KVARUCF", blue.Ucf);
+                                x.SetAttributeValue($"s{ds}p3KVAR", "");
+                            }
+                            //we also have to null the aggregate values in case they were used previously
+                            x.SetAttributeValue($"s{us}AggregateKVAR", "");
+                            x.SetAttributeValue($"s{ds}AggregateKVAR", "");
+                        }
+                        else
+                        {
+                            //look for aggregate metering
+                            aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Mvar", _scadaSearchMode), "1000");
+                            if (aggregate.Point == null)
+                                aggregate = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} kvar", _scadaSearchMode), "1");
+                            if (aggregate.Point != null)
+                            {
+                                //write out aggregate attributes
+                                x.SetAttributeValue($"s{us}AggregateKVAR", aggregate.Point.Key);
+                                x.SetAttributeValue($"s{us}AggregateKVARUCF", aggregate.Ucf);
+                                x.SetAttributeValue($"s{ds}AggregateKVAR", "");
+                                //we also have to null the phase values in case it changed from single phase to three phase
+                                x.SetAttributeValue($"s{us}p1KVAR", "");
+                                x.SetAttributeValue($"s{ds}p1KVAR", "");
+                                x.SetAttributeValue($"s{us}p2KVAR", "");
+                                x.SetAttributeValue($"s{ds}p2KVAR", "");
+                                x.SetAttributeValue($"s{us}p3KVAR", "");
+                                x.SetAttributeValue($"s{ds}p3KVAR", "");
+                            }
+                        }
+                    }
+                }
+                #endregion
+
+                #region VOLT SCADA LINKING LOGIC
                 var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts R", _scadaSearchMode);
                 if (s1RYVolts != null && phase1)
                 {
@@ -480,7 +768,7 @@ namespace MainPower.Adms.Enricher
                 }
                 else if ((s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts YB2", _scadaSearchMode)) != null && phase2)
                 {
-                    x.SetAttributeValue($"s{ds}p2KV", s2RYVolts.Key);
+                    x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
                     x.SetAttributeValue($"s{ds}VoltageType", "LL");
                     hasVoltsds = true;
                 }
@@ -497,6 +785,7 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{ds}VoltageType", "LL");
                     hasVoltsds = true;
                 }
+                #endregion
 
                 var lockout = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Lockout", _scadaSearchMode);
                 //if (lockout == null)

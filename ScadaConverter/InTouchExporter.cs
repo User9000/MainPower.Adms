@@ -659,6 +659,7 @@ namespace MainPower.Adms.ScadaConverter
                  
 
                 PointDetail result = _t.GetPoint(p, discrete, !memoryTagFile);
+                //result.OriginalPoint = p;
 
                 //If the result was null, the TT does not want the point to be used in the OSI system.
                 if (result == null)

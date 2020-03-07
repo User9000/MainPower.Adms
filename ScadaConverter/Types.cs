@@ -54,6 +54,8 @@ namespace MainPower.Adms.ScadaConverter
         public bool[] ELimits = new bool[5];
         public string[] LowLimits = new string[5];
         public string[] HighLimits = new string[5];
+
+        public PointDetail OriginalPoint { get; set; }
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ namespace MainPower.Adms.Enricher
 
             if (!o.BlankModel)
             {
-                var model = Model.Deserialize($"{o.DataPath}\\model");
+                var model = Model.Deserialize(o.Model);
                 if (model != null)
                 {
                     Model = model;

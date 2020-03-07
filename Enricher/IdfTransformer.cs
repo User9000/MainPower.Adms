@@ -474,26 +474,36 @@ namespace MainPower.Adms.Enricher
                 case "1PH":
                 case "1ph":
                 case "Ii0":
-                    //TODO: I think we need to change the winding types depending on SWER/NON SWER
-                    _s1ConnectionType = IdfTxWindingDelta;
                     _s2ConnectionType = IdfTxWindingWyeG;
                     _symbolName = SymbolTxIi0;
                     //phase shift is -30 for non SWER, but 0 for SWER.
                     if (S1Phases == 1)
+                    {
+                        _s1ConnectionType = IdfTxWindingWyeG;
                         _phaseshift = 0;
+                    }
                     else
+                    {
+                        _s1ConnectionType = IdfTxWindingDelta;
                         _phaseshift = 11;
+                    }
                     return;
                 case "Ii6":
+                    Err("Ii6 vector group configured - winding connectiong have not been confirmed in the enricher!");
                     //TODO: do wee actually need to handle this case or is it handles by the phasing?
-                    _s1ConnectionType = IdfTxWindingDelta;
                     _s2ConnectionType = IdfTxWindingWyeG;
                     _symbolName = SymbolTxIi0;
                     //phase shift is +150 for non SWER, but 180 for SWER
                     if (S1Phases == 1)
+                    {
+                        _s1ConnectionType = IdfTxWindingWyeG;
                         _phaseshift = 6;
+                    }
                     else
+                    {
+                        _s1ConnectionType = IdfTxWindingDelta;
                         _phaseshift = 5;
+                    }
                     return;
                 case "ZN":
                     _s1ConnectionType = IdfTxWindingZigZag;

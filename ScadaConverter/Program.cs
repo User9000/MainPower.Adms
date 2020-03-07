@@ -79,10 +79,15 @@ namespace MainPower.Adms.ScadaConverter
             {
                 File.Copy(file, Path.Combine(adir.FullName, Path.GetFileName(file)));
             }
-
-            ZipFile.CreateFromDirectory(adir.FullName, Path.Combine(o.Archive, "SCADA Export " + adir.Name + ".zip"));
-            ZipFile.CreateFromDirectory(o.Input, Path.Combine(o.Archive, "SCADA Input Data " + adir.Name + ".zip"));
-
+            try
+            {
+                ZipFile.CreateFromDirectory(adir.FullName, Path.Combine(o.Archive, "SCADA Export " + adir.Name + ".zip"));
+                ZipFile.CreateFromDirectory(o.Input, Path.Combine(o.Archive, "SCADA Input Data " + adir.Name + ".zip"));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ERROR: Failed to create archive:" + ex.Message);
+            }
         }
 
     }

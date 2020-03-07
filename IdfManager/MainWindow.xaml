@@ -45,6 +45,7 @@
                         <Label Content="{Binding EnricherResult.Time}" HorizontalAlignment="Left" Margin="57,59,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.502,1.958"/>
 
                         <Button Content="Open Log" HorizontalAlignment="Left" Margin="12,87,0,0" VerticalAlignment="Top" Width="100" Command="{Binding OpenLog}"/>
+                        <Button Content="Explore" HorizontalAlignment="Left" Margin="117,87,0,0" VerticalAlignment="Top" Width="100" Command="{Binding ViewInExplorer}"/>
                     </Grid>
                 </GroupBox>
                 <GroupBox Header="Enricher Options" Margin="4,145,10,5">
