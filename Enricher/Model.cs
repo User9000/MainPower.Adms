@@ -166,7 +166,7 @@ namespace MainPower.Adms.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(IdfElement node, string gid, DeviceType type, string symbol = null, string key = null, SymbolPlacement orientation = SymbolPlacement.Left, short phaseshift = 0, double kva = 0)
+        public bool AddDevice(IdfElement node, string gid, DeviceType type, string symbol = null, short phaseshift = 0, double kva = 0)
         {
             var s1nodeid = node.Node.Attribute("s1node")?.Value;
             var s2nodeid = node.Node.Attribute("s2node")?.Value;
@@ -180,9 +180,7 @@ namespace MainPower.Adms.Enricher
                 //Geometry = geo,
                 IdfDevice = node,
                 //Internals = internals,
-                SymbolName = symbol,
-                ScadaKey = key,
-                Position = orientation
+                SymbolName = symbol
             };
 
             string t = node.Node.Attribute("s1phaseID1").Value;
@@ -1017,6 +1015,8 @@ namespace MainPower.Adms.Enricher
                 foreach (var load in kvp.Value)
                 {
                     load.NominalkVA = kvp.Key.NominalkVA / loads;
+                    //apply a blanket 30% reduction - because when closing onto a dead circuit dpf will take this as gospel!
+                    load.NominalkVA *= 0.3;
                     if (load.IdfDevice is IdfLoad)
                         ((IdfLoad)load.IdfDevice).SetNominalLoad(load.NominalkVA);
                 }

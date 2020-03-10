@@ -53,6 +53,7 @@ namespace MainPower.Adms.Enricher
         private const string AdmsTxRegulatedSide = "RegulatedSide";
         private const string AdmsTxTransformerType = "TransformerType";
 
+
         private const string IdfTxBandwidth = "bandwidth";
         private const string IdfTxBidirectional = "bidirectional";
         private const string IdfTxControlPhase = "controlPhase";
@@ -281,6 +282,20 @@ namespace MainPower.Adms.Enricher
                         }
                     }
                 }
+                else
+                {
+                    //backstop if we have no tech1 data
+                    if (S1Phases == 1)
+                    {
+                        _s1ConnectionType = IdfTxWindingWyeG;
+                        _s2ConnectionType= IdfTxWindingWyeG;
+                    }
+                    else
+                    {
+                        _s1ConnectionType = IdfTxWindingDelta;
+                        _s2ConnectionType = IdfTxWindingWyeG;
+                    }
+                }
 
 
                 //If we don't even have the kva, then no point generating a type as it will just generate errors in maestro
@@ -350,7 +365,7 @@ namespace MainPower.Adms.Enricher
                 if (_vGroup == "ZN")
                     Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.EarthingTransformer, _symbolName);
                 else
-                    Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, _symbolName, null, SymbolPlacement.Left, _phaseshift, _dkva);
+                    Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Transformer, _symbolName, _phaseshift, _dkva);
 
 
             }

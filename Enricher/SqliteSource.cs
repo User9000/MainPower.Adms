@@ -16,7 +16,7 @@ namespace MainPower.Adms.Enricher
         {
             try
             {
-                SQLiteConnection con = new SQLiteConnection(@$"Data Source={Path.Combine(Program.Options.DataPath, Database)};Version=3;");
+                SQLiteConnection con = new SQLiteConnection(@$"Data Source={Path.Combine(Program.Options.DataPath, Database)};Version=3;", true);
                 con.Open();
                 SQLiteCommand cmd = con.CreateCommand();
                 cmd.CommandText = $"SELECT * FROM {Table}";

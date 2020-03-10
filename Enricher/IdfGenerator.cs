@@ -27,11 +27,12 @@ namespace MainPower.Adms.Enricher
                 Node.SetAttributeValue("nominalKW", "1000");
                 Node.SetAttributeValue("nominalKVAR", "50");
                 Node.SetAttributeValue("machineType", GEN_DEFAULT_MACHINE);
-                Node.SetAttributeValue("connectionType", "Wye-G");
+                Node.SetAttributeValue("connectionType", "Wye");
                 Node.SetAttributeValue("lowVoltageLimit", "6.351");
                 Node.SetAttributeValue("highVoltageLimit", "6.697");
                 Node.SetAttributeValue("generatorType", "Generic");
                 //ParentGroup.SetSymbolNameByDataLink(Id, "Symbol 37", 1.0, 1.0, 0);
+                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Generator, SYMBOL_GENERATOR);
             }
             catch (Exception ex)
             {

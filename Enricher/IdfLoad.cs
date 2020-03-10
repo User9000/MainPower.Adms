@@ -70,6 +70,9 @@ namespace MainPower.Adms.Enricher
                             break;
                     }
                     Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
+                    //just in case the load is in a disconnected island, set the nominal kw to suppress maestro warnings
+                    SetNominalLoad(1);
+
                     Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Load, symbol);
                 }
             }
@@ -86,24 +89,27 @@ namespace MainPower.Adms.Enricher
             else 
                 load /= S1Phases;
 
+            //assume a power factor of 0.99
+            double kvar = 0.01 * load;
+
             if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID1")?.Value))
             {
                 Node.SetAttributeValue("nominalKW1", load.ToString("F2", CultureInfo.InvariantCulture));
-                Node.SetAttributeValue("nominalKVAR1", "0.1");
+                Node.SetAttributeValue("nominalKVAR1", kvar.ToString("F2", CultureInfo.InvariantCulture));
                 Node.SetAttributeValue("ratedKVA1", load.ToString("F2", CultureInfo.InvariantCulture));
                 Node.SetAttributeValue("customers1", (1.0 / S1Phases).ToString("F3", CultureInfo.InvariantCulture));
             }
             if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value))
             {
                 Node.SetAttributeValue("nominalKW2", load.ToString("F2", CultureInfo.InvariantCulture));
-                Node.SetAttributeValue("nominalKVAR2", "0.1");
+                Node.SetAttributeValue("nominalKVAR2", kvar.ToString("F2", CultureInfo.InvariantCulture));
                 Node.SetAttributeValue("ratedKVA2", load.ToString("F2", CultureInfo.InvariantCulture));
                 Node.SetAttributeValue("customers2", (1.0 / S1Phases).ToString("F3", CultureInfo.InvariantCulture));
             }
             if (!string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value))
             {
                 Node.SetAttributeValue("nominalKW3", load.ToString("F2", CultureInfo.InvariantCulture));
-                Node.SetAttributeValue("nominalKVAR3", "0.1");
+                Node.SetAttributeValue("nominalKVAR3", kvar.ToString("F2", CultureInfo.InvariantCulture));
                 Node.SetAttributeValue("ratedKVA3", load.ToString("F2", CultureInfo.InvariantCulture));
                 Node.SetAttributeValue("customers3", (1.0 / S1Phases).ToString("F3", CultureInfo.InvariantCulture));
             }

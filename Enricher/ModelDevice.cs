@@ -65,25 +65,15 @@ namespace MainPower.Adms.Enricher
 
         [Key(13)]
         public string SymbolName { get; set; }
-
+    
         [Key(14)]
-        public string ScadaKey { get; set; }
-
-        [Key(15)]
         public bool Internals { get; set; }
 
-        [Key(16)]
+        [Key(15)]
         public string Color { get; set; }
 
-        [Key(17)]
+        [Key(16)]
         public double NominalkVA { get; set; }
-
-        [Key(18)]
-        public SymbolPlacement Position { get; set; }
-
-
-        [Key(19)]
-        public bool Swer { get; set; }
 
         /// <summary>
         /// Phasing (in clock units) of phase index 1

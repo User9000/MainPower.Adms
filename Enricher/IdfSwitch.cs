@@ -78,6 +78,7 @@ namespace MainPower.Adms.Enricher
         private const string AdmsSwitchScadaId = "ScadaId";
         private const string AdmsSwitchOrientation = "Orientation";
         private const string AdmsSwitchSkipScada = "NoAutoScadaLinking";
+        private const string AdmsSwitchBypassScadaStatus = "BypassScadaStatusCheck";
 
         private const string IdfSwitchScadaP1State = "p1State";
         private const string IdfSwitchScadaP2State = "p2State";
@@ -263,15 +264,13 @@ namespace MainPower.Adms.Enricher
 
                 //TODO tidy this up
                 //TODO make db constants the same as IdfConstants
-                string scadaKey = null;
                 if (_admsAsset?[AdmsSwitchSkipScada] != IdfTrue)
                 {
                     var scada = GenerateScadaLinking();
                     
-                    if (scada.Item2 != null && !string.IsNullOrWhiteSpace(scada.Item1))
+                    if (scada != null)
                     {
-                        ParentGroup.AddGroupElement(scada.Item2);
-                        scadaKey = scada.Item1;
+                        ParentGroup.AddGroupElement(scada);
                     }
                 }
                 else
@@ -283,7 +282,7 @@ namespace MainPower.Adms.Enricher
                 GenerateDeviceInfo(items);
                 RemoveExtraAttributes();
 
-                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, _symbol, scadaKey, _orientation);
+                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, _symbol);
             }
             catch (Exception ex)
             {
@@ -299,7 +298,7 @@ namespace MainPower.Adms.Enricher
         }
         
         //TODO: this return value is gross
-        private (string,XElement) GenerateScadaLinking()
+        private XElement GenerateScadaLinking()
         {
             bool hasVoltsus = false, hasVoltsds = false;
 
@@ -307,14 +306,12 @@ namespace MainPower.Adms.Enricher
             
             //if we don't have the switch status, then assume we don't have any other telemtry either
             //TODO this assumption needs to be documented
-            if (status == null)
-                return ("", null);
+            //TODO: dirty hack because we don't have the status of these CBs
+            if (status == null && _admsAsset?[AdmsSwitchBypassScadaStatus] != IdfTrue)
+                return null;
             XElement x = new XElement("element");
             x.SetAttributeValue("type", "SCADA");
             x.SetAttributeValue("id", Id);
-
-            if (status["Type"] == "T_I&C")
-                x.SetAttributeValue("gangedControlPoint", status.Key);
 
             bool phase1, phase2, phase3;
 
@@ -322,13 +319,20 @@ namespace MainPower.Adms.Enricher
             phase2 = !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID2")?.Value);
             phase3 = !string.IsNullOrWhiteSpace(Node.Attribute("s1phaseID3")?.Value);
 
-            if (phase1)
-                x.SetAttributeValue("p1State", status.Key);
-            if (phase2)
-                x.SetAttributeValue("p2State", status.Key);
-            if (phase3)
-                x.SetAttributeValue("p3State", status.Key);
+            if (status != null)
+            {
+                if (status["Type"] == "T_I&C")
+                    x.SetAttributeValue("gangedControlPoint", status.Key);
 
+
+
+                if (phase1)
+                    x.SetAttributeValue("p1State", status.Key);
+                if (phase2)
+                    x.SetAttributeValue("p2State", status.Key);
+                if (phase3)
+                    x.SetAttributeValue("p3State", status.Key);
+            }
 
             //we can't assign any of this telemtry without knowing what the upstream side of the switch is
             //TODO emit a warning if not set
@@ -360,13 +364,20 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
                 }
                 */
-
+                //TODO: this can be removed after a few runs
                 x.SetAttributeValue($"s{us}p1Amps", "");
                 x.SetAttributeValue($"s{us}p1AmpsUCF", "");
                 x.SetAttributeValue($"s{us}p2Amps", "");
                 x.SetAttributeValue($"s{us}p2AmpsUCF", "");
                 x.SetAttributeValue($"s{us}p3Amps", "");
                 x.SetAttributeValue($"s{us}p3AmpsUCF", "");
+
+                x.SetAttributeValue($"s{ds}p1Amps", "");
+                x.SetAttributeValue($"s{ds}p1AmpsUCF", "");
+                x.SetAttributeValue($"s{ds}p2Amps", "");
+                x.SetAttributeValue($"s{ds}p2AmpsUCF", "");
+                x.SetAttributeValue($"s{ds}p3Amps", "");
+                x.SetAttributeValue($"s{ds}p3AmpsUCF", "");
 
                 //when it comes to load telemetry, priority goes
                 //1. Per phase metering MW, then kW
@@ -379,12 +390,15 @@ namespace MainPower.Adms.Enricher
                 (OsiScadaAnalog Point, string Ucf) red = (null,""), yellow= (null, ""), blue = (null, ""), aggregate = (null, "");
                 bool havePerPhase = true;
 
+                //TODO: remove temp matching for Red/Yellow/Blue
                 #region KW SCADA LINKING LOGIC EWW
 
                 //1. Check for per phase metering
                 if (phase1)
                 {
                     red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW RØ", _scadaSearchMode), "1000");
+                    if (red.Point == null)
+                        red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW Red", _scadaSearchMode), "1000");
                     if (red.Point == null)
                         red = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kW RØ", _scadaSearchMode), "1");
                     if (red.Point == null)
@@ -394,6 +408,9 @@ namespace MainPower.Adms.Enricher
                 {
                     yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW YØ", _scadaSearchMode), "1000");
                     if (yellow.Point == null)
+                        yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW Yellow", _scadaSearchMode), "1000");
+
+                    if (yellow.Point == null)
                         yellow = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kW YØ", _scadaSearchMode), "1");
                     if (yellow.Point == null)
                         havePerPhase = false;
@@ -401,6 +418,8 @@ namespace MainPower.Adms.Enricher
                 if (phase3 && havePerPhase)
                 {
                     blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW BØ", _scadaSearchMode), "1000");
+                    if (blue.Point == null)
+                        blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met MW Blue", _scadaSearchMode), "1000");
                     if (blue.Point == null)
                         blue = (DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met kW BØ", _scadaSearchMode), "1");
                     if (blue.Point == null)
@@ -689,8 +708,23 @@ namespace MainPower.Adms.Enricher
                 #endregion
 
                 #region VOLT SCADA LINKING LOGIC
-                var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts R", _scadaSearchMode);
+
+                //clear whatever might have been there previously
+                x.SetAttributeValue("s1p1KV","");
+                x.SetAttributeValue("s1p2KV", "");
+                x.SetAttributeValue("s1p3KV", "");
+                x.SetAttributeValue("s2p1KV", "");
+                x.SetAttributeValue("s2p2KV", "");
+                x.SetAttributeValue("s2p3KV", "");
+
+                var s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Volts RØ", _scadaSearchMode);
                 if (s1RYVolts != null && phase1)
+                {
+                    x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LG");
+                    hasVoltsus = true;
+                }
+                else if ((s1RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts RØ", _scadaSearchMode)) != null && phase1)
                 {
                     x.SetAttributeValue($"s{us}p1KV", s1RYVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
@@ -708,8 +742,14 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{us}VoltageType", "LL");
                     hasVoltsus = true;
                 }
-                var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts Y", _scadaSearchMode);
+                var s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts YØ", _scadaSearchMode);
                 if (s1YBVolts != null && phase2)
+                {
+                    x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LG");
+                    hasVoltsus = true;
+                }
+                else if ((s1YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Volts YØ", _scadaSearchMode)) != null && phase2)
                 {
                     x.SetAttributeValue($"s{us}p2KV", s1YBVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
@@ -727,8 +767,14 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{us}VoltageType", "LL");
                     hasVoltsus = true;
                 }
-                var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts B", _scadaSearchMode);
+                var s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts BØ", _scadaSearchMode);
                 if (s1BRVolts != null && phase3)
+                {
+                    x.SetAttributeValue($"s{us}p3KV", s1BRVolts.Key);
+                    x.SetAttributeValue($"s{us}VoltageType", "LG");
+                    hasVoltsus = true;
+                }
+                else if ((s1BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Met Volts BØ", _scadaSearchMode)) != null && phase3)
                 {
                     x.SetAttributeValue($"s{us}p3KV", s1BRVolts.Key);
                     x.SetAttributeValue($"s{us}VoltageType", "LG");
@@ -746,7 +792,7 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{us}VoltageType", "LL");
                     hasVoltsus = true;
                 }
-                var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts R2", _scadaSearchMode);
+                var s2RYVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts RØ2", _scadaSearchMode);
                 if (s2RYVolts != null && phase1)
                 {
                     x.SetAttributeValue($"s{ds}p1KV", s2RYVolts.Key);
@@ -759,7 +805,7 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{ds}VoltageType", "LL");
                     hasVoltsds = true;
                 }
-                var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts Y2", _scadaSearchMode);
+                var s2YBVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts YØ2", _scadaSearchMode);
                 if (s2YBVolts != null && phase2)
                 {
                     x.SetAttributeValue($"s{ds}p2KV", s2YBVolts.Key);
@@ -772,7 +818,7 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{ds}VoltageType", "LL");
                     hasVoltsds = true;
                 }
-                var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts B2", _scadaSearchMode);
+                var s2BRVolts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Volts BØ2", _scadaSearchMode);
                 if (s2BRVolts != null && phase3)
                 {
                     x.SetAttributeValue($"s{ds}p3KV", s2BRVolts.Key);
@@ -891,7 +937,7 @@ namespace MainPower.Adms.Enricher
                     x.SetAttributeValue($"s{ds}VoltageReference", _baseKv);
             }
             
-            return (status.Key, x);
+            return x;
                 
         }
 
@@ -1439,13 +1485,16 @@ namespace MainPower.Adms.Enricher
         private string ValidatedRatedAmps(string amps, bool breaker = false)
         {
             //format of rated amps is either an integer, or two integers i1/i2 for breaker/switch ratings of RMUs
-
+            ///TODO: get a regex onto this
             //handle the simple case
             if (string.IsNullOrEmpty(amps))
             {
                 Info("T1 rated amps is unset");
                 return "";
             }
+            if (amps.EndsWith("A"))
+                amps = amps[0..^1];
+
             if (int.TryParse(amps, out var res))
             {
                 return amps;
