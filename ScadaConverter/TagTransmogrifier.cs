@@ -1080,6 +1080,12 @@ namespace MainPower.Adms.ScadaConverter
             {
                 AssignDnpControlCodes(opoint);
                 ProcessModbusRegister(opoint, rtui);
+
+                //should deal with this properly, but just going to chuck a dirty hack in here
+                if (opoint.Address.StartsWith("20."))
+                {
+                    opoint.PointType = "T_ACCUM";
+                }
             }
             #endregion
 

@@ -52,7 +52,10 @@ namespace MainPower.Adms.Enricher
         private const string AdmsTxNerResistance = "NerResistance";
         private const string AdmsTxRegulatedSide = "RegulatedSide";
         private const string AdmsTxTransformerType = "TransformerType";
-
+        private const string AdmsTxRegMaxVolts = "RegMaxVolts";
+        private const string AdmsTxRegMinVolts = "RegMinVolts";
+        private const string AdmsTxRegPosGradient = "RegPosGradient";
+        private const string AdmsTxRegNegGradient = "RegNegGradient";
 
         private const string IdfTxBandwidth = "bandwidth";
         private const string IdfTxBidirectional = "bidirectional";
@@ -75,6 +78,10 @@ namespace MainPower.Adms.Enricher
         private const string IdfTxRotation = "standardRotation";
         private const string IdfTxTapSide = "tapSide";
         private const string IdfTxType = "transformerType";
+        private const string IdfTxRegMaxVolts = "voltAmpMaxVoltIncrease";
+        private const string IdfTxRegMinVolts = "voltAmpMaxVoltDecrease";
+        private const string IdfTxRegPosGradient = "voltAmpGradIncrease";
+        private const string IdfTxRegNegGradient = "voltAmpGradDecrease";
 
         private const string IdfTxWindingWye = "Wye";
         private const string IdfTxWindingZigZag = "Zig-Zag";
@@ -116,6 +123,11 @@ namespace MainPower.Adms.Enricher
         private string _standardRotation= "";
         private string _tapSide= "";
         private string _transformerType= "";
+        private string _regMaxVolts = "";
+        private string _regMinVolts = "";
+        private string _regPosGradient = "";
+        private string _regNegGradient = "";
+
 
         //not exported fields
         private int _numTaps = 0;
@@ -244,10 +256,14 @@ namespace MainPower.Adms.Enricher
                         if (!string.IsNullOrWhiteSpace(regtype))
                         {
                             _regulationType = regtype;
+                            _regMaxVolts = asset2[AdmsTxRegMaxVolts];
+                            _regMinVolts = asset2[AdmsTxRegMinVolts];
+                            _regPosGradient = asset2[AdmsTxRegPosGradient];
+                            _regNegGradient = asset2[AdmsTxRegNegGradient];
                         }
                         else
                         {
-                            _regulationType = "Automatic";
+                            _regulationType = "Manual";
                         }
                         var regnode = asset2[AdmsTxRegulatedSide];
                         if (regnode == "1")
@@ -321,6 +337,16 @@ namespace MainPower.Adms.Enricher
                 Node.SetAttributeValue(IdfTxMinTapLimit, _minTapLimit);
                 Node.SetAttributeValue(IdfTxParallelSet, _parallelSet);
                 Node.SetAttributeValue(IdfTxRegulationType, _regulationType);
+
+                if (!string.IsNullOrWhiteSpace(_regMaxVolts))
+                    Node.SetAttributeValue(IdfTxRegMaxVolts, _regMaxVolts);
+                if (!string.IsNullOrWhiteSpace(_regMinVolts))
+                    Node.SetAttributeValue(IdfTxRegMinVolts, _regMinVolts);
+                if (!string.IsNullOrWhiteSpace(_regPosGradient))
+                    Node.SetAttributeValue(IdfTxRegPosGradient, _regPosGradient);
+                if (!string.IsNullOrWhiteSpace(_regNegGradient))
+                    Node.SetAttributeValue(IdfTxRegNegGradient, _regNegGradient);
+
 
                 Node.SetAttributeValue(IdfTxNominalUpstreamSide, _nominalUpstreamSide);
                 Node.SetAttributeValue(IdfTxS1BasekV, _s1BaseKv);

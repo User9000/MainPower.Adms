@@ -58,7 +58,10 @@ namespace MainPower.Adms.Enricher
                     XElement x = new XElement(IdfEl);
                     x.SetAttributeValue(IdfElementType, IdfElementTypeScada);
                     x.SetAttributeValue(IdfElementId, Id);
-                    x.SetAttributeValue(IdfDeviceVoltageReference, basekV);
+                    //these should be phase voltages
+                    double v = double.Parse(basekV);
+                    v /= Math.Sqrt(3);
+                    x.SetAttributeValue(IdfDeviceVoltageReference, v.ToString("F2"));
                     
                     var p1Voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, source[AdmsSourcePhase1VoltageRef],SearchMode.Exact);
                     if (p1Voltage != null)

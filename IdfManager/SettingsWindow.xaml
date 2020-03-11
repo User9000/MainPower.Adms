@@ -27,7 +27,7 @@
         </ListBox>
         <Label Content="IDF Destinations" HorizontalAlignment="Left" Margin="10,129,0,0" VerticalAlignment="Top" Height="27" Width="107"/>
         <Button Content="Add New" HorizontalAlignment="Left" Margin="15,156,0,0" VerticalAlignment="Top" Width="102" Command="{Binding AddNewTarget}"/>
-        <TextBox Margin="126,0,267,33" Text="{Binding SelectedTarget.Name}" Height="18" VerticalAlignment="Bottom"/>
+        <TextBox Margin="126,0,0,33" Text="{Binding SelectedTarget.Name}" Height="18" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="83"/>
         <TextBox Margin="209,0,10,33" Text="{Binding SelectedTarget.Path}" VerticalAlignment="Bottom"/>
         <Button Content="Delete" HorizontalAlignment="Left" Margin="15,181,0,0" VerticalAlignment="Top" Width="102" Command="{Binding DeleteTarget}"/>
     </Grid>

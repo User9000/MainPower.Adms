@@ -15,7 +15,7 @@ namespace MainPower.Adms.Enricher
         private const string IdfLineType = "lineType";
         private const string LineBusbar = "lineType_busbar";
 
-        private static readonly Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service), (int count,double length)> _conductors = new Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service), (int, double)>();
+        private static readonly Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service, bool inDataset), (int count,double length)> _conductors = new Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service, bool inDataset), (int, double)>();
         private static DataTable _conductorTypes = null;
 
         /// <summary>
@@ -49,12 +49,14 @@ namespace MainPower.Adms.Enricher
                 string phase_conductor = Node.Attribute(GisPhaseConductor)?.Value;
                 string neutral_conductor = Node.Attribute(GisNeutralConductor)?.Value;
                 string voltage = Node.Attribute(IdfDeviceBasekV).Value;
+                bool notInConductorDataset = false;
                 
                 if (!isBusbar)
                 {
                     lineType = GetConductorId(double.Parse(voltage), S1Phases, phase_conductor, neutral_conductor);
                     if (string.IsNullOrEmpty(lineType))
                     {
+                        notInConductorDataset = true;
                         switch (voltage)
                         {
                             case "66":
@@ -98,7 +100,7 @@ namespace MainPower.Adms.Enricher
                     length = 0;
                 }
 
-                var conductor = (voltage, S1Phases, lineType, phase_conductor ?? "", neutral_conductor ?? "", Name.StartsWith("Service"));
+                var conductor = (voltage, S1Phases, lineType, phase_conductor ?? "", neutral_conductor ?? "", Name.StartsWith("Service"), notInConductorDataset);
 
                 //Dictionary not thread safe
                 lock (_conductors)
@@ -142,6 +144,7 @@ namespace MainPower.Adms.Enricher
             dt.Columns.Add("Phase Conductor", typeof(string));
             dt.Columns.Add("Neutral Conductor", typeof(string));
             dt.Columns.Add("Service", typeof(bool));
+            dt.Columns.Add("In Dataset", typeof(bool));
             dt.Columns.Add("Count", typeof(int));
             dt.Columns.Add("Length", typeof(int));
 
@@ -154,8 +157,9 @@ namespace MainPower.Adms.Enricher
                 r[3] = item.Key.phase;
                 r[4] = item.Key.neutral;
                 r[5] = item.Key.service;
-                r[6] = item.Value.count;
-                r[7] = item.Value.length;
+                r[6] = item.Key.inDataset;
+                r[7] = item.Value.count;
+                r[8] = item.Value.length;
                 dt.Rows.Add(r);
             }
 
@@ -170,13 +174,15 @@ namespace MainPower.Adms.Enricher
 
         private string GetConductorId(double voltage, int phases, string pconductor, string nconductor)
         {
+            if (pconductor == "FERRET")
+                Debugger.Launch();
             if (string.IsNullOrEmpty(pconductor))
-                pconductor = $"[Phase Conductor] is null";
+                pconductor = $"[Phase Conductor] = ''";
             else
                 pconductor = $"[Phase Conductor] = '{pconductor}'";
 
             if (string.IsNullOrEmpty(nconductor))
-                nconductor = $"[Neutral Conductor] is null";
+                nconductor = $"[Neutral Conductor] = ''";
             else
                 nconductor = $"[Neutral Conductor] = '{nconductor}'";
 
