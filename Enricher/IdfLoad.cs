@@ -34,47 +34,43 @@ namespace MainPower.Adms.Enricher
                 CheckPhasesSide1Only();
 
                 if (Name.StartsWith("Streetlight"))
-                {
                     Err("I'm a streetlight");
-                }
-                else
-                {
-                    Icp icp = DataManager.I.RequestRecordById<Icp>(Node.Attribute("name").Value);
-                    string icpType = icp?[LoadIcpType];
-                   
-                    switch (icpType)
-                    {
-                        case "Residential":
-                            symbol = SymbolLoadResidential;
-                            break;
-                        case "General":
-                            symbol = SymbolLoadGeneral;
-                            break;
-                        case "Irrigation":
-                            symbol = SymbolLoadIrrigation;
-                            break;
-                        case "Council Pumping":
-                            symbol = SymbolLoadPumping;
-                            break;
-                        case "Distributed Generation":
-                            symbol = SymbolLoadDG;
-                            break;
-                        case "Streetlight":
-                            symbol = SymbolLoadSL;
-                            break;
-                        case "Large User":
-                            symbol = SymbolLoadLargeUser;
-                            break;
-                        default:
-                            symbol = SymbolLoadUknown;
-                            break;
-                    }
-                    Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
-                    //just in case the load is in a disconnected island, set the nominal kw to suppress maestro warnings
-                    SetNominalLoad(1);
 
-                    Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Load, symbol);
+                Icp icp = DataManager.I.RequestRecordById<Icp>(Node.Attribute("name").Value);
+                string icpType = icp?[LoadIcpType];
+
+                switch (icpType)
+                {
+                    case "Residential":
+                        symbol = SymbolLoadResidential;
+                        break;
+                    case "General":
+                        symbol = SymbolLoadGeneral;
+                        break;
+                    case "Irrigation":
+                        symbol = SymbolLoadIrrigation;
+                        break;
+                    case "Council Pumping":
+                        symbol = SymbolLoadPumping;
+                        break;
+                    case "Distributed Generation":
+                        symbol = SymbolLoadDG;
+                        break;
+                    case "Streetlight":
+                        symbol = SymbolLoadSL;
+                        break;
+                    case "Large User":
+                        symbol = SymbolLoadLargeUser;
+                        break;
+                    default:
+                        symbol = SymbolLoadUknown;
+                        break;
                 }
+                Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
+                //just in case the load is in a disconnected island, set the nominal kw to suppress maestro warnings
+                SetNominalLoad(1);
+
+                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Load, symbol);
             }
             catch (Exception ex)
             {

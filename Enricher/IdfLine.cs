@@ -45,6 +45,7 @@ namespace MainPower.Adms.Enricher
 
                 Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line);               
                 bool isBusbar = Node.Attribute("lineType")?.Value.Contains("BUSBAR") ?? false;
+                string originalLineType = Node.Attribute("lineType")?.Value;
                 string lineType = LineBusbar;
                 string phase_conductor = Node.Attribute(GisPhaseConductor)?.Value;
                 string neutral_conductor = Node.Attribute(GisNeutralConductor)?.Value;
@@ -72,6 +73,7 @@ namespace MainPower.Adms.Enricher
                                 if (!isBusbar) lineType = "lineType_11kV_default";
                                 break;
                             case "6.6":
+                            case "6.600":
                                 if (!isBusbar) lineType = "lineType_6.6kV_default";
                                 break;
                             case "0.4":
@@ -79,6 +81,7 @@ namespace MainPower.Adms.Enricher
                                 if (!isBusbar) lineType = "lineType_400V_default";
                                 break;
                             default:
+                                Err("line type not assigned due to unrecognised voltage!");
                                 break;
                         }
                     }
@@ -100,7 +103,7 @@ namespace MainPower.Adms.Enricher
                     length = 0;
                 }
 
-                var conductor = (voltage, S1Phases, lineType, phase_conductor ?? "", neutral_conductor ?? "", Name.StartsWith("Service"), notInConductorDataset);
+                var conductor = (voltage, S1Phases, originalLineType, phase_conductor ?? "", neutral_conductor ?? "", Name.StartsWith("Service"), notInConductorDataset);
 
                 //Dictionary not thread safe
                 lock (_conductors)
@@ -144,7 +147,7 @@ namespace MainPower.Adms.Enricher
             dt.Columns.Add("Phase Conductor", typeof(string));
             dt.Columns.Add("Neutral Conductor", typeof(string));
             dt.Columns.Add("Service", typeof(bool));
-            dt.Columns.Add("In Dataset", typeof(bool));
+            dt.Columns.Add("Missing", typeof(bool));
             dt.Columns.Add("Count", typeof(int));
             dt.Columns.Add("Length", typeof(int));
 
@@ -164,7 +167,7 @@ namespace MainPower.Adms.Enricher
             }
 
             dt.DefaultView.Sort = "Count desc";
-            Util.ExportDatatable(dt.DefaultView.ToTable(), Path.Combine(Program.Options.OutputPath, "Conductors.csv"));
+            Util.ExportDatatable(dt.DefaultView.ToTable(), Path.Combine(Program.Options.OutputPath, "ConductorSummary.csv"));
         }
 
         private void LoadConductorTypes()
@@ -174,8 +177,6 @@ namespace MainPower.Adms.Enricher
 
         private string GetConductorId(double voltage, int phases, string pconductor, string nconductor)
         {
-            if (pconductor == "FERRET")
-                Debugger.Launch();
             if (string.IsNullOrEmpty(pconductor))
                 pconductor = $"[Phase Conductor] = ''";
             else
