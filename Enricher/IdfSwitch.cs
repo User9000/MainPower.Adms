@@ -80,6 +80,7 @@ namespace MainPower.Adms.Enricher
         private const string AdmsSwitchSkipScada = "NoAutoScadaLinking";
         private const string AdmsSwitchBypassScadaStatus = "BypassScadaStatusCheck";
         private const string AdmsSwitchVoltageId = "VoltageLinkingScadaId";
+        private const string AdmsSwitchInvertScadaStatus = "InvertScadaStatus";
 
         private const string IdfSwitchScadaP1State = "p1State";
         private const string IdfSwitchScadaP2State = "p2State";
@@ -326,8 +327,6 @@ namespace MainPower.Adms.Enricher
             {
                 if (status["Type"] == "T_I&C")
                     x.SetAttributeValue("gangedControlPoint", status.Key);
-
-
 
                 if (phase1)
                     x.SetAttributeValue("p1State", status.Key);

@@ -13,7 +13,7 @@ namespace MainPower.Adms.Enricher
         private const string GisPhaseConductor = "mpwr_cable_type";
         private const string GisNeutralConductor = "mpwr_neutral_cable_type";
         private const string IdfLineType = "lineType";
-        private const string LineBusbar = "lineType_busbar";
+        private const string LineBusbar = "lType_busbar";
 
         private static readonly Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service, bool inDataset), (int count,double length)> _conductors = new Dictionary<(string voltage, int phases, string type, string phase, string neutral, bool service, bool inDataset), (int, double)>();
         private static DataTable _conductorTypes = null;
@@ -44,8 +44,8 @@ namespace MainPower.Adms.Enricher
                 CheckPhases();
 
                 Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Line);               
-                bool isBusbar = Node.Attribute("lineType")?.Value.Contains("BUSBAR") ?? false;
-                string originalLineType = Node.Attribute("lineType")?.Value;
+                bool isBusbar = Node.Attribute(IdfLineType)?.Value.Contains("BUSBAR") ?? false;
+                string originalLineType = Node.Attribute(IdfLineType)?.Value;
                 string lineType = LineBusbar;
                 string phase_conductor = Node.Attribute(GisPhaseConductor)?.Value;
                 string neutral_conductor = Node.Attribute(GisNeutralConductor)?.Value;
@@ -61,24 +61,24 @@ namespace MainPower.Adms.Enricher
                         switch (voltage)
                         {
                             case "66":
-                                if (!isBusbar) lineType = "lineType_66kV_default";
+                                if (!isBusbar) lineType = "lType_66kV_default";
                                 break;
                             case "33":
-                                if (!isBusbar) lineType = "lineType_33kV_default";
+                                if (!isBusbar) lineType = "lType_33kV_default";
                                 break;
                             case "22":
-                                if (!isBusbar) lineType = "lineType_22kV_default";
+                                if (!isBusbar) lineType = "lType_22kV_default";
                                 break;
                             case "11":
-                                if (!isBusbar) lineType = "lineType_11kV_default";
+                                if (!isBusbar) lineType = "lType_11kV_default";
                                 break;
                             case "6.6":
                             case "6.600":
-                                if (!isBusbar) lineType = "lineType_6.6kV_default";
+                                if (!isBusbar) lineType = "lType_6.6kV_default";
                                 break;
                             case "0.4":
                             case "0.4000":
-                                if (!isBusbar) lineType = "lineType_400V_default";
+                                if (!isBusbar) lineType = "lType_400V_default";
                                 break;
                             default:
                                 Err("line type not assigned due to unrecognised voltage!");
@@ -92,11 +92,11 @@ namespace MainPower.Adms.Enricher
                         if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId2)?.Value)) phid += "B";
                         if (!string.IsNullOrWhiteSpace(Node.Attribute(IdfDeviceS1PhaseId3)?.Value)) phid += "C";
 
-                        lineType = lineType.Replace("lineType_", $"lineType_{phid}_");
+                        lineType = lineType.Replace("lType_", $"lType_{phid}_");
                     }
                 }
 
-                Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
+                Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV).Value);
 
                 if (!double.TryParse(Node.Attribute("length")?.Value ?? "", out double length))
                 {

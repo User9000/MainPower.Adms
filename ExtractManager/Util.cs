@@ -10,18 +10,16 @@ namespace MainPower.Adms.ExtractManager
         public static void SerializeNewtonsoft(string file, object obj, JsonSerializer s = null)
         {
 
-            using (var f = File.CreateText(file))
+            using var f = File.CreateText(file);
+            if (s == null)
             {
-                if (s == null)
+                s = new JsonSerializer
                 {
-                    s = new JsonSerializer
-                    {
-                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-                        Formatting = Formatting.None
-                    };
-                }
-                s.Serialize(f, obj);
+                    PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                    Formatting = Formatting.Indented
+                };
             }
+            s.Serialize(f, obj);
         }
 
 
@@ -29,15 +27,13 @@ namespace MainPower.Adms.ExtractManager
         {
             try
             {
-                using (var f = File.OpenText(file))
+                using var f = File.OpenText(file);
+                JsonTextReader r = new JsonTextReader(f);
+                JsonSerializer s = new JsonSerializer()
                 {
-                    JsonTextReader r = new JsonTextReader(f);
-                    JsonSerializer s = new JsonSerializer()
-                    {
-                        PreserveReferencesHandling = PreserveReferencesHandling.Objects
-                    };
-                    return s.Deserialize<T>(r);
-                }
+                    PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                };
+                return s.Deserialize<T>(r);
             }
             catch
             {

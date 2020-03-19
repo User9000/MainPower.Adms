@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ExtractManager": {
+      "commandName": "Project",
+      "commandLineArgs": "--incremental -d 4"
+    }
+  }
+}

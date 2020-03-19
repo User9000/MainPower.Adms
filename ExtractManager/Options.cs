@@ -16,10 +16,6 @@ namespace MainPower.Adms.ExtractManager
         [Option('s', "success", HelpText = "Signal a sucessful maestro import", Required = false)]
         public bool SuccessfulImport { get; set; }
 
-
-        [Option('t', "timeout", HelpText = "Timeout (minutes)", Required = false, Default =360)]
-        public int Timeout { get; set; }
-
         [Option('d', "debug", HelpText = "Debug", Required = false)]
         public int Debug { get; set; }
     }

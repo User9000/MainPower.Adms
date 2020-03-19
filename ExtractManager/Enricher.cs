@@ -9,7 +9,8 @@ namespace MainPower.Adms.ExtractManager
 {
     public class Enricher
     {
-        Settings _settings;
+        private readonly Settings _settings;
+
         public Enricher(Settings settings)
         {
             _settings = settings;
@@ -30,7 +31,7 @@ namespace MainPower.Adms.ExtractManager
             if (extractType == ExtractType.Full)
                 arguments += " -n";
             else
-                arguments += $" -i \"{modelPath}\"";
+                arguments += $" -m \"{modelPath}\"";
 
             await RunProcessAsync(_settings.EnricherPath, arguments);
             return Util.DeserializeNewtonsoft<EnricherResult>(System.IO.Path.Combine(outputPath, "result.json")) ?? new EnricherResult();

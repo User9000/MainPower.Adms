@@ -18,17 +18,21 @@ namespace MainPower.Adms.Enricher
         private const string SymbolLoadGeneral = "Symbol 30";
         private const string SymbolLoadUknown = "Symbol 29";
 
+        private const string IdfLoadClass = "loadClass";
+
         private const string LoadIcpLoad = "Consumption";
         //private const string LoadIcpType = "Type";
         private const string LoadIcpType = "CUSTOMER_GROUP__C";
         
         public IdfLoad(XElement node, IdfGroup processor) : base(node, processor) { }
 
+        private double loadFactor = 1.0;
         public override void Process()
         {
             try
             {
                 string symbol = "";
+                string loadClass = "";
                 ParentGroup.UpdateLinkId(Id, Name);
                 UpdateId(Name);
                 CheckPhasesSide1Only();
@@ -43,30 +47,41 @@ namespace MainPower.Adms.Enricher
                 {
                     case "Residential":
                         symbol = SymbolLoadResidential;
+                        loadClass = "Residential";
                         break;
                     case "General":
                         symbol = SymbolLoadGeneral;
+                        loadClass = "General";
                         break;
                     case "Irrigation":
                         symbol = SymbolLoadIrrigation;
+                        loadClass = "Irrigation";
                         break;
                     case "Council Pumping":
                         symbol = SymbolLoadPumping;
+                        loadClass = "Pumping";
                         break;
                     case "Distributed Generation":
                         symbol = SymbolLoadDG;
+                        loadClass = "Distributed Generation";
                         break;
                     case "Streetlight":
                         symbol = SymbolLoadSL;
+                        loadClass = "Streetlight";
                         break;
                     case "Large User":
                         symbol = SymbolLoadLargeUser;
+                        loadClass = "Large User";
                         break;
                     default:
+                        Warn("Unknown Load Class");
                         symbol = SymbolLoadUknown;
+                        loadClass = "";
                         break;
                 }
-                Node.SetAttributeValue("ratedKV", Node.Attribute("baseKV").Value);
+                Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV).Value);
+                Node.SetAttributeValue(IdfLoadClass, loadClass);
+
                 //just in case the load is in a disconnected island, set the nominal kw to suppress maestro warnings
                 SetNominalLoad(1);
 

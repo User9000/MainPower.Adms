@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using CommandLine;
+using System.Diagnostics;
 
 namespace MainPower.Adms.Leika2Adms
 {
@@ -33,6 +34,8 @@ namespace MainPower.Adms.Leika2Adms
                        XElement xgroup = new XElement("group", new XAttribute("id", "Line Types"));
                        groups.Add(xgroup);
 
+                       var dict = new HashSet<string>();
+
                        //loop through all the entries in the csv file and convert them to IDF
                        foreach (DataRow row in conductor.Rows)
                        {
@@ -53,26 +56,35 @@ namespace MainPower.Adms.Leika2Adms
                                    else
                                        type = "Busbar";
 
+                                   if (dict.Contains(id) || string.IsNullOrWhiteSpace(id))
+                                   {
+                                       continue;
+                                   }
+                                   else
+                                   {
+                                       dict.Add(id);
+                                   }
+
                                    Console.WriteLine($"Processing Leika model {leika}");
-                                   LineParameters? p = GetLeikaData(leika, o.LeikaPath);
+                                   LineParameters? p = GetLeikaData(leika, o.LeikaPath, int.Parse(phases));
 
                                    if (p != null)
                                    {
                                        //for each phasing combination we need to create a different line type
-                                       List<(string id, LineParameters p)> phasecombos = new List<(string, LineParameters)>();
+                                       List<(string id, string name, LineParameters p)> phasecombos = new List<(string, string, LineParameters)>();
                                        if (phases == "3")
-                                           phasecombos.Add((id.Replace("lineType_", "lineType_ABC_"), p.Value));
+                                           phasecombos.Add((id.Replace("lType_", "lType_ABC_"), $"ABC-{name}", p.Value));
                                        else if (phases == "2")
                                        {
-                                           phasecombos.Add((id.Replace("lineType_", "lineType_AB_"), p.Value));
-                                           phasecombos.Add((id.Replace("lineType_", "lineType_BC_"), SwapIndexes(p.Value, 0, 2)));
-                                           phasecombos.Add((id.Replace("lineType_", "lineType_AC_"), SwapIndexes(p.Value, 1, 2)));
+                                           phasecombos.Add((id.Replace("lType_", "lType_AB_"), $"AB-{name}", p.Value));
+                                           phasecombos.Add((id.Replace("lType_", "lType_BC_"), $"BC-{name}", SwapIndexes(p.Value, 0, 2)));
+                                           phasecombos.Add((id.Replace("lType_", "lType_AC_"), $"AC-{name}", SwapIndexes(p.Value, 1, 2)));
                                        }
                                        else if (phases == "1")
                                        {
-                                           phasecombos.Add((id.Replace("lineType_", "lineType_A_"), p.Value));
-                                           phasecombos.Add((id.Replace("lineType_", "lineType_B_"), SwapIndexes(p.Value, 0, 2)));
-                                           phasecombos.Add((id.Replace("lineType_", "lineType_C_"), SwapIndexes(p.Value, 1, 2)));
+                                           phasecombos.Add((id.Replace("lType_", "lType_A_"), $"A-{name}", p.Value));
+                                           phasecombos.Add((id.Replace("lType_", "lType_B_"), $"B-{name}", SwapIndexes(p.Value, 0, 1)));
+                                           phasecombos.Add((id.Replace("lType_", "lType_C_"), $"C-{name}", SwapIndexes(p.Value, 0, 2)));
                                        }
                                        //write the phase combinations to xml/idf
                                        foreach (var combo in phasecombos)
@@ -80,7 +92,7 @@ namespace MainPower.Adms.Leika2Adms
                                            XElement element = new XElement("element",
                                                new XAttribute("type", "Line Type"),
                                                new XAttribute("id", combo.id),
-                                               new XAttribute("name", name),
+                                               new XAttribute("name", combo.name),
                                                new XAttribute("lineType", type),
                                                new XAttribute("calcMode", "None"),
                                                new XAttribute("chargingBase", voltage),
@@ -148,13 +160,20 @@ namespace MainPower.Adms.Leika2Adms
         /// <param name="fileName"></param>
         /// <param name="path"></param>
         /// <returns></returns>
-        private static LineParameters? GetLeikaData(string fileName, string path)
+        private static LineParameters? GetLeikaData(string fileName, string path, int phases)
         {
             try
             {
-                //get all the report files
+                if (phases < 1 || phases > 3)
+                {
+                    Console.WriteLine($"Invalid number of phases for file {fileName}");
+                    return null;
+                }
+                    //get all the report files
                 var files = Directory.GetFiles(path, "*.txt");
 
+                //what is this?
+                //TODO: just get the file we need
                 for (int i = 0; i < files.Length; i++)
                 {
                     files[i] = Path.GetFileName(files[i]);
@@ -172,15 +191,33 @@ namespace MainPower.Adms.Leika2Adms
                                 Console.WriteLine("Was expecting more lines in file");
                                 break;
                             }
+                            Impedance zero = new Impedance { Reactance = 0, Resistance = 0 };
                             LineParameters p = new LineParameters();
+                            //TODO: we should be handling the per phase cases here
                             p.Initialize();
                             p.SelfImpedance[0] = GetImpedance("1L1", lines[i + 9]);
-                            p.SelfImpedance[1] = GetImpedance("1L2", lines[i + 9]);
-                            p.SelfImpedance[2] = GetImpedance("1L3", lines[i + 9]);
-                            p.MutualImpedance[0] = GetImpedance("1L1-1L2", lines[i + 17]);
-                            p.MutualImpedance[1] = GetImpedance("1L1-1L3", lines[i + 18]);
-                            p.MutualImpedance[2] = GetImpedance("1L2-1L3", lines[i + 18]);
-                           
+                            if (phases >= 2)
+                                p.SelfImpedance[1] = GetImpedance("1L2", lines[i + 9]);
+                            else
+                                p.SelfImpedance[1] = zero;
+                            if (phases == 3)
+                                p.SelfImpedance[2] = GetImpedance("1L3", lines[i + 9]);
+                            else
+                                p.SelfImpedance[2] = zero;
+                            if (phases >= 2)
+                                p.MutualImpedance[0] = GetImpedance("1L1-1L2", lines[i + 17]);
+                            else
+                                p.MutualImpedance[0] = zero;
+                            if (phases == 3)
+                            {
+                                p.MutualImpedance[1] = GetImpedance("1L1-1L3", lines[i + 18]);
+                                p.MutualImpedance[2] = GetImpedance("1L2-1L3", lines[i + 18]);
+                            }
+                            else
+                            {
+                                p.MutualImpedance[1] = zero;
+                                p.MutualImpedance[2] = zero;
+                            }
                             return p;
                         }
                     }
@@ -205,7 +242,10 @@ namespace MainPower.Adms.Leika2Adms
         /// <returns></returns>
         private static Impedance GetImpedance(string marker, string text)
         {
-            int start = text.IndexOf(marker) + marker.Length;
+            int index = text.IndexOf(marker);
+            if (index == -1)
+                return new Impedance { Reactance = 0, Resistance = 0 };
+            int start = index + marker.Length;
             string substr = text.Substring(start);
             Regex r = new Regex("(-?)(0|([1-9][0-9]*))(\\.[0-9]+)?");
             var matches = r.Matches(substr);
