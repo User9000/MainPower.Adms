@@ -327,7 +327,7 @@ namespace MainPower.Adms.ScadaConverter
 
             path = Path.GetFullPath(path);
 
-            var adapter = new GenericParsing.GenericParserAdapter(path);
+            var adapter = new GenericParsing.GenericParserAdapter(path, Encoding.ASCII);
             adapter.FirstRowHasHeader = true;
             DataTable dt = adapter.GetDataTable();
             return dt;

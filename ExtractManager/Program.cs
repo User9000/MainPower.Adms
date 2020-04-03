@@ -22,6 +22,7 @@ namespace MainPower.Adms.ExtractManager
             TimedOut = 4,
             OtherError = 5,
             CommandLineParseError = 6,
+            SettingsFileError = 7,
         }
 
         static int Main(string[] args)
@@ -53,20 +54,21 @@ namespace MainPower.Adms.ExtractManager
                         loglevel = Level.Debug;
                         break;
                 }
-                Logger.Setup(loglevel);
                 var settings = Util.DeserializeNewtonsoft<Settings>(_settingsFileName);
                 if (settings == null)
                 {
                     _log.Error("Problem loading or parsing the settings file");
-                    return (int)ExitCodes.OtherError;
+                    return (int)ExitCodes.SettingsFileError;
                 }
+                string id = DateTime.Now.ToString("yyyyMMdd_HHmm");
 
+                Logger.Setup(loglevel, settings.LogPath, id);
+                
                 //this is a global timeout - anything still going when this expires will be cancelled
                 var timeout = Task.Delay(settings.Timeout * 1000 * 60);//timeout option is in minutes
                 var extractor = new Extractor(settings);
                 var source = new CancellationTokenSource();
                 var token = source.Token;
-                string id = DateTime.Now.ToString("yyyyMMdd_HHmm");
                 var extractorOutputPath = Path.Combine(settings.IdfFileShare, id);
                 var enricherOutputPath = Path.Combine(extractorOutputPath, "enricheroutput");
                 ExtractType etype = ExtractType.Full;
@@ -112,19 +114,38 @@ namespace MainPower.Adms.ExtractManager
                             _log.Error($"Extractor task completed in unexpected state {extract.Status}");
                             return (int)ExitCodes.ExtractError;
                         }
-                       
+
                     }
                 }
                 else if (o.CompleteExtract)
                 {
                     etype = ExtractType.Full;
-                    extract = extractor.RequestExtract(token, id, etype, extractorOutputPath);
+                    if (!string.IsNullOrWhiteSpace(o.Enrich))
+                    {
+                        id = o.Enrich;
+                        extractorOutputPath = Path.Combine(settings.IdfFileShare, id);
+                        enricherOutputPath = Path.Combine(extractorOutputPath, "enricheroutput");
+                        extract = Task.Delay(1000);
+                    }
+                    else
+                    {
+                        extract = extractor.RequestExtract(token, id, etype, extractorOutputPath);
+                    }
                 }
                 else if (o.IncrementalExtract)
                 {
                     etype = ExtractType.Incremental;
-                    
-                    extract = extractor.RequestExtract(token, id, etype, extractorOutputPath);
+                    if (!string.IsNullOrWhiteSpace(o.Enrich))
+                    {
+                        id = o.Enrich;
+                        extractorOutputPath = Path.Combine(settings.IdfFileShare, id);
+                        enricherOutputPath = Path.Combine(extractorOutputPath, "enricheroutput");
+                        extract = Task.Delay(1000);
+                    }
+                    else
+                    {
+                        extract = extractor.RequestExtract(token, id, etype, extractorOutputPath);
+                    }
                 }
                 else
                 {
@@ -191,6 +212,7 @@ namespace MainPower.Adms.ExtractManager
                                 else
                                 {
                                     _log.Error("Enricher did not complete successfully, see enricher log for details");
+                                    _log.Debug(eTask.Result.ResultMessage);
                                     return (int)(ExitCodes.EnricherError);
                                 }
                             }

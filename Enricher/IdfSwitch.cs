@@ -1507,6 +1507,11 @@ namespace MainPower.Adms.Enricher
                 Info("T1 rated amps is unset");
                 return "";
             }
+            if (amps == "630/400" || amps == "LB")
+            {
+                Warn($"Dirty hack deployed to parse rated amps [{amps}]");
+                amps = "630";
+            }
             if (amps.EndsWith("A"))
                 amps = amps[0..^1];
 

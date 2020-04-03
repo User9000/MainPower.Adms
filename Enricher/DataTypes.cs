@@ -40,10 +40,10 @@ namespace MainPower.Adms.Enricher
     }
     public class OsiScadaAccumulator : OsiScadaPoint { }
     public class OsiScadaAnalog : OsiScadaPoint { }
-
     public class OsiScadaSetpoint : OsiScadaPoint { }
     public class AdmsSwitch : DataType { }
     public class AdmsTransformer : DataType { }
+    public class AdmsRegulator : DataType { }
     public class AdmsSource : DataType { }
     public class AdmsConductor : DataType { }
     public class Icp : DataType { }

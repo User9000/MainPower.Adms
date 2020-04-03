@@ -20,7 +20,13 @@ namespace MainPower.Adms.Enricher
 
         static int Main(string[] args)
         {
-            Console.BufferWidth = 320;
+            try
+            {
+                //this will throw when called by virtuoso, maybe because the output is redirected?
+                //anyhoo, ignore exceptions and continue
+                Console.BufferWidth = 320;
+            }
+            catch { }
 
             EnricherResult result = new EnricherResult();
             int retCode = result.Result = 3;
@@ -34,7 +40,6 @@ namespace MainPower.Adms.Enricher
                        Options = o;
 
                        //Create the output directory
-                       //TODO: handle failures
                        Directory.CreateDirectory(o.OutputPath);
                        bool deleteFailed = false;
                        //clear the output directory
@@ -105,7 +110,7 @@ namespace MainPower.Adms.Enricher
             }
             catch (Exception ex)
             {
-                ex.ToString();
+                Console.WriteLine(ex.ToString());
             }
             //TODO: bit hacky, but chances are the other arguments won't conatin -p
             if (string.Join(' ', args).Contains(" -p"))

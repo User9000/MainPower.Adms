@@ -7,6 +7,7 @@
     <StartupObject />
     <Platforms>AnyCPU;x86</Platforms>
     <RootNamespace>MainPower.Adms.Enricher</RootNamespace>
+    <AssemblyName>mpnz_enricher</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -21,7 +22,6 @@
     <PackageReference Include="CommandLineParser" Version="2.7.82" />
     <PackageReference Include="GenericParser" Version="1.1.6" />
     <PackageReference Include="log4net" Version="2.0.8" />
-    <PackageReference Include="LumenWorks.Framework.IO" Version="3.8.0" />
     <PackageReference Include="MessagePack" Version="2.1.90" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="3.1.2" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />

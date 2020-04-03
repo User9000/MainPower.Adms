@@ -211,6 +211,15 @@ namespace MainPower.Adms.Enricher
                 source = new SqliteSource()
                 {
                     Database = "adms.db",
+                    Table = "Regulator",
+                    Name = "AdmsRegulator",
+                    IndexColumn = "Name",
+                    InitializeFailIsFatal = true
+                };
+                Datasets.Add(nameof(AdmsRegulator), source);
+                source = new SqliteSource()
+                {
+                    Database = "adms.db",
                     Table = "Source",
                     Name = "AdmsSource",
                     IndexColumn = "Name",

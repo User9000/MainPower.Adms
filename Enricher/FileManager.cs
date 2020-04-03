@@ -138,6 +138,14 @@ namespace MainPower.Adms.Enricher
             {
                 idf.Content.Save($"{path}\\{idf.FileName}");
             }
+
+            var gFile = new StreamWriter($"{path}\\groups.dat");
+            foreach (var kvp in Groups)
+            {
+                gFile.WriteLine(kvp.Key);
+            }
+            gFile.Close();
+
         }
 
     }

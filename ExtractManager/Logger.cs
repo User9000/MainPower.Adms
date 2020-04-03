@@ -17,7 +17,7 @@ namespace MainPower.Adms.ExtractManager
 {
     public static class Logger
     {
-        public static void Setup(Level level)
+        public static void Setup(Level level, string logPath, string id)
         {
             Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository(Assembly.GetEntryAssembly());
             hierarchy.Root.RemoveAllAppenders();
@@ -28,10 +28,10 @@ namespace MainPower.Adms.ExtractManager
 
             RollingFileAppender roller = new RollingFileAppender();
             roller.AppendToFile = false;
-            roller.File = "log.csv";
+            roller.File = Path.Combine(logPath, $"extractlog_{id}.csv");
             roller.Layout = patternLayout;
             roller.MaxSizeRollBackups = 5;
-            roller.MaximumFileSize = "10GB";
+            roller.MaximumFileSize = "1MB";
             roller.RollingStyle = RollingFileAppender.RollingMode.Size;
             roller.StaticLogFileName = true;
             roller.ActivateOptions();

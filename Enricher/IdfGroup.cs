@@ -1,6 +1,7 @@
 ﻿using EGIS.ShapeFileLib;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -136,7 +137,7 @@ namespace MainPower.Adms.Enricher
                 var display = group.Value;
                 
                 var symbols = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Symbol" && x.Elements("dataLink").Any());
-                //we add new symbols the groups, so take a list to avoid ienum change errors
+                
                 foreach (var symbol in symbols.ToList())
                 {
                     try
@@ -162,6 +163,24 @@ namespace MainPower.Adms.Enricher
                             if (!string.IsNullOrWhiteSpace(device.SymbolName))
                             {
                                 SetSymbol(symbol, device, geographic);
+                            }
+                            if (geographic)
+                            {
+                                var overlay = symbol.Attribute("overlay")?.Value;
+                                if (overlay == "Overlay_Planned_mainpower")
+                                {
+                                    device.Flags = 1;
+                                    if (device.Energization[0])
+                                        Warn("Planned device is energized", device.Id, device.Name);
+
+                                }
+
+                                if (overlay == "Overlay_OutOfService_mainpower")
+                                {
+                                    device.Flags = 2;
+                                    if (device.Energization[0])
+                                        Warn("Out of service device is energized", device.Id, device.Name);
+                                }
                             }
                         }
                         else
@@ -219,6 +238,25 @@ namespace MainPower.Adms.Enricher
                                 SetLineStyle(line, datalink, device.Base1kV, device.Color, device.Name.StartsWith("Service"));
                             else
                                 Warn("Expected device type is Line.", device.Id, device.Name);
+
+                            if (geographic)
+                            {
+                                var overlay = line.Attribute("overlay")?.Value;
+                                if (overlay == "Overlay_Planned_mainpower")
+                                {
+                                    device.Flags = 1;
+                                    if (device.Energization[0])
+                                        Warn("Planned device is energized", device.Id, device.Name);
+
+                                }
+
+                                if (overlay == "Overlay_OutOfService_mainpower")
+                                {
+                                    device.Flags = 2;
+                                    if (device.Energization[0])
+                                        Warn("Out of service device is energized", device.Id, device.Name);
+                                }
+                            }
                         }
                         else
                         {

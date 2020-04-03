@@ -694,7 +694,7 @@ namespace MainPower.Adms.Enricher
 
         private void GenerateScadaLinking(string scadaId)
         {
-            var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Tap Position");
+            var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Tap Position (Norm)");
 
             //if we don't have the tap position, then assume we don't have any other telemtry either
             //TODO this assumption needs to be documented
@@ -722,13 +722,33 @@ namespace MainPower.Adms.Enricher
             if (setpoint != null)
                 x.SetAttributeValue("controlPoint", setpoint.Key);
 
-            //var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts RY", true);
-            //if (voltage != null)
-                x.SetAttributeValue("controlVoltageReference", _s2BaseKv);
-            //TODO: this is a workaround for bad data
-            //else if ((voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts", true)) != null)
-                //x.SetAttributeValue("controlVoltageReference", voltage.Key);
-
+            x.SetAttributeValue("controlVoltageReference", _s2BaseKv);
+            
+            var voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts RY", SearchMode.Exact);
+            if (voltage != null)
+            {
+                x.SetAttributeValue("s2VoltageReference", _s2BaseKv);
+                x.SetAttributeValue("s2VoltageType", "LL");
+                x.SetAttributeValue("s2p1KV", voltage.Key);
+                x.SetAttributeValue("s2p2KV", voltage.Key);
+                x.SetAttributeValue("s2p3KV", voltage.Key);
+            }
+            else if ((voltage = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} Volts", SearchMode.Exact)) != null)
+            {
+                x.SetAttributeValue("s2VoltageReference", _s2BaseKv);
+                x.SetAttributeValue("s2VoltageType", "LL");
+                x.SetAttributeValue("s2p1KV", voltage.Key);
+                x.SetAttributeValue("s2p2KV", voltage.Key);
+                x.SetAttributeValue("s2p3KV", voltage.Key);
+            }
+            else
+            {
+                x.SetAttributeValue("s2VoltageReference", "");
+                x.SetAttributeValue("s2VoltageType", "");
+                x.SetAttributeValue("s2p1KV", "");
+                x.SetAttributeValue("s2p2KV", "");
+                x.SetAttributeValue("s2p3KV", "");
+            }
             ParentGroup.AddGroupElement(x);
         }
 

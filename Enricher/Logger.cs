@@ -74,8 +74,9 @@ namespace MainPower.Adms.Enricher
             console.AddMapping(l5);
             console.Layout = patternLayout2;
             console.ActivateOptions();
-            hierarchy.Root.Level = level;            
-            BasicConfigurator.Configure(hierarchy, roller, console);
+
+            hierarchy.Root.Level = level;
+            BasicConfigurator.Configure(hierarchy, roller);
         }
     }
 }

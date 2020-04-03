@@ -699,6 +699,7 @@ namespace MainPower.Adms.Enricher
                     {
                         if (d.PhaseID[iUp, i] != d.PhaseID[iDown, i])
                         {
+                            
                             Debugger.Launch(); 
                             Error($"Phasing on index {i + 1} is not consistent on both sides of the device", d);
                         }
@@ -710,14 +711,6 @@ namespace MainPower.Adms.Enricher
                 //for single phase transformers we shouldn't see phases assigned to the unused HV phase(s)
                 if (d.Type == DeviceType.Transformer)
                 {
-                    /*
-                    //TODO: remove
-                    if (CountPhases(d.PhaseID, 0) == 1)
-                    {
-                        Err("Was not expecting SWER transformer in VS", d.Id, d.Name);
-                        continue;
-                    }*/
-
                     //count up the HV phases to determine if the transformer is three phase
                     bool threephase = true;
                     for (int i = 0; i < 3; i++)
@@ -1084,7 +1077,7 @@ namespace MainPower.Adms.Enricher
         /// <param name="dir">The directory to export to</param>
         public void ExportToShapeFile(string dir)
         {
-            DbfFieldDesc[] deviceFields = new DbfFieldDesc[16];
+            DbfFieldDesc[] deviceFields = new DbfFieldDesc[17];
             deviceFields[0] = new DbfFieldDesc
             {
                 FieldName = "Node1Id",
@@ -1198,6 +1191,13 @@ namespace MainPower.Adms.Enricher
                 RecordOffset = 0,
                 FieldType = DbfFieldType.Character,
             };
+            deviceFields[16] = new DbfFieldDesc
+            {
+                FieldName = "Flags",
+                FieldLength = 5,
+                RecordOffset = 0,
+                FieldType = DbfFieldType.Character,
+            };
             ShapeFileWriter sfwDevices = ShapeFileWriter.CreateWriter(dir, "Devices", ShapeType.Point, deviceFields);
             ExportWebMercatorProjectionFile(Path.Combine(dir, "Devices.prj"));
             ShapeFileWriter sfwLines = ShapeFileWriter.CreateWriter(dir, "Lines", ShapeType.PolyLine, deviceFields);
@@ -1206,7 +1206,7 @@ namespace MainPower.Adms.Enricher
             {
                 foreach (ModelDevice d in Devices.Values)
                 {
-                    string[] fieldData = new string[16];
+                    string[] fieldData = new string[17];
                     fieldData[0] = d.Node1?.Id ?? "-";
                     fieldData[1] = d.Node2?.Id ?? "-";
                     fieldData[2] = d.Id;
@@ -1223,7 +1223,8 @@ namespace MainPower.Adms.Enricher
                     fieldData[13] = d.Color ?? "";
                     fieldData[14] = d.NominalkVA.ToString("N5") ?? "";
                     fieldData[15] = $"{d.Phasing[0]}-{(d.Phasing[0] + 4) % 12}-{(d.Phasing[0] + 8) % 12}/{d.Phasing[1]}-{(d.Phasing[1] + 4) % 12}-{(d.Phasing[1] + 8) % 12}";
-
+                    fieldData[16] = d.Flags.ToString();
+                    
                     if (d.Geometry == null)
                     {
                         Warn("Not exporting device to shape file due to null geometry", d);

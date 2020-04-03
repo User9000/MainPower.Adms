@@ -120,7 +120,7 @@ namespace MainPower.Adms.Enricher
 
             }
             TimeSpan runtime = DateTime.Now - start;
-            Info($"Stats: Tx:{Model.TxCount} Line:{Model.LineCount} Line5:{Model.Line5Count} Line25:{Model.Line25Count} Load:{Model.LoadCount} Switch:{Model.SwitchCount} Reg:{Model.RegCount} Feeder:{Model.FeederCount} Runtime:{runtime.TotalMinutes} min");
+            Info($"Stats: Tx:{Model.TxCount} Line:{Model.LineCount} Line5:{Model.Line5Count} Line25:{Model.Line25Count} Load:{Model.LoadCount} Switch:{Model.SwitchCount} Reg:{Model.RegCount} Feeder:{Model.FeederCount} Nodes: {Model.Nodes.Count} Runtime:{runtime.TotalMinutes} min");
             Info($"Stats: Debug:{Debugs} Info:{Infos} Warn:{Warns} Error:{Errors} Fatal:{Fatals}");
         }
 

@@ -97,7 +97,7 @@ namespace MainPower.Adms.ScadaConverter
                     var tuple = (rtu, item);
                     if (io.ContainsKey(tuple))
                     {
-                        _log.Error($"Item {point} with index {tuple.Item2} already exists on RTU {tuple.rtu} (other point is {io[tuple]})");
+                        _log.Error($"Tag {point} and {io[tuple]} both exist on RTU {tuple.rtu} with dnp address {tuple.Item2}");
                     }
                     else
                     {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -9,6 +10,7 @@ namespace MainPower.Adms.ExtractManager
 {
     public class Enricher
     {
+        private static readonly ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private readonly Settings _settings;
 
         public Enricher(Settings settings)
@@ -32,7 +34,7 @@ namespace MainPower.Adms.ExtractManager
                 arguments += " -n";
             else
                 arguments += $" -m \"{modelPath}\"";
-
+            _log.Info("Running the enricher with the arguments: " + arguments);
             await RunProcessAsync(_settings.EnricherPath, arguments);
             return Util.DeserializeNewtonsoft<EnricherResult>(System.IO.Path.Combine(outputPath, "result.json")) ?? new EnricherResult();
         }

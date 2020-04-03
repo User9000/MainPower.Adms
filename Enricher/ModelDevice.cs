@@ -75,6 +75,9 @@ namespace MainPower.Adms.Enricher
         [Key(16)]
         public double NominalkVA { get; set; }
 
+        [Key(17)]
+        public uint Flags { get; set; }
+
         /// <summary>
         /// Phasing (in clock units) of phase index 1
         /// </summary>

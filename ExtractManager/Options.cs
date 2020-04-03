@@ -18,5 +18,8 @@ namespace MainPower.Adms.ExtractManager
 
         [Option('d', "debug", HelpText = "Debug", Required = false)]
         public int Debug { get; set; }
+
+        [Option('e', "enrichonly", HelpText = "Skip extraction and enrich the given extract", Required = false)]
+        public string Enrich { get; set; }
     }
 }

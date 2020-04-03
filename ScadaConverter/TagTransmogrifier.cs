@@ -279,7 +279,7 @@ namespace MainPower.Adms.ScadaConverter
         private void LoadTagOverrides(string file)
         {
             _tagOverrides.Clear();
-            using (CachedCsvReader csv = new CachedCsvReader(new StreamReader(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)), true))
+            using (CachedCsvReader csv = new CachedCsvReader(new StreamReader(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), Encoding.Default), true))
             {
                 while (csv.ReadNextRecord())
                 {
