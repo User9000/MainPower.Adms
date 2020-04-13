@@ -4,6 +4,7 @@ using log4net.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +13,7 @@ namespace MainPower.Adms.ExtractManager
     class Program
     {
         private static readonly ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly string _settingsFileName = "em_settings.json";
+        private static readonly string _settingsFileName = "mpnz_extractmanager_settings.json";
         private enum ExitCodes
         {
             Success = 0,
@@ -54,10 +55,13 @@ namespace MainPower.Adms.ExtractManager
                         loglevel = Level.Debug;
                         break;
                 }
-                var settings = Util.DeserializeNewtonsoft<Settings>(_settingsFileName);
+
+                //heh, but on a more serious note we aren't guaranteed to be starting in our own directory
+                var assPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var settings = Util.DeserializeNewtonsoft<Settings>(Path.Combine(assPath, _settingsFileName));
                 if (settings == null)
                 {
-                    _log.Error("Problem loading or parsing the settings file");
+                    Console.WriteLine($"Problem loading settings file");
                     return (int)ExitCodes.SettingsFileError;
                 }
                 string id = DateTime.Now.ToString("yyyyMMdd_HHmm");
@@ -70,7 +74,7 @@ namespace MainPower.Adms.ExtractManager
                 var source = new CancellationTokenSource();
                 var token = source.Token;
                 var extractorOutputPath = Path.Combine(settings.IdfFileShare, id);
-                var enricherOutputPath = Path.Combine(extractorOutputPath, "enricheroutput");
+                var enricherOutputPath = Path.Combine(extractorOutputPath, settings.EnricherOutputFolderName);
                 ExtractType etype = ExtractType.Full;
 
                 Task extract = null;
@@ -124,7 +128,7 @@ namespace MainPower.Adms.ExtractManager
                     {
                         id = o.Enrich;
                         extractorOutputPath = Path.Combine(settings.IdfFileShare, id);
-                        enricherOutputPath = Path.Combine(extractorOutputPath, "enricheroutput");
+                        enricherOutputPath = Path.Combine(extractorOutputPath, settings.EnricherOutputFolderName);
                         extract = Task.Delay(1000);
                     }
                     else
@@ -139,7 +143,7 @@ namespace MainPower.Adms.ExtractManager
                     {
                         id = o.Enrich;
                         extractorOutputPath = Path.Combine(settings.IdfFileShare, id);
-                        enricherOutputPath = Path.Combine(extractorOutputPath, "enricheroutput");
+                        enricherOutputPath = Path.Combine(extractorOutputPath, settings.EnricherOutputFolderName);
                         extract = Task.Delay(1000);
                     }
                     else

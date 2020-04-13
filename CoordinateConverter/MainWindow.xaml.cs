@@ -55,14 +55,18 @@ namespace MainPower.Adms.CoordinateConverter
         {
             try
             {
+                string[] coords = txtInputCoord.Text.Split(",", StringSplitOptions.RemoveEmptyEntries);
+                double width = double.Parse(txtWidth.Text);
+                double height = double.Parse(txtHeight.Text);
+
                 Point p = new Point
                 {
-                    X = double.Parse(txtlat1.Text),
-                    Y = double.Parse(txtlon1.Text),
+                    X = double.Parse(coords[0]),
+                    Y = double.Parse(coords[1]),
                 };
                 var p2 = TranslatePoint2(p);
-                txtlat2.Text = p2.X.ToString();
-                txtlon2.Text = p2.Y.ToString();
+                txtOutputCoord.Text = $"{p2.X.ToString()},{p2.Y.ToString()}";
+                txtBookmark.Text = $"<element type=\"Bookmark\" id=\"{txtId.Text}\" name=\"{txtName.Text}\" minX=\"{p2.X - width / 2}\" minY=\"{p2.Y - height / 2}\" maxX=\"{p2.X + width / 2}\" maxY=\"{p2.Y + height / 2 }\" order=\"1\"/>";
             } catch { }
         }
     }

@@ -75,6 +75,11 @@ namespace MainPower.Adms.Enricher
         [Key(16)]
         public double NominalkVA { get; set; }
 
+        /// <summary>
+        /// 0x01 = Planned
+        /// 0x02 = Out of Service
+        /// 0x04 = Has SCADA control
+        /// </summary>
         [Key(17)]
         public uint Flags { get; set; }
 

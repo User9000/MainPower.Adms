@@ -5,13 +5,21 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MainPower.Adms.CoordinateConverter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="240" Width="595">
+        Title="MainWindow" Height="236" Width="738">
     <Grid>
-        <TextBox x:Name="txtlat1" Text="-42" TextWrapping="Wrap" Margin="10,5,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtlon1" Text="172" TextWrapping="Wrap" Margin="215,5,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtlat2" Text="" TextWrapping="Wrap" Margin="10,35,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtlon2" Text="" TextWrapping="Wrap" Margin="215,35,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
-        <Button Content="WSG84 2 OSI" HorizontalAlignment="Left" Height="38" Margin="420,10,0,0" VerticalAlignment="Top" Width="135" Click="Button_Click"/>
+        <TextBox x:Name="txtInputCoord" Text="" TextWrapping="Wrap" Margin="127,5,0,0" HorizontalAlignment="Left" Width="298" Height="25" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtBookmark" Text="" TextWrapping="Wrap" Margin="0,155,0,0" HorizontalAlignment="Center" Width="718" Height="59" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtWidth" Text="100" TextWrapping="Wrap" Margin="127,35,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtHeight" Text="50" TextWrapping="Wrap" Margin="127,65,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <Button Content="Generate Bookmark" HorizontalAlignment="Left" Height="38" Margin="362,64,0,0" VerticalAlignment="Top" Width="136" Click="Button_Click"/>
+        <TextBox x:Name="txtId" Text="Bookmark," TextWrapping="Wrap" Margin="127,95,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtName" Text="" TextWrapping="Wrap" Margin="127,125,0,0" HorizontalAlignment="Left" Width="200" Height="25" VerticalAlignment="Top"/>
+        <Label Content="Input Coordinates" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top"/>
+        <Label Content="Width" HorizontalAlignment="Left" Margin="10,34,0,0" VerticalAlignment="Top"/>
+        <Label Content="Height" HorizontalAlignment="Left" Margin="10,64,0,0" VerticalAlignment="Top"/>
+        <Label Content="Id" HorizontalAlignment="Left" Margin="10,94,0,0" VerticalAlignment="Top"/>
+        <Label Content="Name" HorizontalAlignment="Left" Margin="10,124,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtOutputCoord" Text="" TextWrapping="Wrap" Margin="430,5,0,0" HorizontalAlignment="Left" Width="298" Height="25" VerticalAlignment="Top"/>
 
     </Grid>
 </Window>

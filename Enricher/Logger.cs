@@ -76,7 +76,7 @@ namespace MainPower.Adms.Enricher
             console.ActivateOptions();
 
             hierarchy.Root.Level = level;
-            BasicConfigurator.Configure(hierarchy, roller);
+            BasicConfigurator.Configure(hierarchy, roller, console);
         }
     }
 }

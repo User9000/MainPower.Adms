@@ -134,7 +134,7 @@ namespace MainPower.Adms.Enricher
         private SearchMode _scadaSearchMode = SearchMode.EndsWith;
         private DataType _t1Asset = null;
         private DataType _admsAsset = null;
-        
+        private bool _scadaControllable = false;
 
         public IdfSwitch(XElement node, IdfGroup processor) : base(node, processor) { }
         
@@ -284,7 +284,9 @@ namespace MainPower.Adms.Enricher
                 GenerateDeviceInfo(items);
                 RemoveExtraAttributes();
 
-                Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, _symbol);
+                var device = Program.Enricher.Model.AddDevice(this, ParentGroup.Id, DeviceType.Switch, _symbol);
+                if (device != null)
+                    device.Flags |= 0x04;
             }
             catch (Exception ex)
             {
@@ -307,7 +309,11 @@ namespace MainPower.Adms.Enricher
             string voltageName = string.IsNullOrWhiteSpace(_admsAsset?[AdmsSwitchVoltageId]) ? _scadaName : _admsAsset?[AdmsSwitchVoltageId];
 
             var status = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, _scadaName, _scadaSearchMode);
-            
+            if (status != null)
+            {
+                //TODO: can we get the type?  i.e. T_I&C or T_IND?
+                _scadaControllable = true;
+            }
             //if we don't have the switch status, then assume we don't have any other telemtry either
             //TODO this assumption needs to be documented
             //TODO: dirty hack because we don't have the status of these CBs

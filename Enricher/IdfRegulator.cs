@@ -14,7 +14,7 @@ namespace MainPower.Adms.Enricher
         private const string RegulatorDefaultType = "transformerType_regulator_default";
         private const string IdfTransformerType = "transformerType";
 
-        private const string AdmsRegConnectionType = "ConenctionType";
+        private const string AdmsRegConnectionType = "ConnectionType";
         private const string AdmsRegName = "Name";
         private const string AdmsRegDesiredVoltage = "DesiredVoltage";
         private const string AdmsRegMaxTapLimit = "MaxTapLimit";
@@ -41,7 +41,6 @@ namespace MainPower.Adms.Enricher
         private const string IdfRegRegulatedNode = "regulatedNode";
         private const string IdfRegRegulationType = "regulationType";
         private const string IdfRegBandwidth = "bandwidth";
-        private const string IdfRegTxType = "TransformerType";
 
         private const string IdfRegMaxVolts = "RegMaxVolts";
         private const string IdfRegMinVolts = "RegMinVolts";
@@ -99,8 +98,8 @@ namespace MainPower.Adms.Enricher
                     if (!string.IsNullOrWhiteSpace(asset[AdmsRegBandwidth]))
                         Node.SetAttributeValue(IdfRegBandwidth, asset[AdmsRegBandwidth]);
                     if (!string.IsNullOrWhiteSpace(asset[AdmsRegTxType]))
-                        Node.SetAttributeValue(IdfRegTxType, asset[AdmsRegTxType]);
-
+                        Node.SetAttributeValue(IdfTransformerType, asset[AdmsRegTxType]);
+                    
                     scadaId = asset[AdmsRegScadaId];
                     if (!string.IsNullOrWhiteSpace(scadaId))
                         GenerateSCADALinking(scadaId, openDelta);

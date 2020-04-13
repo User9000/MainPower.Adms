@@ -75,6 +75,11 @@ namespace MainPower.Adms.ExtractManager
                     await Task.Delay(10 * 1000);
                     return;
                 }
+                if (File.Exists(Path.Combine(path, "abort.xml")))
+                {
+                    _log.Error("The extractor has aborted.");
+                    throw new ExtractorException("The extractor has aborted.");
+                }
                 //check again in 10 seconds
                 await Task.Delay(10 * 1000);
             }
@@ -96,7 +101,7 @@ namespace MainPower.Adms.ExtractManager
             }
             else
             {
-                throw new Exception($"Could not trigger an extract.  Message from gis server:{message}");
+                throw new Exception($"Failed to send maestro success message to GIS (http status: {res.StatusCode}).  Message from gis server:{message}");
             }
         }
     }

@@ -159,6 +159,12 @@ namespace MainPower.Adms.Enricher
                         var device = Program.Enricher.Model.Devices.TryGetValue(datalink, out ModelDevice value) ? value : null;
                         if (device != null)
                         {
+                            //if we have SCADA control of a device, then we have some special flags to set
+                            if ((device.Flags | 0x04) == 0x04)
+                            {
+                                symbol.SetAttributeValue("selectable", "True");
+                                symbol.SetAttributeValue("enterable", "False");
+                            }
                             //set the symbol, size etc
                             if (!string.IsNullOrWhiteSpace(device.SymbolName))
                             {
@@ -169,7 +175,7 @@ namespace MainPower.Adms.Enricher
                                 var overlay = symbol.Attribute("overlay")?.Value;
                                 if (overlay == "Overlay_Planned_mainpower")
                                 {
-                                    device.Flags = 1;
+                                    device.Flags |= 0x01;
                                     if (device.Energization[0])
                                         Warn("Planned device is energized", device.Id, device.Name);
 
@@ -177,7 +183,7 @@ namespace MainPower.Adms.Enricher
 
                                 if (overlay == "Overlay_OutOfService_mainpower")
                                 {
-                                    device.Flags = 2;
+                                    device.Flags |= 0x02;
                                     if (device.Energization[0])
                                         Warn("Out of service device is energized", device.Id, device.Name);
                                 }
@@ -244,7 +250,7 @@ namespace MainPower.Adms.Enricher
                                 var overlay = line.Attribute("overlay")?.Value;
                                 if (overlay == "Overlay_Planned_mainpower")
                                 {
-                                    device.Flags = 1;
+                                    device.Flags |= 0x01;
                                     if (device.Energization[0])
                                         Warn("Planned device is energized", device.Id, device.Name);
 
@@ -252,7 +258,7 @@ namespace MainPower.Adms.Enricher
 
                                 if (overlay == "Overlay_OutOfService_mainpower")
                                 {
-                                    device.Flags = 2;
+                                    device.Flags |= 0x02;
                                     if (device.Energization[0])
                                         Warn("Out of service device is energized", device.Id, device.Name);
                                 }

@@ -166,7 +166,7 @@ namespace MainPower.Adms.Enricher
         /// <param name="type">The type of device we are adding</param>
         /// <param name="phaseshift">The phase shift that happens from side1 to side2 of the device (applicable to transformers only)</param>
         /// <returns>true if adding the device was successful, false otherwise</returns>
-        public bool AddDevice(IdfElement node, string gid, DeviceType type, string symbol = null, short phaseshift = 0, double kva = 0)
+        public ModelDevice AddDevice(IdfElement node, string gid, DeviceType type, string symbol = null, short phaseshift = 0, double kva = 0)
         {
             var s1nodeid = node.Node.Attribute("s1node")?.Value;
             var s2nodeid = node.Node.Attribute("s2node")?.Value;
@@ -234,12 +234,12 @@ namespace MainPower.Adms.Enricher
         /// <param name="n1id">Side 1 Node Id</param>
         /// <param name="n2id">Side 2 Node Id</param>
         /// <returns>true if successful, false otherwise</returns>
-        private bool AddDevice(ModelDevice d, string n1id, string n2id)
+        private ModelDevice AddDevice(ModelDevice d, string n1id, string n2id)
         {
             if (Devices.ContainsKey(d.Id))
             {
                 Err($"Device Id already exists.", d.Id, d.Name);
-                return false;
+                return null;
             }
             //in case someone does another operation at the same time
             lock (Devices) lock (Nodes)
@@ -278,7 +278,7 @@ namespace MainPower.Adms.Enricher
                     n1?.Devices.Add(d);
                     n2?.Devices.Add(d);
                 }
-            return true;
+            return d;
         }
 
         /// <summary>
