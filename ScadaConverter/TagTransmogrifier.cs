@@ -671,35 +671,69 @@ namespace MainPower.Adms.ScadaConverter
                         opoint.DnpControlOnCode = "0x03";
                         opoint.DnpControlOffCode = "0x04";
                     }
-
                 }
                 else
                 {
 
-                    if (opoint.Address.EndsWith("pulse.close.dop"))
+                    if (opoint.Address.EndsWith("pulse.close.dop") || opoint.Address.EndsWith("pulse.close.sop"))
                     {
-                        opoint.DnpControlOnCode = "0x41";
-                        opoint.DnpControlOffCode = "N/A";
+                        if (opoint.Address.EndsWith(".dop"))
+                        {
+                            _log.Warn($"Direct Operate Point ${opoint.PointName} is converted to Select Operate");
+                        }
+                        if (opoint.OnLabel != "-")
+                        {
+                            opoint.DnpControlOnCode = "0x41";
+                            opoint.DnpControlOffCode = "N/A";
+                        }
+                        else if(opoint.OffLabel != "-")
+                        {
+                            opoint.DnpControlOnCode = "N/A";
+                            opoint.DnpControlOffCode = "0x41";
+                        }
+                        else
+                        {
+                            _log.Warn("Was not expecting this combination of dnp control codes");
+                        }
                     }
-                    else if (opoint.Address.EndsWith("pulse.close.sop"))
+                    else if (opoint.Address.EndsWith("pulse.trip.dop") || opoint.Address.EndsWith("pulse.trip.sop"))
                     {
-                        opoint.DnpControlOnCode = "0x41";
-                        opoint.DnpControlOffCode = "N/A";
-                    }
-                    else if (opoint.Address.EndsWith("pulse.trip.dop"))
-                    {
-                        opoint.DnpControlOnCode = "0x81";
-                        opoint.DnpControlOffCode = "N/A";
-                    }
-                    else if (opoint.Address.EndsWith("pulse.trip.sop"))
-                    {
-                        opoint.DnpControlOnCode = "0x81";
-                        opoint.DnpControlOffCode = "N/A";
+                        if (opoint.Address.EndsWith(".dop"))
+                        {
+                            _log.Warn($"Direct Operate Point ${opoint.PointName} is converted to Select Operate");
+                        }
+                        if (opoint.OnLabel != "-")
+                        {
+                            opoint.DnpControlOnCode = "0x81";
+                            opoint.DnpControlOffCode = "N/A";
+                        }
+                        else if (opoint.OffLabel != "-")
+                        {
+                            opoint.DnpControlOnCode = "N/A";
+                            opoint.DnpControlOffCode = "0x81";
+                        }
+                        else
+                        {
+                            _log.Warn("Was not expecting this combination of dnp control codes");
+                        }
                     }
                     else if (opoint.Address.EndsWith("pulse.sop"))
                     {
-                        opoint.DnpControlOnCode = "0x01";
-                        opoint.DnpControlOffCode = "N/A";
+                        _log.Warn($"Found dnp pulse on point ${opoint.PointName}");
+                        if (opoint.OnLabel != "-")
+                        {
+                            opoint.DnpControlOnCode = "0x01";
+                            opoint.DnpControlOffCode = "N/A";
+                        }
+                        else if (opoint.OffLabel != "-")
+                        {
+                            opoint.DnpControlOnCode = "N/A";
+                            opoint.DnpControlOffCode = "0x01";
+                        }
+                        else
+                        {
+                            _log.Warn("Was not expecting this combination of dnp control codes (pulse)");
+                        }
                     }
                     else
                     {

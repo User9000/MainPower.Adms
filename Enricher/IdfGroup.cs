@@ -278,7 +278,16 @@ namespace MainPower.Adms.Enricher
                         Fatal($"Uncaught exception processing line: {ex.Message}");
                     }
                 }
-                
+
+                var naughtylines = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Line" && x.Attribute("flowStyle")?.Value == "Arrow");
+                foreach (var line in naughtylines)
+                {
+                    if (string.IsNullOrWhiteSpace(line.Element("dataLink")?.Attribute("id")?.Value))
+                    {
+                        Err($"Line {line.Attribute("id")?.Value} in display { group.Key} has a flowStyle set, but no data link.");
+                    }
+                }
+
                 var texts = display.Descendants("element").Where(x => x.Attribute("type")?.Value == "Text");
                 foreach (var text in texts)
                 {
