@@ -351,28 +351,30 @@ namespace MainPower.Adms.Enricher
                 string us = _nominalUpstreamSide;
                 string ds = us == "1" ? "2" : "1";
 
-                /* 
-                 * we should probably just ignore amps telemtry
+                //link the amps to side 1, the dpf engine won't use it unless power factor is also linked
+                //we don't want dpf to use amps, because our amps are unsigned, and not guaranteed to be on the correct side
+                //we are linking them to make it easy to display the data in tab. viewer
                 var rAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Amps RØ", _scadaSearchMode);
                 if (rAmps != null && phase1)
                 {                        
-                    x.SetAttributeValue($"s{us}p1Amps", rAmps.Key);
-                    x.SetAttributeValue($"s{us}p1AmpsUCF", "1");
+                    x.SetAttributeValue($"s1p1Amps", rAmps.Key);
+                    x.SetAttributeValue($"s1p1AmpsUCF", "1");
                 }
                 var yAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Amps YØ", _scadaSearchMode);
                 if (yAmps != null && phase2)
                 {
-                    x.SetAttributeValue($"s{us}p2Amps", yAmps.Key);
-                    x.SetAttributeValue($"s{us}p2AmpsUCF", "1");
+                    x.SetAttributeValue($"s1p2Amps", yAmps.Key);
+                    x.SetAttributeValue($"s1p2AmpsUCF", "1");
                 }
                 var bAmps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{_scadaName} Amps BØ", _scadaSearchMode);
                 if (bAmps != null && phase3)
                 {
-                    x.SetAttributeValue($"s{us}p3Amps", bAmps.Key);
-                    x.SetAttributeValue($"s{us}p3AmpsUCF", "1");
+                    x.SetAttributeValue($"s1p3Amps", bAmps.Key);
+                    x.SetAttributeValue($"s1p3AmpsUCF", "1");
                 }
-                */
+
                 //TODO: this can be removed after a few runs
+                /*
                 x.SetAttributeValue($"s{us}p1Amps", "");
                 x.SetAttributeValue($"s{us}p1AmpsUCF", "");
                 x.SetAttributeValue($"s{us}p2Amps", "");
@@ -386,6 +388,7 @@ namespace MainPower.Adms.Enricher
                 x.SetAttributeValue($"s{ds}p2AmpsUCF", "");
                 x.SetAttributeValue($"s{ds}p3Amps", "");
                 x.SetAttributeValue($"s{ds}p3AmpsUCF", "");
+                */
 
                 //when it comes to load telemetry, priority goes
                 //1. Per phase metering MW, then kW
@@ -968,18 +971,6 @@ namespace MainPower.Adms.Enricher
         {
             _symbol = normal;
             return;
-            
-            if (p != null)
-            {
-                if (p.QuadState)
-                    _symbol = quad;
-                else
-                    _symbol = normal;
-            }
-            else
-            {
-                _symbol = normal;
-            }
         }
 
         private void ProcessRingMainFuseSwitch()

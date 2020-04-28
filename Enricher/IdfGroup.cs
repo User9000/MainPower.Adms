@@ -35,6 +35,14 @@ namespace MainPower.Adms.Enricher
                 return _dataGroup == null;
             }
         }
+        public bool EmptyGroup
+        {
+            get
+            {
+                return _dataGroup?.IsEmpty ?? true;
+            }
+        }
+        
 
         public void AddDisplayGroup(string displayName, XElement element)
         {
@@ -172,6 +180,21 @@ namespace MainPower.Adms.Enricher
                             }
                             if (geographic)
                             {
+                                if (device.Type == DeviceType.Switch)
+                                {
+                                    var x = new XElement("tagLink", new XAttribute("limit", "True"), new XAttribute("location", "Down"), new XAttribute("quality", "True"), new XAttribute("tag", "True"), new XAttribute("tagFontSize", "0.5"));
+                                    symbol.Add(x);
+
+                                    //replace the standard with a better one 
+                                    symbol.Element("command")?.Remove();
+                                    var command = new XElement("command", new XAttribute("topic", "LoadDisplay"), new XAttribute("plugin", "Tabular Viewer"), new XAttribute("instance", "Active"));
+                                    command.Add(new XElement("field", new XAttribute("name", "Name"), new XAttribute("value", "MainPower/SwitchDetails")));
+                                    command.Add(new XElement("field", new XAttribute("name", "Parameters"), new XAttribute("value", "pDevice=@ER")));
+                                    command.Add(new XElement("field", new XAttribute("name", "MenuVisibility"), new XAttribute("value", "HideMenu")));
+                                    command.Add(new XElement("field", new XAttribute("name", "ViewportName"), new XAttribute("value", "DeviceDetails")));
+                                    symbol.Add(command);
+                                }
+                                /* TODO: remove, not relevant any more
                                 var overlay = symbol.Attribute("overlay")?.Value;
                                 if (overlay == "Overlay_Planned_mainpower")
                                 {
@@ -187,6 +210,7 @@ namespace MainPower.Adms.Enricher
                                     if (device.Energization[0])
                                         Warn("Out of service device is energized", device.Id, device.Name);
                                 }
+                                */
                             }
                         }
                         else
@@ -244,9 +268,10 @@ namespace MainPower.Adms.Enricher
                                 SetLineStyle(line, datalink, device.Base1kV, device.Color, device.Name.StartsWith("Service"));
                             else
                                 Warn("Expected device type is Line.", device.Id, device.Name);
-
+                            /*
                             if (geographic)
                             {
+                        
                                 var overlay = line.Attribute("overlay")?.Value;
                                 if (overlay == "Overlay_Planned_mainpower")
                                 {
@@ -262,7 +287,9 @@ namespace MainPower.Adms.Enricher
                                     if (device.Energization[0])
                                         Warn("Out of service device is energized", device.Id, device.Name);
                                 }
+                        
                             }
+                        */
                         }
                         else
                         {
@@ -449,90 +476,7 @@ namespace MainPower.Adms.Enricher
             );
             symbol.Add(x);
         }
-        /*
-        private XElement CreateEmapDeviceLinkSymbol(XElement symbol, string id, SymbolPlacement position)
-        {
-            double x = double.Parse(symbol.Attribute("x").Value);
-            double y = double.Parse(symbol.Attribute("y").Value);
-
-            switch (position)
-            {
-                case SymbolPlacement.Top:
-                    y -= 1;
-                    break;
-                case SymbolPlacement.Bottom:
-                    y += 1;
-                    break;
-                case SymbolPlacement.Left:
-                    x -= 1;
-                    break;
-                case SymbolPlacement.Right:
-                    x += 1;
-                    break;
-            }
-
-            //TODO: the offsets should be different for gis vs internals vs sld
-            string overlay = symbol.Attribute("overlay")?.Value;
-            string layer = symbol.Attribute("layer")?.Value;
-
-            XElement newsymbol = new XElement("element");
-            newsymbol.Add(new XAttribute("id", symbol.Attribute("id").Value + "_dlink"));
-            newsymbol.Add(new XAttribute("type", "Symbol"));
-            newsymbol.Add(new XAttribute("x", x.ToString()));
-            newsymbol.Add(new XAttribute("y", y.ToString()));
-            //TODO: john should fix this
-            if (!string.IsNullOrWhiteSpace(overlay))
-                newsymbol.Add(new XAttribute("overlay", overlay));
-            if (!string.IsNullOrWhiteSpace(layer))
-                newsymbol.Add(new XAttribute("layer", layer));
-            newsymbol.Add(new XAttribute("library", "MPNZ.LIB2"));
-            newsymbol.Add(new XAttribute("z", "4"));
-            newsymbol.Add(new XAttribute("name", SymbolDataLink));
-            newsymbol.Add(new XAttribute("scale", "0.2"));
-            newsymbol.Add(new XAttribute("maxSize", "30"));
-
-            XElement command = new XElement("command");
-            command.Add(new XAttribute("topic", "Jump to Tabular"));
-            command.Add(new XAttribute("plugin", "eMap"));
-            command.Add(new XAttribute("instance", "Active"));
-            newsymbol.Add(command);
-
-            XElement field1 = new XElement("field");
-            field1.Add(new XAttribute("name", "Data Link URL"));
-            field1.Add(new XAttribute("value", "@URL"));
-            command.Add(field1);
-
-            XElement field2 = new XElement("field");
-            field2.Add(new XAttribute("name", "Data Mode"));
-            field2.Add(new XAttribute("value", "@MODE"));
-            command.Add(field2);
-
-            XElement field3 = new XElement("field");
-            field3.Add(new XAttribute("name", "Data Instance"));
-            field3.Add(new XAttribute("value", "@I"));
-            command.Add(field3);
-
-            XElement field4 = new XElement("field");
-            field4.Add(new XAttribute("name", "Tabular Type"));
-            field4.Add(new XAttribute("value", "Detail"));
-            command.Add(field4);
-
-            XElement datalink = new XElement("dataLink");
-            datalink.Add(new XAttribute("id", id));
-            newsymbol.Add(datalink);
-
-
-            XElement link = new XElement("link");
-            link.Add(new XAttribute("d", "EMAP"));
-            link.Add(new XAttribute("o", "EMAP_DEVICE"));
-            link.Add(new XAttribute("f", "AggregateState"));
-            link.Add(new XAttribute("i", "0"));
-            link.Add(new XAttribute("identityType", "Key"));
-            datalink.Add(link);
-
-            return newsymbol;
-        }
-        */
+      
         private void SetSymbol(XElement symbol, ModelDevice device, bool gis)
         {
 

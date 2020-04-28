@@ -14,7 +14,7 @@ namespace MainPower.Adms.Enricher
     {
         public List<IdfFile> DataFiles = new List<IdfFile>();
         public List<IdfFile> GraphicsFiles = new List<IdfFile>();
-        public IdfFile ImportConfig = null;
+        public ImportConfig ImportConfig = null;
         public Dictionary<string, IdfGroup> Groups = new Dictionary<string, IdfGroup>();
 
         public bool Initialize(string path)
@@ -34,14 +34,15 @@ namespace MainPower.Adms.Enricher
                     switch (type)
                     {
                         case "OSI Oneline":
-                            idf.Type = IdfFileType.Graphics;
+                            //TODO: remove cruft
+                            //idf.Type = IdfFileType.Graphics;
                             GraphicsFiles.Add(idf);
                             break;
                         case "Import Configuration":
-                            idf.Type = IdfFileType.ImportConfig;
+                            //idf.Type = IdfFileType.ImportConfig;
                             if (ImportConfig == null)
                             {
-                                ImportConfig = idf;
+                                ImportConfig = new ImportConfig(idf);
                             }
                             else
                             {
@@ -49,7 +50,7 @@ namespace MainPower.Adms.Enricher
                             }
                             break;
                         case "Electric Distribution":
-                            idf.Type = IdfFileType.Data;
+                            //idf.Type = IdfFileType.Data;
                             DataFiles.Add(idf);
                             break;
                         default:
@@ -66,7 +67,8 @@ namespace MainPower.Adms.Enricher
             }
 
             Info("Reading Import Config...");
-            ImportConfig.Groups = ImportConfig.Content.Descendants("container").Where(x=> x.Attribute("name")?.Value == "Mainpower").FirstOrDefault();
+            ImportConfig.MainPowerGroups = ImportConfig.Content.Descendants("container").Where(x=> x.Attribute("name")?.Value == "Mainpower").FirstOrDefault();
+            ImportConfig.GlobalGroups = ImportConfig.Content.Descendants("container").Where(x => x.Attribute("name")?.Value == "Globals").FirstOrDefault();
 
             //Read all the groups we are going to import add them to the collection
             foreach (var group in ImportConfig.Content.Descendants("group"))
@@ -114,16 +116,11 @@ namespace MainPower.Adms.Enricher
                     if (!Groups.ContainsKey(id))
                     {
                         Err("Display group is not in the import configuration", id, idf.FileName);
-                        //TODO: we probably shouldn't do this in prod
-                        //XElement g = new XElement("group", new XAttribute("id", id), new XAttribute("name", id));
-                        //ImportConfig.Groups.Add(g);
-                        //var gr = new IdfGroup(g, null);
-                        //Groups.Add(gr.Id, gr);
                     }
                     Groups[id].AddDisplayGroup(display, group);
                 }
             }
-
+  
             return true;
         }
 
@@ -138,14 +135,27 @@ namespace MainPower.Adms.Enricher
             {
                 idf.Content.Save($"{path}\\{idf.FileName}");
             }
+        }
 
-            var gFile = new StreamWriter($"{path}\\groups.dat");
-            foreach (var kvp in Groups)
+        /// <summary>
+        /// Injects a list of groups to delete into all display files, and creates a new data file of empty groups to remove from the model
+        /// This is to catch any groups that may have been deleted between full imports, but weren't caught by the extractor.
+        /// </summary>
+        /// <param name="groups"></param>
+        public void InjectDeletedGroups(List<string> groups)
+        {
+            foreach (string group in groups)
             {
-                gFile.WriteLine(kvp.Key);
+                var xgroup = new XElement("group", new XAttribute("id", group), new XAttribute("name", group));
+                ImportConfig.MainPowerGroups.Add(xgroup);
+                //this is bad
+                DataFiles[0].Content.Root.Element("groups").Add(new XElement(xgroup));
+                //inject the deleted group into all the graphics files
+                foreach (var idf in GraphicsFiles)
+                {
+                    idf.Content.Root.Element("groups").Add(new XElement(xgroup));
+                }
             }
-            gFile.Close();
-
         }
 
     }

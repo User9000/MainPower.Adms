@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,7 @@ namespace MainPower.Adms.ExtractManager
             _settings = settings;
         }
 
-        public async Task<EnricherResult> RunEnricher(CancellationToken token, string inputPath, string outputPath, ExtractType extractType, string modelPath = "")
+        public async Task<EnricherResult> RunEnricher(CancellationToken token, string inputPath, string outputPath, ExtractType extractType, string modelPath = "", bool processDeletedGroups = false)
         {
             string arguments = "";
             arguments += $" -i \"{inputPath}\"";
@@ -31,7 +32,13 @@ namespace MainPower.Adms.ExtractManager
                 arguments += " -s";
 
             if (extractType == ExtractType.Full)
+            {
                 arguments += " -n";
+                if (processDeletedGroups)
+                {
+                    arguments += $" -g \"{Path.Combine(Path.GetDirectoryName(modelPath), "groups.dat")}\"";
+                }
+            }
             else
                 arguments += $" -m \"{modelPath}\"";
             _log.Info("Running the enricher with the arguments: " + arguments);

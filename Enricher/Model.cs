@@ -388,6 +388,11 @@ namespace MainPower.Adms.Enricher
             }
         }
 
+        public List<string> GetGroups()
+        {
+            return (from d in Devices.Values select d.GroupId).Distinct().ToList();
+        }
+
         /// <summary>
         /// Loads the model from a file
         /// </summary>
@@ -442,7 +447,7 @@ namespace MainPower.Adms.Enricher
 
             foreach (var device in (from d in Devices.Values where !d.Connectivity select d))
             {
-                Warn($"Device is disconnected", device.Id, device.Name);
+                Warn($"Device is disconnected {device.Type}", device.Id, device.Name);
             }
 
             TimeSpan runtime = DateTime.Now - start;

@@ -46,13 +46,13 @@ namespace MainPower.Adms.Enricher
             }
 
             //Add parallel transformer sets to the import configuration
-            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
+            FileManager.ImportConfig.GlobalGroups.Add(new XElement("group", new XAttribute("id", "Transformer Parallel Sets"), new XAttribute("name", "Transformer Parallel Sets")));
             //Add line types to the import configuration
-            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Line Types"), new XAttribute("name", "Line Types")));
+            FileManager.ImportConfig.GlobalGroups.Add(new XElement("group", new XAttribute("id", "Line Types"), new XAttribute("name", "Line Types")));
             //Add custom scada linking to the import configuration
-            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "SCADA"), new XAttribute("name", "Custom SCADA Links")));
+            FileManager.ImportConfig.GlobalGroups.Add(new XElement("group", new XAttribute("id", "SCADA"), new XAttribute("name", "Custom SCADA Links")));
             //Add bookmarks to the import configuration
-            FileManager.ImportConfig.Groups.Add(new XElement("group", new XAttribute("id", "Bookmarks"), new XAttribute("name", "Bookmarks")));
+            FileManager.ImportConfig.GlobalGroups.Add(new XElement("group", new XAttribute("id", "Bookmarks"), new XAttribute("name", "Bookmarks")));
             
             
             ProcessGeographic();
@@ -67,6 +67,55 @@ namespace MainPower.Adms.Enricher
             {
 
                 Model.Serialize($"{o.OutputPath}\\model");
+                
+                var gFile = new StreamWriter($"{o.OutputPath}\\groups.dat");
+                foreach (var g in Model.GetGroups())
+                {
+                    gFile.WriteLine(g);
+                }
+                gFile.Close();
+
+                //TODO:
+                //if this is a new model, and a group list was provided, then
+                //compare the groups in the list of groups from the last import to the groups FILE MANAGER from this import
+                //any groups that were present in the last model, but aren't in this model should be deleted
+                try
+                {
+                    XDocument xdoc = new XDocument();
+                    XElement xdata = new XElement("data", new XAttribute("type", "Electric Distribution"), new XAttribute("timestamp", "TODO"), new XAttribute("format", "1.0"));
+                    XElement xgroups = new XElement("groups");
+                    xdoc.Add(xdata);
+                    xdata.Add(xgroups);
+
+                    
+
+                    List<string> groupstodelete = new List<string>();
+                    Info(o.GroupFile);
+                    Info(o.BlankModel.ToString());
+                    if (!string.IsNullOrWhiteSpace(o.GroupFile) && o.BlankModel)
+                    {
+                        var groups = File.ReadAllLines(o.GroupFile);
+                        foreach (var group in groups)
+                        {
+                            if (!FileManager.Groups.ContainsKey(group))
+                            {
+                                groupstodelete.Add(group);
+                                xgroups.Add(new XElement("group", new XAttribute("id", group)));
+
+                                Warn("Group was in previous import, but not in this import", group, "");
+                            }
+                        }
+                    }
+                    FileManager.InjectDeletedGroups(groupstodelete);
+                    xdoc.Save(Path.Combine(Program.Options.OutputPath, "EnricherDeletedGroups.xml"));
+                    
+
+                }
+                catch (Exception ex)
+                {
+                    Err($"Problem comparing groups from previous export: ${ex.Message}");
+                }
+
                 if (true)
                 {
                     //TODO move this into the nodemodel??
@@ -82,12 +131,10 @@ namespace MainPower.Adms.Enricher
                                 if ((upstream ?? 0) != d.Upstream)
                                 {
                                     Warn($"Calculated nominal upstream side for switch [{d.Name}] ({d.Upstream}) is different from adms database ({upstream})");
-                                    //DataManager.I.SetVale<AdmsSwitch>(d.Name, "NominalUpstreamSide", d.Upstream);
                                 }
                             }
                         }
                     }
-                    //DataManager.I.Save<AdmsSwitch>();
                 }
                 ProcessGraphics();
                 if (o.ExportShapeFiles)

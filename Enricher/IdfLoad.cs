@@ -74,9 +74,9 @@ namespace MainPower.Adms.Enricher
                         loadClass = "Large User";
                         break;
                     default:
-                        Warn("Unknown Load Class");
+                        Warn("Empty/Unknown Load Class, using Residential profile");
                         symbol = SymbolLoadUknown;
-                        loadClass = "";
+                        loadClass = "Residential";
                         break;
                 }
                 Node.SetAttributeValue(IdfDeviceRatedkV, Node.Attribute(IdfDeviceBasekV).Value);

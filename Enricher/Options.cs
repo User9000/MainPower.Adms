@@ -13,6 +13,9 @@ namespace MainPower.Adms.Enricher
         [Option('m', "model", HelpText = "Model file path", Required = false)]
         public string Model { get; set; }
 
+        [Option('g', "groups", HelpText = "Group list file", Required = false)]
+        public string GroupFile { get; set; }
+
         [Option('d', "data", HelpText = "Data path", Required = true)]
         public string DataPath { get; set; }
 

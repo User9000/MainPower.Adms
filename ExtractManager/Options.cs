@@ -21,5 +21,9 @@ namespace MainPower.Adms.ExtractManager
 
         [Option('e', "enrichonly", HelpText = "Skip extraction and enrich the given extract", Required = false)]
         public string Enrich { get; set; }
+
+        [Option('g', HelpText = "Delete missing groups from the previous extract", Required = false)]
+        public bool ProcessMissingGroups { get; set; }
+
     }
 }

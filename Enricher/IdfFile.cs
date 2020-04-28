@@ -9,14 +9,11 @@ namespace MainPower.Adms.Enricher
         private string _fullFileName = "";
 
         public XDocument Content { get; set; }
-        public IdfFileType Type { get; set; }
+        
+        //TODO: remove cruft
+        //public IdfFileType Type { get; set; }
         public string FileName { get; private set; }
         
-        //TODO: just for data\graphics idfs, should we sub class this into a separate type?
-        public Dictionary<string, XElement> GroupElements { get; set; } = new Dictionary<string, XElement>();
-
-        //TODO: just for the import config.  should we sub class this into a import config type?
-        public XElement Groups { get; set; }
         public string FullFileName
         {
             get
@@ -27,6 +24,19 @@ namespace MainPower.Adms.Enricher
                 _fullFileName = value;
                 FileName = Path.GetFileName(_fullFileName);
             }
+        }
+    }
+
+    public class ImportConfig : IdfFile
+    {
+        public XElement MainPowerGroups { get; set; }
+
+        public XElement GlobalGroups { get; set; }
+
+        public ImportConfig(IdfFile i)
+        {
+            Content = i.Content;
+            FullFileName = i.FullFileName;
         }
     }
 }

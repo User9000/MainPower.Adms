@@ -95,6 +95,7 @@ namespace MainPower.Adms.Enricher
                     return false;
                 }
             }
+            //TODO: remove all of this
             else
             {
                 DataSource source = new CsvDataSource()

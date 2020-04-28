@@ -79,6 +79,10 @@ namespace MainPower.Adms.ExtractManager
 
                 Task extract = null;
                 int cTask;
+
+                ///////////////
+                ///Handle success messages
+                ///////////////
                 if (o.SuccessfulImport)
                 {
                     extract = extractor.Complete();
@@ -121,6 +125,11 @@ namespace MainPower.Adms.ExtractManager
 
                     }
                 }
+
+
+                ///////////////
+                ///Request the extract from GIS
+                ///////////////
                 else if (o.CompleteExtract)
                 {
                     etype = ExtractType.Full;
@@ -165,6 +174,9 @@ namespace MainPower.Adms.ExtractManager
                     source.Cancel();
                     return (int)ExitCodes.TimedOut;
                 }
+                ///////////////
+                ///Do the enrichment
+                ///////////////
                 else
                 {
                     if (extract.Status == TaskStatus.Faulted)
@@ -177,7 +189,7 @@ namespace MainPower.Adms.ExtractManager
                     {
                         //time to invoke the enricher
                         Enricher enricher = new Enricher(settings);
-                        var eTask = enricher.RunEnricher(token, extractorOutputPath, enricherOutputPath, etype, settings.EnricherReferenceModel);
+                        var eTask = enricher.RunEnricher(token, extractorOutputPath, enricherOutputPath, etype, settings.EnricherReferenceModel, o.ProcessMissingGroups);
                         cTask = Task.WaitAny(timeout, eTask);
                         if (cTask == 0)
                         {
