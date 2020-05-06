@@ -246,12 +246,16 @@ namespace MainPower.Adms.Enricher
                         break;
                 }
 
+                if (string.IsNullOrWhiteSpace(_maxInterruptAmps))
+                    _maxInterruptAmps = "15007";
+                if (string.IsNullOrWhiteSpace(_ratedAmps))
+                    _ratedAmps = "407";
+
                 Node.SetAttributeValue(IdfSwitchBasekV, _baseKv);
                 Node.SetAttributeValue(IdfSwitchBidirectional, _bidirectional);
                 Node.SetAttributeValue(IdfSwitchForwardTripAmps, _forwardTripAmps);
                 Node.SetAttributeValue(IdfSwitchGanged, _ganged);
                 Node.SetAttributeValue(IdfSwitchLoadBreakCapable, _loadBreakCapable);
-                //if (string.IsNullOrWhiteSpace(_max))
                 Node.SetAttributeValue(IdfSwitchMaxInterruptAmps, _maxInterruptAmps);
                 Node.SetAttributeValue(IdfSwitchRatedAmps, _ratedAmps);
                 //TODO formalise this
@@ -262,7 +266,7 @@ namespace MainPower.Adms.Enricher
                 if (!string.IsNullOrWhiteSpace(_nominalUpstreamSide))
                     Node.SetAttributeValue(IdfSwitchNominalUpstreamSide, _nominalUpstreamSide);
                 if (!string.IsNullOrWhiteSpace(_faultProtectionAttrs))
-                    Node.SetAttributeValue(IdfSwitchFaultProtectionAttrs, _faultProtectionAttrs);
+                    Node.SetAttributeValue(IdfSwitchFaultProtectionAttrs, _faultProtectionAttrs);               
 
                 //TODO tidy this up
                 //TODO make db constants the same as IdfConstants
@@ -1116,6 +1120,7 @@ namespace MainPower.Adms.Enricher
 
         private void ProcessEntec()
         {
+            ProcessSwitchAdms();
             //_bidirectional //TODO
             //TODO: need to get sectionliser function from AdmsDatabase
             _ganged = IdfTrue;
@@ -1228,16 +1233,6 @@ namespace MainPower.Adms.Enricher
             {
                 _admsAsset = asset;
                 _nominalUpstreamSide = _admsAsset[AdmsSwitchNominalUpstreamSide];
-                var orientation = _admsAsset[AdmsSwitchOrientation];
-                _orientation = orientation switch
-                {
-                    "TOP" => SymbolPlacement.Top,
-                    "BOTTOM" => SymbolPlacement.Bottom,
-                    "LEFT" => SymbolPlacement.Left,
-                    "RIGHT" => SymbolPlacement.Right,
-                    _ => SymbolPlacement.Left,
-                };
-
                 var scadaId = _admsAsset[AdmsSwitchScadaId];
                 if (!string.IsNullOrWhiteSpace(scadaId))
                 {

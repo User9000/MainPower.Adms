@@ -113,7 +113,7 @@ namespace MainPower.Adms.ExtractManager
                                 _log.Info($"Updating enricher reference model from {settings.EnricherReferenceModel} to {settings.EnricherLatestModel}");
                                 settings.EnricherReferenceModel = settings.EnricherLatestModel;
                                 settings.EnricherLatestModel = "";
-                                Util.SerializeNewtonsoft(_settingsFileName, settings);
+                                Util.SerializeNewtonsoft(Path.Combine(assPath, _settingsFileName), settings);
                                 return (int)ExitCodes.Success;
                             }
                         }
@@ -210,7 +210,7 @@ namespace MainPower.Adms.ExtractManager
                                 {
                                     _log.Info(eTask.Result.ResultMessage);
                                     settings.EnricherLatestModel = Path.Combine(enricherOutputPath, "model");
-                                    Util.SerializeNewtonsoft(_settingsFileName, settings);
+                                    Util.SerializeNewtonsoft(Path.Combine(assPath, _settingsFileName), settings);
 
                                     //TODO: should we clear out this directory first?
                                     _log.Info($"Copying files from {enricherOutputPath} to {settings.VirtuosoDestinationPath}");

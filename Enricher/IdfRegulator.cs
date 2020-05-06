@@ -27,9 +27,12 @@ namespace MainPower.Adms.Enricher
         private const string AdmsRegNegGradient = "RegNegGradient";
         private const string AdmsRegDeltaOpenPhase = "DeltaOpenPhase";
         private const string AdmsRegScadaId = "ScadaId";
-        private const string AdmsRegBandwidth = "Bandwitch";
+        private const string AdmsRegBandwidth = "Bandwidth";
         private const string AdmsRegTxType = "TransformerType";
+        private const string AdmsRegFirstHouseLimit = "FirstHouseLimit";
+        private const string AdmsRegTapSide = "TapSide";
 
+        private const string IdfRegFirstHouseLimit = "firstHouseLimit";
         private const string IdfRegConnectionType = "connectionType";
         private const string IdfRegBidirectional = "bidirectional";
         private const string IdfRegControlPhase = "controlPhase";
@@ -41,6 +44,7 @@ namespace MainPower.Adms.Enricher
         private const string IdfRegRegulatedNode = "regulatedNode";
         private const string IdfRegRegulationType = "regulationType";
         private const string IdfRegBandwidth = "bandwidth";
+        private const string IdfRegTapSide = "tapSide";
 
         private const string IdfRegMaxVolts = "RegMaxVolts";
         private const string IdfRegMinVolts = "RegMinVolts";
@@ -99,10 +103,17 @@ namespace MainPower.Adms.Enricher
                         Node.SetAttributeValue(IdfRegBandwidth, asset[AdmsRegBandwidth]);
                     if (!string.IsNullOrWhiteSpace(asset[AdmsRegTxType]))
                         Node.SetAttributeValue(IdfTransformerType, asset[AdmsRegTxType]);
+                    if (!string.IsNullOrWhiteSpace(asset[AdmsRegFirstHouseLimit]))
+                        Node.SetAttributeValue(IdfRegFirstHouseLimit, asset[AdmsRegFirstHouseLimit]);
+                    if (!string.IsNullOrWhiteSpace(asset[AdmsRegTapSide]))
+                        Node.SetAttributeValue(IdfRegTapSide, asset[AdmsRegTapSide]);
+
+                    //TODO: this should probably go in the database
+                    Node.SetAttributeValue(IdfRegControlPhase, "1");
                     
                     scadaId = asset[AdmsRegScadaId];
                     if (!string.IsNullOrWhiteSpace(scadaId))
-                        GenerateSCADALinking(scadaId, openDelta);
+                        GenerateSCADALinking(scadaId, openDelta, asset[AdmsRegTapSide]);
                 }
                 else
                 {
@@ -123,22 +134,36 @@ namespace MainPower.Adms.Enricher
         }
 
 
-        private void GenerateSCADALinking(string scadaId, bool openDelta)
+        private void GenerateSCADALinking(string scadaId, bool openDelta, string tapSide)
         {
 
             //Only support for open delta and wye configurations at the moment
             //for open delta, we assume that RegR is red to yellow phase, and RegB is yellow to blue phase, and that blue to red is open
             //if open delta is false, we assume that there is RegR, RegB, RegY on their respective phases to ground
 
-            string us = "1";
-            string ds = "2";
+            string us = tapSide == "1" ? "2" : "1";
+            string ds = us == "1" ? "2" : "1";
 
             XElement x = new XElement("element");
             x.SetAttributeValue("type", "SCADA");
             x.SetAttributeValue("id", Id);
 
             x.SetAttributeValue("controlAllowState", "0");
-            x.SetAttributeValue("controlVoltageReference", Node.Attribute(IdfDeviceBasekV)?.Value);
+
+            string refVoltage;
+
+            if (openDelta)
+            {
+                refVoltage = Node.Attribute(IdfDeviceBasekV)?.Value;
+            }
+            else
+            {
+                refVoltage = (double.Parse(Node.Attribute(IdfDeviceBasekV)?.Value) / Math.Sqrt(3)).ToString("F3");
+            }
+
+            x.SetAttributeValue("s1VoltageReference", refVoltage);
+            x.SetAttributeValue("s2VoltageReference", refVoltage);
+            x.SetAttributeValue("controlVoltageReference", refVoltage);
 
             var tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegR Tap Position");
             if (tap != null)
@@ -149,12 +174,26 @@ namespace MainPower.Adms.Enricher
             volts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegR Volts (Load-L)");
             if (volts != null)
                 x.SetAttributeValue($"s{ds}p1KV", volts.Key);
+            var amps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegR Amps");
+            if (amps != null)
+                x.SetAttributeValue($"s{us}p1Amps", volts.Key);
+
+
+
+            //TODO: I don't think we actually need supervisory points here, just assume remote all the time
+            /*
             var supervisory = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} RegR Supervisory");
             if (supervisory != null)
                 x.SetAttributeValue("p1RemoteLocalPoint", supervisory.Key);
+            */
+            x.SetAttributeValue("p1RemoteLocalPoint", "");
 
             if (openDelta)
             {
+                x.SetAttributeValue("s1VoltageReference", Node.Attribute(IdfDeviceBasekV)?.Value);
+                x.SetAttributeValue("s2VoltageReference", Node.Attribute(IdfDeviceBasekV)?.Value);
+
+
                 tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegB Tap Position");
                 if (tap != null)
                     x.SetAttributeValue("p2TapPosition", tap.Key);
@@ -164,9 +203,17 @@ namespace MainPower.Adms.Enricher
                 volts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegB Volts (Load-L)");
                 if (volts != null)
                     x.SetAttributeValue($"s{ds}p2KV", volts.Key);
+
+                amps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegB Amps");
+                if (amps != null)
+                    x.SetAttributeValue($"s{us}p2Amps", volts.Key);
+                /*
+                 * TODO
                 supervisory = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} RegB Supervisory");
                 if (supervisory != null)
                     x.SetAttributeValue("p2RemoteLocalPoint", supervisory.Key);
+                */
+                x.SetAttributeValue("p2RemoteLocalPoint", "");
 
                 //in case we change from open delta to wye (seems unlikely) set the other parameters to null
                 x.SetAttributeValue("p3TapPosition", "");
@@ -185,9 +232,18 @@ namespace MainPower.Adms.Enricher
                 volts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegY Volts (Load-L)");
                 if (volts != null)
                     x.SetAttributeValue($"s{ds}p2KV", volts.Key);
+
+                amps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegY Amps");
+                if (amps != null)
+                    x.SetAttributeValue($"s{us}p2Amps", volts.Key);
+
+                /*
+                 * TODO
                 supervisory = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} RegY Supervisory");
                 if (supervisory != null)
                     x.SetAttributeValue("p2RemoteLocalPoint", supervisory.Key);
+                */
+                x.SetAttributeValue("p2RemoteLocalPoint", "");
 
                 tap = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegB Tap Position");
                 if (tap != null)
@@ -198,9 +254,18 @@ namespace MainPower.Adms.Enricher
                 volts = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegB Volts (Load-L)");
                 if (volts != null)
                     x.SetAttributeValue($"s{ds}p3KV", volts.Key);
+
+                amps = DataManager.I.RequestRecordByColumn<OsiScadaAnalog>(ScadaName, $"{scadaId} RegB Amps");
+                if (amps != null)
+                    x.SetAttributeValue($"s{us}p3Amps", volts.Key);
+
+                /*
+                 * TODO
                 supervisory = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{scadaId} RegB Supervisory");
                 if (supervisory != null)
                     x.SetAttributeValue("p3RemoteLocalPoint", supervisory.Key);
+                */
+                x.SetAttributeValue("p3RemoteLocalPoint", "");
             }
 
             ParentGroup.AddGroupElement(x);

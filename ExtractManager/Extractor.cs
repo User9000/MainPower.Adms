@@ -95,7 +95,7 @@ namespace MainPower.Adms.ExtractManager
             var message = await res.Content.ReadAsStringAsync();
 
             XDocument doc = XDocument.Parse(message);
-            if (res.StatusCode == System.Net.HttpStatusCode.OK && doc?.Element("service_response")?.Element("status")?.Value == "OK")
+            if (res.StatusCode == System.Net.HttpStatusCode.OK && doc.Root?.Element("service_response")?.Element("status")?.Value == "OK")
             {
                 return;
             }

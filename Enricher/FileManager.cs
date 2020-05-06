@@ -138,7 +138,7 @@ namespace MainPower.Adms.Enricher
         }
 
         /// <summary>
-        /// Injects a list of groups to delete into all display files, and creates a new data file of empty groups to remove from the model
+        /// Injects a list of groups to delete into all display files, and into the import config
         /// This is to catch any groups that may have been deleted between full imports, but weren't caught by the extractor.
         /// </summary>
         /// <param name="groups"></param>
@@ -148,8 +148,7 @@ namespace MainPower.Adms.Enricher
             {
                 var xgroup = new XElement("group", new XAttribute("id", group), new XAttribute("name", group));
                 ImportConfig.MainPowerGroups.Add(xgroup);
-                //this is bad
-                DataFiles[0].Content.Root.Element("groups").Add(new XElement(xgroup));
+
                 //inject the deleted group into all the graphics files
                 foreach (var idf in GraphicsFiles)
                 {

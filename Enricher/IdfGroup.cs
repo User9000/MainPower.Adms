@@ -182,7 +182,8 @@ namespace MainPower.Adms.Enricher
                             {
                                 if (device.Type == DeviceType.Switch)
                                 {
-                                    var x = new XElement("tagLink", new XAttribute("limit", "True"), new XAttribute("location", "Down"), new XAttribute("quality", "True"), new XAttribute("tag", "True"), new XAttribute("tagFontSize", "0.5"));
+                                    var tagSize = device.Internals ? "0.5" : device.Base1kV < 1 ? "3" : "20";
+                                    var x = new XElement("tagLink", new XAttribute("limit", "True"), new XAttribute("location", "Down"), new XAttribute("quality", "True"), new XAttribute("tag", "True"), new XAttribute("tagFontSize", tagSize));
                                     symbol.Add(x);
 
                                     //replace the standard with a better one 
@@ -194,23 +195,6 @@ namespace MainPower.Adms.Enricher
                                     command.Add(new XElement("field", new XAttribute("name", "ViewportName"), new XAttribute("value", "DeviceDetails")));
                                     symbol.Add(command);
                                 }
-                                /* TODO: remove, not relevant any more
-                                var overlay = symbol.Attribute("overlay")?.Value;
-                                if (overlay == "Overlay_Planned_mainpower")
-                                {
-                                    device.Flags |= 0x01;
-                                    if (device.Energization[0])
-                                        Warn("Planned device is energized", device.Id, device.Name);
-
-                                }
-
-                                if (overlay == "Overlay_OutOfService_mainpower")
-                                {
-                                    device.Flags |= 0x02;
-                                    if (device.Energization[0])
-                                        Warn("Out of service device is energized", device.Id, device.Name);
-                                }
-                                */
                             }
                         }
                         else
