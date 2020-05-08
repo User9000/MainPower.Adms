@@ -158,7 +158,8 @@ namespace MainPower.Adms.Enricher
             }
             else
             {
-                refVoltage = (double.Parse(Node.Attribute(IdfDeviceBasekV)?.Value) / Math.Sqrt(3)).ToString("F3");
+                refVoltage = Node.Attribute(IdfDeviceBasekV)?.Value;
+                //refVoltage = (double.Parse(Node.Attribute(IdfDeviceBasekV)?.Value) / Math.Sqrt(3)).ToString("F3");
             }
 
             x.SetAttributeValue("s1VoltageReference", refVoltage);

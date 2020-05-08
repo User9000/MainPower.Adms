@@ -249,7 +249,7 @@ namespace MainPower.Adms.Enricher
                 if (string.IsNullOrWhiteSpace(_maxInterruptAmps))
                     _maxInterruptAmps = "15007";
                 if (string.IsNullOrWhiteSpace(_ratedAmps))
-                    _ratedAmps = "407";
+                    _ratedAmps = "507";
 
                 Node.SetAttributeValue(IdfSwitchBasekV, _baseKv);
                 Node.SetAttributeValue(IdfSwitchBidirectional, _bidirectional);
@@ -895,47 +895,59 @@ namespace MainPower.Adms.Enricher
                 //p1FaultInd = for directional devices is the side 1 fault indication, otherwise non directional
                 //p1FaultInd2 = for directional devices is the side 2 fault indication, otherwise not required
 
-                var p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot RØ Fault", _scadaSearchMode);
+                var p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Fault RØ", _scadaSearchMode);
                 if (p1Fault != null)
                 {
                     x.SetAttributeValue("p1FaultInd", p1Fault.Key);
                 }
-                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot OC RØ Trip", _scadaSearchMode)) != null)
+                else
                 {
-                    x.SetAttributeValue("p1FaultInd", p1Fault.Key);
+                    x.SetAttributeValue("p1FaultInd", "");
                 }
-                else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip1 OC", _scadaSearchMode)) != null)
-                {
-                    x.SetAttributeValue("p1FaultInd", p1Fault.Key);
-                }
+                //else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot OC RØ Trip", _scadaSearchMode)) != null)
+                //{
+                    //x.SetAttributeValue("p1FaultInd", p1Fault.Key);
+                //}
+                //else if ((p1Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip1 OC", _scadaSearchMode)) != null)
+                //{
+                    //x.SetAttributeValue("p1FaultInd", p1Fault.Key);
+                //}
 
-                var p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot YØ Fault", _scadaSearchMode);
+                var p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Fault YØ", _scadaSearchMode);
                 if (p2Fault != null)
                 {
                     x.SetAttributeValue("p2FaultInd", p2Fault.Key);
                 }
-                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot OC YØ Trip", _scadaSearchMode)) != null)
+                else
                 {
-                    x.SetAttributeValue("p2FaultInd", p2Fault.Key);
+                    x.SetAttributeValue("p2FaultInd", "");
                 }
-                else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip2 OC", _scadaSearchMode)) != null)
-                {
-                    x.SetAttributeValue("p2FaultInd", p2Fault.Key);
-                }
+                //else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot OC YØ Trip", _scadaSearchMode)) != null)
+                //{
+                //x.SetAttributeValue("p2FaultInd", p2Fault.Key);
+                //}
+                //else if ((p2Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip2 OC", _scadaSearchMode)) != null)
+                //{
+                //x.SetAttributeValue("p2FaultInd", p2Fault.Key);
+                //}
 
-                var p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot RØ Fault", _scadaSearchMode);
+                var p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Fault BØ", _scadaSearchMode);
                 if (p3Fault != null)
                 {
                     x.SetAttributeValue("p3FaultInd", p3Fault.Key);
                 }
-                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot OC RØ Trip", _scadaSearchMode)) != null)
+                else
                 {
-                    x.SetAttributeValue("p3FaultInd", p3Fault.Key);
+                    x.SetAttributeValue("p3FaultInd", "");
                 }
-                else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip3 OC", _scadaSearchMode)) != null)
-                {
-                    x.SetAttributeValue("p3FaultInd", p3Fault.Key);
-                }
+                //else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot OC RØ Trip", _scadaSearchMode)) != null)
+                //{
+                //x.SetAttributeValue("p3FaultInd", p3Fault.Key);
+                //}
+                //else if ((p3Fault = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} Prot Trip3 OC", _scadaSearchMode)) != null)
+                //{
+                //x.SetAttributeValue("p3FaultInd", p3Fault.Key);
+                //}
 
 
                 var hlt = DataManager.I.RequestRecordByColumn<OsiScadaStatus>(ScadaName, $"{_scadaName} WorkTag", _scadaSearchMode);
